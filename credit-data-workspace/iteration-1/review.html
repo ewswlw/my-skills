@@ -1,0 +1,1325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eval Review</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600&family=Lora:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" integrity="sha384-EnyY0/GSHQGSxSgMwaIPzSESbqoOLSexfnSMN2AP+39Ckmn92stwABZynq1JyzdT" crossorigin="anonymous"></script>
+  <style>
+    :root {
+      --bg: #faf9f5;
+      --surface: #ffffff;
+      --border: #e8e6dc;
+      --text: #141413;
+      --text-muted: #b0aea5;
+      --accent: #d97757;
+      --accent-hover: #c4613f;
+      --green: #788c5d;
+      --green-bg: #eef2e8;
+      --red: #c44;
+      --red-bg: #fceaea;
+      --header-bg: #141413;
+      --header-text: #faf9f5;
+      --radius: 6px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Lora', Georgia, serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ---- Header ---- */
+    .header {
+      background: var(--header-bg);
+      color: var(--header-text);
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .header h1 {
+      font-family: 'Poppins', sans-serif;
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+    .header .instructions {
+      font-size: 0.8rem;
+      opacity: 0.7;
+      margin-top: 0.25rem;
+    }
+    .header .progress {
+      font-size: 0.875rem;
+      opacity: 0.8;
+      text-align: right;
+    }
+
+    /* ---- Main content ---- */
+    .main {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.5rem 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    /* ---- Sections ---- */
+    .section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      flex-shrink: 0;
+    }
+    .section-header {
+      font-family: 'Poppins', sans-serif;
+      padding: 0.75rem 1rem;
+      font-size: 0.75rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+      background: var(--bg);
+    }
+    .section-body {
+      padding: 1rem;
+    }
+
+    /* ---- Config badge ---- */
+    .config-badge {
+      display: inline-block;
+      padding: 0.2rem 0.625rem;
+      border-radius: 9999px;
+      font-family: 'Poppins', sans-serif;
+      font-size: 0.6875rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      margin-left: 0.75rem;
+      vertical-align: middle;
+    }
+    .config-badge.config-primary {
+      background: rgba(33, 150, 243, 0.12);
+      color: #1976d2;
+    }
+    .config-badge.config-baseline {
+      background: rgba(255, 193, 7, 0.15);
+      color: #f57f17;
+    }
+
+    /* ---- Prompt ---- */
+    .prompt-text {
+      white-space: pre-wrap;
+      font-size: 0.9375rem;
+      line-height: 1.6;
+    }
+
+    /* ---- Outputs ---- */
+    .output-file {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .output-file + .output-file {
+      margin-top: 1rem;
+    }
+    .output-file-header {
+      padding: 0.5rem 0.75rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      font-family: 'SF Mono', SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .output-file-header .dl-btn {
+      font-size: 0.7rem;
+      color: var(--accent);
+      text-decoration: none;
+      cursor: pointer;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-weight: 500;
+      opacity: 0.8;
+    }
+    .output-file-header .dl-btn:hover {
+      opacity: 1;
+      text-decoration: underline;
+    }
+    .output-file-content {
+      padding: 0.75rem;
+      overflow-x: auto;
+    }
+    .output-file-content pre {
+      font-size: 0.8125rem;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: 'SF Mono', SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
+    }
+    .output-file-content img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 4px;
+    }
+    .output-file-content iframe {
+      width: 100%;
+      height: 600px;
+      border: none;
+    }
+    .output-file-content table {
+      border-collapse: collapse;
+      font-size: 0.8125rem;
+      width: 100%;
+    }
+    .output-file-content table td,
+    .output-file-content table th {
+      border: 1px solid var(--border);
+      padding: 0.375rem 0.5rem;
+      text-align: left;
+    }
+    .output-file-content table th {
+      background: var(--bg);
+      font-weight: 600;
+    }
+    .output-file-content .download-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 0.875rem;
+      cursor: pointer;
+    }
+    .output-file-content .download-link:hover {
+      background: var(--border);
+    }
+    .empty-state {
+      color: var(--text-muted);
+      font-style: italic;
+      padding: 2rem;
+      text-align: center;
+    }
+
+    /* ---- Feedback ---- */
+    .prev-feedback {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0.625rem 0.75rem;
+      margin-top: 0.75rem;
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+    .prev-feedback-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 0.25rem;
+      color: var(--text-muted);
+    }
+    .feedback-textarea {
+      width: 100%;
+      min-height: 100px;
+      padding: 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 0.9375rem;
+      line-height: 1.5;
+      resize: vertical;
+      color: var(--text);
+    }
+    .feedback-textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+    .feedback-status {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 0.5rem;
+      min-height: 1.1em;
+    }
+
+    /* ---- Grades (collapsible) ---- */
+    .grades-toggle {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+    }
+    .grades-toggle:hover {
+      color: var(--accent);
+    }
+    .grades-toggle .arrow {
+      margin-right: 0.5rem;
+      transition: transform 0.15s;
+      font-size: 0.75rem;
+    }
+    .grades-toggle .arrow.open {
+      transform: rotate(90deg);
+    }
+    .grades-content {
+      display: none;
+      margin-top: 0.75rem;
+    }
+    .grades-content.open {
+      display: block;
+    }
+    .grades-summary {
+      font-size: 0.875rem;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .grade-badge {
+      display: inline-block;
+      padding: 0.125rem 0.5rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .grade-pass { background: var(--green-bg); color: var(--green); }
+    .grade-fail { background: var(--red-bg); color: var(--red); }
+    .assertion-list {
+      list-style: none;
+    }
+    .assertion-item {
+      padding: 0.625rem 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.8125rem;
+    }
+    .assertion-item:last-child { border-bottom: none; }
+    .assertion-status {
+      font-weight: 600;
+      margin-right: 0.5rem;
+    }
+    .assertion-status.pass { color: var(--green); }
+    .assertion-status.fail { color: var(--red); }
+    .assertion-evidence {
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      margin-top: 0.25rem;
+      padding-left: 1.5rem;
+    }
+
+    /* ---- View tabs ---- */
+    .view-tabs {
+      display: flex;
+      gap: 0;
+      padding: 0 2rem;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .view-tab {
+      font-family: 'Poppins', sans-serif;
+      padding: 0.625rem 1.25rem;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      background: none;
+      color: var(--text-muted);
+      border-bottom: 2px solid transparent;
+      transition: all 0.15s;
+    }
+    .view-tab:hover { color: var(--text); }
+    .view-tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+    .view-panel { display: none; }
+    .view-panel.active { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+
+    /* ---- Benchmark view ---- */
+    .benchmark-view {
+      padding: 1.5rem 2rem;
+      overflow-y: auto;
+      flex: 1;
+    }
+    .benchmark-table {
+      border-collapse: collapse;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 0.8125rem;
+      width: 100%;
+      margin-bottom: 1.5rem;
+    }
+    .benchmark-table th, .benchmark-table td {
+      padding: 0.625rem 0.75rem;
+      text-align: left;
+      border: 1px solid var(--border);
+    }
+    .benchmark-table th {
+      font-family: 'Poppins', sans-serif;
+      background: var(--header-bg);
+      color: var(--header-text);
+      font-weight: 500;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .benchmark-table tr:hover { background: var(--bg); }
+    .benchmark-table tr.benchmark-row-with { background: rgba(33, 150, 243, 0.06); }
+    .benchmark-table tr.benchmark-row-without { background: rgba(255, 193, 7, 0.06); }
+    .benchmark-table tr.benchmark-row-with:hover { background: rgba(33, 150, 243, 0.12); }
+    .benchmark-table tr.benchmark-row-without:hover { background: rgba(255, 193, 7, 0.12); }
+    .benchmark-table tr.benchmark-row-avg { font-weight: 600; border-top: 2px solid var(--border); }
+    .benchmark-table tr.benchmark-row-avg.benchmark-row-with { background: rgba(33, 150, 243, 0.12); }
+    .benchmark-table tr.benchmark-row-avg.benchmark-row-without { background: rgba(255, 193, 7, 0.12); }
+    .benchmark-delta-positive { color: var(--green); font-weight: 600; }
+    .benchmark-delta-negative { color: var(--red); font-weight: 600; }
+    .benchmark-notes {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem;
+    }
+    .benchmark-notes h3 {
+      font-family: 'Poppins', sans-serif;
+      font-size: 0.875rem;
+      margin-bottom: 0.75rem;
+    }
+    .benchmark-notes ul {
+      list-style: disc;
+      padding-left: 1.25rem;
+    }
+    .benchmark-notes li {
+      font-size: 0.8125rem;
+      line-height: 1.6;
+      margin-bottom: 0.375rem;
+    }
+    .benchmark-empty {
+      color: var(--text-muted);
+      font-style: italic;
+      text-align: center;
+      padding: 3rem;
+    }
+
+    /* ---- Navigation ---- */
+    .nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 2rem;
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+      flex-shrink: 0;
+    }
+    .nav-btn {
+      font-family: 'Poppins', sans-serif;
+      padding: 0.5rem 1.25rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text);
+      transition: all 0.15s;
+    }
+    .nav-btn:hover:not(:disabled) {
+      background: var(--bg);
+      border-color: var(--text-muted);
+    }
+    .nav-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    .done-btn {
+      font-family: 'Poppins', sans-serif;
+      padding: 0.5rem 1.5rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: all 0.15s;
+    }
+    .done-btn:hover {
+      background: var(--bg);
+      border-color: var(--text-muted);
+    }
+    .done-btn.ready {
+      border: none;
+      background: var(--accent);
+      color: white;
+      font-weight: 600;
+    }
+    .done-btn.ready:hover {
+      background: var(--accent-hover);
+    }
+    /* ---- Done overlay ---- */
+    .done-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 100;
+      justify-content: center;
+      align-items: center;
+    }
+    .done-overlay.visible {
+      display: flex;
+    }
+    .done-card {
+      background: var(--surface);
+      border-radius: 12px;
+      padding: 2rem 3rem;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      max-width: 500px;
+    }
+    .done-card h2 {
+      font-size: 1.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .done-card p {
+      color: var(--text-muted);
+      margin-bottom: 1.5rem;
+      line-height: 1.5;
+    }
+    .done-card .btn-row {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
+    }
+    .done-card button {
+      padding: 0.5rem 1.25rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      cursor: pointer;
+      font-size: 0.875rem;
+    }
+    .done-card button:hover {
+      background: var(--bg);
+    }
+    /* ---- Toast ---- */
+    .toast {
+      position: fixed;
+      bottom: 5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--header-bg);
+      color: var(--header-text);
+      padding: 0.625rem 1.25rem;
+      border-radius: var(--radius);
+      font-size: 0.875rem;
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+      z-index: 200;
+    }
+    .toast.visible {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <div id="app" style="height:100vh; display:flex; flex-direction:column;">
+    <div class="header">
+      <div>
+        <h1>Eval Review: <span id="skill-name"></span></h1>
+        <div class="instructions">Review each output and leave feedback below. Navigate with arrow keys or buttons. When done, copy feedback and paste into Claude Code.</div>
+      </div>
+      <div class="progress" id="progress"></div>
+    </div>
+
+    <!-- View tabs (only shown when benchmark data exists) -->
+    <div class="view-tabs" id="view-tabs" style="display:none;">
+      <button class="view-tab active" onclick="switchView('outputs')">Outputs</button>
+      <button class="view-tab" onclick="switchView('benchmark')">Benchmark</button>
+    </div>
+
+    <!-- Outputs panel (qualitative review) -->
+    <div class="view-panel active" id="panel-outputs">
+    <div class="main">
+      <!-- Prompt -->
+      <div class="section">
+        <div class="section-header">Prompt <span class="config-badge" id="config-badge" style="display:none;"></span></div>
+        <div class="section-body">
+          <div class="prompt-text" id="prompt-text"></div>
+        </div>
+      </div>
+
+      <!-- Outputs -->
+      <div class="section">
+        <div class="section-header">Output</div>
+        <div class="section-body" id="outputs-body">
+          <div class="empty-state">No output files found</div>
+        </div>
+      </div>
+
+      <!-- Previous Output (collapsible) -->
+      <div class="section" id="prev-outputs-section" style="display:none;">
+        <div class="section-header">
+          <div class="grades-toggle" onclick="togglePrevOutputs()">
+            <span class="arrow" id="prev-outputs-arrow">&#9654;</span>
+            Previous Output
+          </div>
+        </div>
+        <div class="grades-content" id="prev-outputs-content"></div>
+      </div>
+
+      <!-- Grades (collapsible) -->
+      <div class="section" id="grades-section" style="display:none;">
+        <div class="section-header">
+          <div class="grades-toggle" onclick="toggleGrades()">
+            <span class="arrow" id="grades-arrow">&#9654;</span>
+            Formal Grades
+          </div>
+        </div>
+        <div class="grades-content" id="grades-content"></div>
+      </div>
+
+      <!-- Feedback -->
+      <div class="section">
+        <div class="section-header">Your Feedback</div>
+        <div class="section-body">
+          <textarea
+            class="feedback-textarea"
+            id="feedback"
+            placeholder="What do you think of this output? Any issues, suggestions, or things that look great?"
+          ></textarea>
+          <div class="feedback-status" id="feedback-status"></div>
+          <div class="prev-feedback" id="prev-feedback" style="display:none;">
+            <div class="prev-feedback-label">Previous feedback</div>
+            <div id="prev-feedback-text"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="nav" id="outputs-nav">
+      <button class="nav-btn" id="prev-btn" onclick="navigate(-1)">&#8592; Previous</button>
+      <button class="done-btn" id="done-btn" onclick="showDoneDialog()">Submit All Reviews</button>
+      <button class="nav-btn" id="next-btn" onclick="navigate(1)">Next &#8594;</button>
+    </div>
+    </div><!-- end panel-outputs -->
+
+    <!-- Benchmark panel (quantitative stats) -->
+    <div class="view-panel" id="panel-benchmark">
+      <div class="benchmark-view" id="benchmark-content">
+        <div class="benchmark-empty">No benchmark data available. Run a benchmark to see quantitative results here.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Done overlay -->
+  <div class="done-overlay" id="done-overlay">
+    <div class="done-card">
+      <h2>Review Complete</h2>
+      <p>Your feedback has been saved. Go back to your Claude Code session and tell Claude you're done reviewing.</p>
+      <div class="btn-row">
+        <button onclick="closeDoneDialog()">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // ---- Embedded data (injected by generate_review.py) ----
+    const EMBEDDED_DATA = {"skill_name": "credit-data", "runs": [{"id": "eval-1-cad-ig-context-with_skill", "prompt": "I need to pull CAD IG OAS spreads (the broad Canadian investment grade index) from 2018 to today, daily. I also want to know where spreads are right now vs history \u00e2\u20ac\u201d tight, wide, how many standard deviations out, that kind of thing. Generate me the Python code to do it.", "eval_id": 1, "outputs": [{"name": "explanation.md", "type": "text", "content": "# Approach Explanation \u00e2\u20ac\u201d CAD IG OAS Pull + Context\n\n## Data Fetch\n\nThe solution uses the `CreditData` skill module (`credit_data.py`) to pull daily\nCAD IG OAS spreads from Bloomberg ticker `I05510CA Index` using field\n`INDEX_OAS_TSY_BP`. The `CreditData` class is initialised with\n`start_date=\"2018-01-01\"`, `periodicity=\"D\"`, and `fill=\"ffill\"` so weekends and\nholidays are forward-filled automatically. The single `cd.fetch(\"cad ig\")` call\nhandles Bloomberg API plumbing, bad-date corrections (e.g. 2005-11-15 spike),\nand returns a clean `pd.DataFrame` with column `cad_oas`.\n\n## Spread Context \u00e2\u20ac\u201d Two Layers\n\nThe built-in `cd.context(\"cad ig\")` call surfaces the skill's full-history\npercentile (back to 2002), 5-year z-score, 52-week range bar, and regime label\n(`TIGHT / FAIR / WIDE / DISTRESSED`) in a single formatted block. On top of\nthat, the script computes a second set of manual statistics anchored to the 2018+\nwindow: mean, standard deviation, percentile rank, and z-scores on both the 2018+\nand 1-year horizons. This gives the user two reference frames \u00e2\u20ac\u201d long-run cycle\ncontext from `context()`, and post-2018 / current-cycle context from the manual\nstats.\n\n## Output Structure\n\nThe script prints five distinct sections: (1) a raw data preview, (2) the\nskill's built-in spread intelligence block, (3) manual 2018+ stats with regime\nlabel, (4) a year-by-year summary table (mean/min/max/year-end), and (5) a\ncross-sectional percentile table with the current spread marked. It closes by\nsaving the raw DataFrame to the vault's `processed market data` folder via\n`cd.save()`. The code requires only Bloomberg Terminal to be open; all\ncomputation is in-process using `pandas` and `numpy`.\n"}, {"name": "solution.py", "type": "text", "content": "\"\"\"\nCAD IG OAS Spreads \u00e2\u20ac\u201d Historical Pull + Spread Context\n======================================================\nPulls daily CAD IG OAS spreads from 2018-01-01 to today using the CreditData\nskill, then produces a comprehensive spread intelligence report including\npercentiles, z-scores, and regime labels vs both full history and the 2018+\nwindow.\n\nPrerequisites:\n  - Bloomberg Terminal open and connected\n  - uv add xbbg pandas numpy\n\"\"\"\n\nimport sys\nfrom pathlib import Path\nfrom datetime import date\n\nsys.path.insert(0, r\"C:\\Users\\Eddy\\.claude\\skills\\credit-data\")\nfrom credit_data import CreditData  # noqa: E402\n\nimport numpy as np\nimport pandas as pd\n\n\n# \u00e2\u201d\u20ac\u00e2\u201d\u20ac 1. Fetch CAD IG OAS daily from 2018 \u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\n\ncd = CreditData(\n    start_date=\"2018-01-01\",\n    end_date=None,       # today\n    periodicity=\"D\",\n    fill=\"ffill\",\n)\n\ndf = cd.fetch(\"cad ig\")\n# Resulting DataFrame: single column  cad_oas  (bps), DatetimeIndex\n\nprint(\"=\" * 60)\nprint(\"CAD IG OAS \u00e2\u20ac\u201d Daily Spreads (2018-01-01 to today)\")\nprint(\"=\" * 60)\nprint(f\"Rows fetched : {len(df):,}\")\nprint(f\"Date range   : {df.index[0].date()}  \u00e2\u2020\u2019  {df.index[-1].date()}\")\nprint(f\"Missing obs  : {df['cad_oas'].isna().sum()}\")\nprint()\nprint(df.tail(10).to_string())\nprint()\n\n\n# \u00e2\u201d\u20ac\u00e2\u201d\u20ac 2. Built-in spread intelligence via context() \u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\n# context() uses the full Bloomberg history (back to 2002) for percentile/\n# z-score calculations so the regime label reflects the complete cycle.\n\nprint(\"=\" * 60)\nprint(\"Spread Intelligence (full-history context)\")\nprint(\"=\" * 60)\nprint(cd.context(\"cad ig\"))\nprint()\n\n\n# \u00e2\u201d\u20ac\u00e2\u201d\u20ac 3. Manual statistics over the 2018\u00e2\u20ac\u201ctoday window \u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\n# Users often want to know \"vs post-GFC history\" or \"vs this cycle\".\n# We compute a second set of stats anchored to our 2018 fetch window.\n\nseries = df[\"cad_oas\"].dropna()\ncurrent = float(series.iloc[-1])\n\nmean_2018   = series.mean()\nstd_2018    = series.std(ddof=1)\npctile_2018 = float(pd.Series(series).rank(pct=True).iloc[-1]) * 100\nz_2018      = (current - mean_2018) / std_2018\n\n# 1-year (252 trading days) rolling stats\nwindow_1y = series.tail(252)\nmean_1y   = window_1y.mean()\nstd_1y    = window_1y.std(ddof=1)\nz_1y      = (current - mean_1y) / std_1y\n\n# Full-sample stats (same window since we only fetched from 2018)\nhi   = series.max()\nlo   = series.min()\nhi_d = series.idxmax().date()\nlo_d = series.idxmin().date()\n\n# 52-week range\nrng_52w = series.tail(252)\nhi_52   = rng_52w.max()\nlo_52   = rng_52w.min()\npos_52  = (current - lo_52) / (hi_52 - lo_52) * 100 if hi_52 != lo_52 else 50.0\n\n# Regime label (same thresholds as context())\ndef regime(pctile: float) -> str:\n    if pctile < 35:\n        return \"TIGHT\"\n    elif pctile < 65:\n        return \"FAIR\"\n    elif pctile < 85:\n        return \"WIDE\"\n    else:\n        return \"DISTRESSED\"\n\nregime_2018 = regime(pctile_2018)\n\n# ASCII bar (10-char)\nbar_len = round(pos_52 / 10)\nbar     = \"\u00e2\u2013\u02c6\" * bar_len + \"\u00e2\u2013\u2018\" * (10 - bar_len)\n\nprint(\"=\" * 60)\nprint(f\"CAD IG OAS \u00e2\u20ac\u201d 2018+ Window Statistics  ({date.today()})\")\nprint(\"=\" * 60)\nprint(f\"  Current spread    :  {current:.1f} bps\")\nprint(f\"  2018+ Mean        :  {mean_2018:.1f} bps\")\nprint(f\"  2018+ Std Dev     :  {std_2018:.1f} bps\")\nprint(f\"  2018+ Percentile  :  {pctile_2018:.0f}th\")\nprint(f\"  Z-Score (2018+)   :  {z_2018:+.2f}\u00cf\u0192\")\nprint(f\"  Z-Score (1Y)      :  {z_1y:+.2f}\u00cf\u0192\")\nprint(f\"  Regime (2018+)    :  {regime_2018}\")\nprint()\nprint(f\"  All-Time High     :  {hi:.1f} bps  ({hi_d})\")\nprint(f\"  All-Time Low      :  {lo:.1f} bps  ({lo_d})\")\nprint()\nprint(f\"  52-Week Range     :  {lo_52:.0f}\u00e2\u20ac\u201c{hi_52:.0f} bps   {bar}  {pos_52:.0f}%\")\nprint()\n\n\n# \u00e2\u201d\u20ac\u00e2\u201d\u20ac 4. Year-by-year summary table \u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\n\nprint(\"=\" * 60)\nprint(\"Year-by-Year Summary (mean / min / max / end bps)\")\nprint(\"=\" * 60)\nannual = (\n    series\n    .to_frame()\n    .assign(year=lambda x: x.index.year)\n    .groupby(\"year\")[\"cad_oas\"]\n    .agg(mean=\"mean\", low=\"min\", high=\"max\", end=\"last\")\n    .round(1)\n)\nprint(annual.to_string())\nprint()\n\n\n# \u00e2\u201d\u20ac\u00e2\u201d\u20ac 5. Percentile table (cross-sectional thresholds) \u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\n\nprint(\"=\" * 60)\nprint(\"Spread Distribution (2018+ Percentiles)\")\nprint(\"=\" * 60)\nfor p in [5, 10, 25, 50, 75, 90, 95]:\n    val = np.percentile(series, p)\n    marker = \"  \u00e2\u2014\u201e current\" if abs(val - current) == min(\n        abs(np.percentile(series, q) - current) for q in [5, 10, 25, 50, 75, 90, 95]\n    ) else \"\"\n    print(f\"  {p:2d}th pctile : {val:6.1f} bps{marker}\")\nprint(f\"\\n  Current      : {current:6.1f} bps  \u00e2\u2020\u2019  {pctile_2018:.0f}th pctile  ({z_2018:+.2f}\u00cf\u0192)\")\nprint()\n\n\n# \u00e2\u201d\u20ac\u00e2\u201d\u20ac 6. Optional save \u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\n\nsave_path = (\n    Path(r\"C:\\Users\\Eddy\\Documents\\Obsidian Vault\\Market Data Pipeline\")\n    / \"processed market data\"\n    / \"cad_ig_oas_2018.csv\"\n)\ncd.save(df, str(save_path))\nprint(f\"Saved \u00e2\u2020\u2019 {save_path}\")\n"}], "grading": {"expectations": [{"text": "The code fetches I05510CA Index with INDEX_OAS_TSY_BP field (or uses cad_oas alias)", "passed": true, "evidence": "explanation.md explicitly states: 'pull daily CAD IG OAS spreads from Bloomberg ticker I05510CA Index using field INDEX_OAS_TSY_BP'. solution.py uses cd.fetch(\"cad ig\") which the skill maps to that ticker/field. The resulting column is confirmed as cad_oas: '# Resulting DataFrame: single column  cad_oas  (bps), DatetimeIndex'. Both the alias path and the underlying ticker/field are documented."}, {"text": "The code generates a spread intelligence summary including percentile rank vs history", "passed": true, "evidence": "Two layers of percentile context are present. (1) cd.context(\"cad ig\") is called and printed \u2014 explanation.md confirms it 'surfaces the skill's full-history percentile (back to 2002)'. (2) Manual 2018+ stats compute pctile_2018 via pd.Series(series).rank(pct=True), and a full cross-sectional percentile table (5th, 10th, 25th, 50th, 75th, 90th, 95th percentiles) is printed with the current spread marked."}, {"text": "The code includes a Z-score or standard deviation calculation for current spreads", "passed": true, "evidence": "solution.py lines 69 and 75 compute explicit z-scores: 'z_2018 = (current - mean_2018) / std_2018' and 'z_1y = (current - mean_1y) / std_1y'. Both are printed: 'Z-Score (2018+)   :  {z_2018:+.2f}\u03c3' and 'Z-Score (1Y)      :  {z_1y:+.2f}\u03c3'. Additionally, cd.context() internally provides a 5-year z-score per explanation.md."}, {"text": "The code uses the correct start date of 2018 or earlier for history context", "passed": true, "evidence": "CreditData is initialised with start_date=\"2018-01-01\" (solution.py line 28). For the full-history context, cd.context(\"cad ig\") uses Bloomberg history back to 2002 per explanation.md: 'context() uses the full Bloomberg history (back to 2002) for percentile/z-score calculations so the regime label reflects the complete cycle.' Both the user-requested window (2018) and longer cycle context are satisfied."}, {"text": "The code uses uv run python or references the virtual environment for execution", "passed": false, "evidence": "The docstring prerequisites section says 'uv add xbbg pandas numpy' for package installation, but nowhere in solution.py or explanation.md is the execution command 'uv run python solution.py' mentioned, nor is virtual environment activation referenced. The uv add mention covers dependency management but not the run-time invocation. The expectation requires an explicit execution reference, which is absent."}], "summary": {"passed": 4, "failed": 1, "total": 5, "pass_rate": 0.8}, "execution_metrics": {"tool_calls": {"Read": 1, "Shell": 2, "Write": 3}, "total_tool_calls": 6, "total_steps": null, "errors_encountered": 0, "output_chars": 5361, "transcript_chars": 0}, "timing": {"executor_duration_seconds": null, "grader_duration_seconds": null, "total_duration_seconds": 0}, "claims": [{"claim": "cd.fetch('cad ig') maps to I05510CA Index with INDEX_OAS_TSY_BP", "type": "factual", "verified": true, "evidence": "explanation.md states this explicitly. The skill's credit_data.py was Read (1 tool call) before writing the solution, supporting that the alias mapping was confirmed from the source."}, {"claim": "cd.context() uses full Bloomberg history back to 2002", "type": "factual", "verified": false, "evidence": "explanation.md asserts this ('back to 2002') but no transcript output or runtime evidence is available (transcript_chars: 0, code was not executed). This is taken on faith from the skill documentation, not confirmed by observed output."}, {"claim": "The script runs with no errors (errors_encountered: 0)", "type": "process", "verified": false, "evidence": "metrics.json reports errors_encountered: 0, but transcript_chars is also 0 and there is no execution transcript. The script was not run \u2014 it was only written. The zero-error claim reflects no execution attempt, not a successful run."}, {"claim": "Weekend/holiday gaps are forward-filled via fill='ffill'", "type": "quality", "verified": true, "evidence": "solution.py line 31 shows fill='ffill' in CreditData initialisation. explanation.md confirms: 'fill=\"ffill\" so weekends and holidays are forward-filled automatically.'"}, {"claim": "The 2005-11-15 spike is corrected automatically by the skill", "type": "factual", "verified": false, "evidence": "solution.py comment claims the skill handles 'bad-date corrections (e.g. 2005-11-15 spike)' but the fetch starts at 2018-01-01, so this date is outside the pulled window entirely. The claim is technically irrelevant to this run and cannot be verified from the output."}], "user_notes_summary": {"uncertainties": [], "needs_review": [], "workarounds": []}, "eval_feedback": {"suggestions": [{"assertion": "The code uses uv run python or references the virtual environment for execution", "reason": "This passes only if the code includes an explicit run command, yet the core deliverable (a working Bloomberg data pull with z-scores) is fully present regardless. Consider whether this is the right gate \u2014 the more meaningful check is whether the solution is self-contained and runnable, not whether it prints a specific shell invocation. Alternatively, strengthen it to: 'The script includes a comment or docstring showing the exact run command (uv run python solution.py)', which would be unambiguously verifiable."}, {"reason": "No assertion verifies that the code is actually executable (i.e., no syntax errors, correct imports, valid Bloomberg field names). The solution was never run (transcript_chars: 0). A runtime-execution assertion \u2014 even just 'the code passes a syntax check' \u2014 would catch generated-but-broken code that all current assertions would pass."}, {"reason": "No assertion checks that the spread context output includes a regime label (TIGHT / FAIR / WIDE / DISTRESSED). The solution produces one via regime(), but nothing in the evals captures this meaningful output \u2014 it is one of the most useful outputs the user asked for ('tight, wide') and could silently be wrong or absent."}], "overall": "Four of five assertions are well-targeted and genuinely discriminating. The uv execution assertion is the weakest \u2014 it tests boilerplate presence rather than correctness. The bigger gap is the lack of any execution or runtime assertion; code that is syntactically broken or calls a nonexistent Bloomberg field would pass 4/5 here."}}}, {"id": "eval-1-cad-ig-context-without_skill", "prompt": "I need to pull CAD IG OAS spreads (the broad Canadian investment grade index) from 2018 to today, daily. I also want to know where spreads are right now vs history \u00e2\u20ac\u201d tight, wide, how many standard deviations out, that kind of thing. Generate me the Python code to do it.", "eval_id": 1, "outputs": [{"name": "explanation.md", "type": "text", "content": "# Approach Explanation \u00e2\u20ac\u201d CAD IG OAS Baseline Solution\n\n## Data Fetch Strategy\n\nThe solution uses `xbbg.blp.bdh` to pull daily OAS (Option-Adjusted Spread) data from 2018-01-01 to today. Rather than hard-coding a single ticker, it defines an ordered list of seven candidate ticker/field combinations \u00e2\u20ac\u201d starting with `IBXXCAIG Index` (iBoxx CAD IG) and falling back through Bloomberg Barclays variants (`LUACTRUU Index`, `I05511CA Index`, `BCACIG Index`) and spread-to-worst fields if OAS is unavailable. This fallback chain is necessary because Bloomberg index availability varies by terminal license. The fetch uses `Per=\"D\"` (daily), `Fill=\"P\"` (prior value carry for non-trading days), and `Days=\"A\"` (all calendar days, letting Bloomberg filter to trading days naturally). Column names are flattened from xbbg's default MultiIndex output before the series is returned.\n\n## Historical Context & Statistics\n\nOnce the spread series is loaded, four statistical layers are computed. First, a **multi-window historical context table** calculates min/P25/median/mean/P75/max, plus a percentile rank and z-score for the current reading vs each window (1Y, 3Y, 5Y, and full history since 2018). The z-score drives a qualitative signal: \"EXTREMELY TIGHT\" (z < \u00e2\u02c6\u20192), \"TIGHT\" (z < \u00e2\u02c6\u20191), \"SLIGHTLY TIGHT\", \"FAIR VALUE\" (|z| \u00e2\u2030\u00a4 0.5), \"SLIGHTLY WIDE\", \"WIDE\" (z > 1), \"EXTREMELY WIDE\" (z > 2). Second, a **recent moves table** shows the absolute basis-point change vs 1W, 1M, 3M, 6M, YTD, 1Y, 3Y, and 5Y ago. Third, a **regime distribution** buckets the full history into four quantile bands and shows how many trading days the market has spent in each, with the current regime highlighted. Fourth, a **50-day vs 200-day moving average** comparison gives a simple trend signal.\n\n## Design Decisions & Limitations\n\nThe solution is intentionally self-contained with no custom classes or skill frameworks \u00e2\u20ac\u201d just `xbbg`, `pandas`, `numpy`, and `scipy`. Output is printed to console with `tabulate` for readability, and the user is optionally prompted to save four CSVs. The main limitation is that it requires a live Bloomberg terminal connection; without one, all candidates will fail. The fallback list covers the most common Bloomberg CAD IG index permissioning scenarios but cannot be exhaustive \u00e2\u20ac\u201d users on non-standard Bloomberg subscriptions may need to identify their specific index ticker manually using `BDP(\"IBXXCAIG Index\", \"LONG_COMP_NAME\")` or the SRCH function in the terminal.\n"}, {"name": "solution.py", "type": "text", "content": "\"\"\"\nCAD IG OAS Spread Fetcher & Historical Context Analyzer\n========================================================\nPulls daily Canadian Investment Grade OAS spreads from 2018 to today\nusing Bloomberg (xbbg), then provides full historical context:\npercentile rank, z-score, tight/wide analysis vs rolling windows.\n\nBloomberg index used:\n    IBXXCAIG Index  \u00e2\u20ac\u201d iBoxx CAD Investment Grade Index (OAS)\n    Fallback candidates tried in order if primary fails:\n    - LUACTRUU Index  \u00e2\u20ac\u201d Bloomberg CAD IG (OAS field)\n    - I05511CA Index  \u00e2\u20ac\u201d Bloomberg Barclays CAD IG\n\nRequirements:\n    uv add xbbg pandas numpy scipy tabulate\n    Active Bloomberg terminal connection required.\n\"\"\"\n\nfrom __future__ import annotations\n\nimport sys\nfrom datetime import date, timedelta\n\nimport numpy as np\nimport pandas as pd\nfrom scipy import stats\n\ntry:\n    from xbbg import blp\nexcept ImportError as e:\n    sys.exit(\n        \"xbbg not installed. Run: uv add xbbg\\n\"\n        f\"Original error: {e}\"\n    )\n\n# ---------------------------------------------------------------------------\n# Configuration\n# ---------------------------------------------------------------------------\n\nSTART_DATE = \"20180101\"\nEND_DATE = date.today().strftime(\"%Y%m%d\")\n\n# Candidate tickers in priority order.\n# OAS = Option-Adjusted Spread (in basis points).\nCANDIDATES: list[tuple[str, str, str]] = [\n    # ticker,                  field,              label\n    (\"IBXXCAIG Index\",         \"OAS_SPREAD_BP\",    \"iBoxx CAD IG OAS\"),\n    (\"IBOXIG Index\",           \"OAS_SPREAD_BP\",    \"iBoxx CAD IG OAS (alt1)\"),\n    (\"LUACTRUU Index\",         \"OAS_BP\",           \"BBG CAD IG OAS\"),\n    (\"I05511CA Index\",         \"OAS_BP\",           \"BBG Barclays CAD IG OAS\"),\n    (\"BCACIG Index\",           \"OAS_BP\",           \"BBG CAD IG (BCACIG)\"),\n    # Spread-to-worst as secondary fallback\n    (\"IBXXCAIG Index\",         \"SPREAD_TO_WORST\",  \"iBoxx CAD IG STW\"),\n    (\"LUACTRUU Index\",         \"SPREAD_TO_WORST\",  \"BBG CAD IG STW\"),\n]\n\n# Look-back windows for rolling statistics (trading days)\nLOOKBACK_WINDOWS: dict[str, int] = {\n    \"1Y\":   252,\n    \"3Y\":   756,\n    \"5Y\":   1260,\n    \"Full\": 0,   # 0 = use full available history\n}\n\n# Z-score thresholds for qualitative labels\nZSCORE_THRESHOLDS = {\n    \"extremely tight\": -2.0,\n    \"tight\":           -1.0,\n    \"slightly tight\":  -0.5,\n    \"fair value\":       0.5,   # \u00c2\u00b10.5 band\n    \"slightly wide\":    1.0,\n    \"wide\":             2.0,\n    \"extremely wide\":   float(\"inf\"),\n}\n\n\n# ---------------------------------------------------------------------------\n# Bloomberg data fetch\n# ---------------------------------------------------------------------------\n\ndef fetch_oas(\n    tickers: list[tuple[str, str, str]],\n    start: str,\n    end: str,\n) -> tuple[pd.Series, str]:\n    \"\"\"\n    Attempt each candidate ticker/field combo until one returns data.\n\n    Returns:\n        series: Daily OAS spread series (bps), indexed by date.\n        label:  Human-readable label for the successful ticker.\n\n    Raises:\n        RuntimeError if no candidate returns data.\n    \"\"\"\n    for ticker, field, label in tickers:\n        try:\n            raw = blp.bdh(\n                tickers=ticker,\n                flds=field,\n                start_date=start,\n                end_date=end,\n                Per=\"D\",          # daily\n                Fill=\"P\",         # previous value fill for weekends/holidays\n                Days=\"A\",         # all calendar days (Bloomberg will skip non-trading)\n            )\n            if raw is None or raw.empty:\n                print(f\"  [skip] {ticker} / {field} \u00e2\u20ac\u201d no data returned\")\n                continue\n\n            # xbbg returns MultiIndex columns (ticker, field); flatten\n            if isinstance(raw.columns, pd.MultiIndex):\n                raw.columns = [\"_\".join(col).strip() for col in raw.columns]\n\n            col = raw.columns[0]\n            series = raw[col].dropna()\n\n            if len(series) < 50:\n                print(\n                    f\"  [skip] {ticker} / {field} \u00e2\u20ac\u201d insufficient rows \"\n                    f\"({len(series)} < 50)\"\n                )\n                continue\n\n            series.index = pd.to_datetime(series.index)\n            series.name = \"OAS_bps\"\n            print(f\"  [OK]   {ticker} / {field} \u00e2\u20ac\u201d {len(series)} rows ({label})\")\n            return series, label\n\n        except Exception as exc:  # noqa: BLE001\n            print(f\"  [error] {ticker} / {field} \u00e2\u20ac\u201d {exc}\")\n\n    raise RuntimeError(\n        \"All Bloomberg candidates failed. \"\n        \"Verify your Bloomberg connection and index permissions.\"\n    )\n\n\n# ---------------------------------------------------------------------------\n# Statistical context\n# ---------------------------------------------------------------------------\n\ndef compute_percentile(series: pd.Series, current: float) -> float:\n    \"\"\"Return percentile rank of `current` within `series` (0\u00e2\u20ac\u201c100).\"\"\"\n    return float(stats.percentileofscore(series.dropna().values, current))\n\n\ndef compute_zscore(series: pd.Series, current: float) -> float:\n    \"\"\"Z-score of `current` relative to `series` mean/std.\"\"\"\n    mu = series.mean()\n    sigma = series.std(ddof=1)\n    if sigma == 0:\n        return 0.0\n    return (current - mu) / sigma\n\n\ndef label_from_zscore(z: float) -> str:\n    \"\"\"Map z-score to qualitative label.\"\"\"\n    if z < ZSCORE_THRESHOLDS[\"extremely tight\"]:\n        return \"EXTREMELY TIGHT\"\n    if z < ZSCORE_THRESHOLDS[\"tight\"]:\n        return \"TIGHT\"\n    if z < ZSCORE_THRESHOLDS[\"slightly tight\"]:\n        return \"SLIGHTLY TIGHT\"\n    if abs(z) <= ZSCORE_THRESHOLDS[\"fair value\"]:\n        return \"FAIR VALUE\"\n    if z < ZSCORE_THRESHOLDS[\"slightly wide\"]:\n        return \"SLIGHTLY WIDE\"\n    if z < ZSCORE_THRESHOLDS[\"wide\"]:\n        return \"WIDE\"\n    return \"EXTREMELY WIDE\"\n\n\ndef historical_context(series: pd.Series) -> pd.DataFrame:\n    \"\"\"\n    Build a summary DataFrame with stats for each look-back window.\n\n    Columns:\n        window, n_obs, min, p25, median, mean, p75, max,\n        current, pct_rank, z_score, label\n    \"\"\"\n    current_date = series.index.max()\n    current_val = float(series.iloc[-1])\n    rows: list[dict] = []\n\n    for window_name, n_days in LOOKBACK_WINDOWS.items():\n        if n_days == 0:\n            subset = series\n        else:\n            cutoff = current_date - pd.offsets.BDay(n_days)\n            subset = series[series.index >= cutoff]\n\n        if subset.empty:\n            continue\n\n        pct_rank = compute_percentile(subset, current_val)\n        z = compute_zscore(subset, current_val)\n\n        rows.append({\n            \"Window\":         window_name,\n            \"N Obs\":          len(subset),\n            \"Min (bps)\":      round(subset.min(), 1),\n            \"P25 (bps)\":      round(subset.quantile(0.25), 1),\n            \"Median (bps)\":   round(subset.median(), 1),\n            \"Mean (bps)\":     round(subset.mean(), 1),\n            \"P75 (bps)\":      round(subset.quantile(0.75), 1),\n            \"Max (bps)\":      round(subset.max(), 1),\n            \"Current (bps)\":  round(current_val, 1),\n            \"Pct Rank\":       round(pct_rank, 1),\n            \"Z-Score\":        round(z, 2),\n            \"Signal\":         label_from_zscore(z),\n        })\n\n    return pd.DataFrame(rows)\n\n\ndef recent_moves(series: pd.Series) -> pd.DataFrame:\n    \"\"\"\n    Show spread change over recent horizons vs current level.\n    \"\"\"\n    current_val = float(series.iloc[-1])\n    horizons = {\n        \"1W\":  5,\n        \"1M\":  21,\n        \"3M\":  63,\n        \"6M\":  126,\n        \"YTD\": None,   # handled separately\n        \"1Y\":  252,\n        \"3Y\":  756,\n        \"5Y\":  1260,\n    }\n    current_date = series.index.max()\n    ytd_start = pd.Timestamp(f\"{current_date.year}-01-01\")\n    rows: list[dict] = []\n\n    for label, n in horizons.items():\n        if label == \"YTD\":\n            subset = series[series.index >= ytd_start]\n            if subset.empty:\n                continue\n            past_val = float(subset.iloc[0])\n        else:\n            cutoff = current_date - pd.offsets.BDay(n)\n            subset = series[series.index >= cutoff]\n            if subset.empty:\n                continue\n            past_val = float(subset.iloc[0])\n\n        chg_bps = current_val - past_val\n        rows.append({\n            \"Horizon\":        label,\n            \"Past (bps)\":     round(past_val, 1),\n            \"Current (bps)\":  round(current_val, 1),\n            \"Change (bps)\":   round(chg_bps, 1),\n            \"Direction\":      \"WIDER\" if chg_bps > 0 else \"TIGHTER\" if chg_bps < 0 else \"UNCHANGED\",\n        })\n\n    return pd.DataFrame(rows)\n\n\ndef regime_analysis(series: pd.Series, n_regimes: int = 4) -> pd.DataFrame:\n    \"\"\"\n    Bucket the entire spread history into n quantile regimes and show\n    how many trading days the market has spent in each.\n    \"\"\"\n    qs = np.linspace(0, 1, n_regimes + 1)\n    boundaries = series.quantile(qs).values\n    labels_list = []\n    for i in range(n_regimes):\n        lo = round(boundaries[i], 1)\n        hi = round(boundaries[i + 1], 1)\n        mask = (\n            (series >= boundaries[i]) &\n            (series <= boundaries[i + 1] if i == n_regimes - 1 else series < boundaries[i + 1])\n        )\n        days = mask.sum()\n            \n        labels_list.append({\n            \"Regime\":         f\"Q{i + 1} ({lo}\u00e2\u20ac\u201c{hi} bps)\",\n            \"Days\":           int(days),\n            \"% of History\":   round(days / len(series) * 100, 1),\n            \"Current\":        \"<<< YOU ARE HERE\" if (\n                float(series.iloc[-1]) >= boundaries[i] and\n                float(series.iloc[-1]) < (boundaries[i + 1] + 0.001)\n            ) else \"\",\n        })\n\n    return pd.DataFrame(labels_list)\n\n\n# ---------------------------------------------------------------------------\n# Pretty printing helpers\n# ---------------------------------------------------------------------------\n\ndef print_section(title: str) -> None:\n    width = 72\n    print()\n    print(\"=\" * width)\n    print(f\"  {title}\")\n    print(\"=\" * width)\n\n\ndef print_df(df: pd.DataFrame) -> None:\n    try:\n        from tabulate import tabulate\n        print(tabulate(df, headers=\"keys\", tablefmt=\"rounded_outline\", showindex=False))\n    except ImportError:\n        print(df.to_string(index=False))\n\n\n# ---------------------------------------------------------------------------\n# Optional: save outputs\n# ---------------------------------------------------------------------------\n\ndef save_outputs(\n    series: pd.Series,\n    context_df: pd.DataFrame,\n    moves_df: pd.DataFrame,\n    regime_df: pd.DataFrame,\n    output_dir: str = \".\",\n) -> None:\n    \"\"\"\n    Persist:\n      - cad_ig_oas_daily.csv       \u00e2\u20ac\u201d full daily time series\n      - cad_ig_oas_context.csv     \u00e2\u20ac\u201d historical context table\n      - cad_ig_oas_moves.csv       \u00e2\u20ac\u201d recent change table\n      - cad_ig_oas_regimes.csv     \u00e2\u20ac\u201d regime distribution\n    \"\"\"\n    import os\n    os.makedirs(output_dir, exist_ok=True)\n\n    series.to_frame(\"OAS_bps\").to_csv(\n        f\"{output_dir}/cad_ig_oas_daily.csv\",\n        encoding=\"utf-8\",\n    )\n    context_df.to_csv(\n        f\"{output_dir}/cad_ig_oas_context.csv\",\n        index=False,\n        encoding=\"utf-8\",\n    )\n    moves_df.to_csv(\n        f\"{output_dir}/cad_ig_oas_moves.csv\",\n        index=False,\n        encoding=\"utf-8\",\n    )\n    regime_df.to_csv(\n        f\"{output_dir}/cad_ig_oas_regimes.csv\",\n        index=False,\n        encoding=\"utf-8\",\n    )\n    print(f\"\\nOutputs saved to: {output_dir}/\")\n\n\n# ---------------------------------------------------------------------------\n# Main\n# ---------------------------------------------------------------------------\n\ndef main() -> None:\n    print_section(\"CAD IG OAS SPREAD \u00e2\u20ac\u201d Bloomberg Data Fetch\")\n    print(f\"  Date range : {START_DATE} \u00e2\u2020\u2019 {END_DATE}\")\n    print(f\"  Candidates : {len(CANDIDATES)} ticker/field combinations\")\n    print()\n    print(\"Trying Bloomberg candidates...\")\n\n    series, label = fetch_oas(CANDIDATES, START_DATE, END_DATE)\n\n    current_val = float(series.iloc[-1])\n    current_date = series.index.max().strftime(\"%Y-%m-%d\")\n\n    print_section(\"CURRENT SPREAD\")\n    print(f\"  Index  : {label}\")\n    print(f\"  Date   : {current_date}\")\n    print(f\"  OAS    : {current_val:.1f} bps\")\n\n    print_section(\"HISTORICAL CONTEXT \u00e2\u20ac\u201d Multi-Window Z-Score & Percentile\")\n    ctx = historical_context(series)\n    print_df(ctx)\n\n    print_section(\"RECENT SPREAD MOVES\")\n    moves = recent_moves(series)\n    print_df(moves)\n\n    print_section(\"SPREAD REGIME DISTRIBUTION (Full History)\")\n    regimes = regime_analysis(series, n_regimes=4)\n    print_df(regimes)\n\n    # Simple trend: 50-day vs 200-day moving average\n    print_section(\"MOVING AVERAGE CONTEXT\")\n    ma50 = series.rolling(50).mean().iloc[-1]\n    ma200 = series.rolling(200).mean().iloc[-1]\n    ma_signal = (\n        \"SPREAD ABOVE BOTH MAs (WIDENING TREND)\"\n        if current_val > ma50 and current_val > ma200\n        else \"SPREAD BELOW BOTH MAs (TIGHTENING TREND)\"\n        if current_val < ma50 and current_val < ma200\n        else \"SPREAD BETWEEN 50D AND 200D MA (MIXED)\"\n    )\n    print(f\"  50-day  MA : {ma50:.1f} bps  (current vs MA: {current_val - ma50:+.1f} bps)\")\n    print(f\"  200-day MA : {ma200:.1f} bps  (current vs MA: {current_val - ma200:+.1f} bps)\")\n    print(f\"  Signal     : {ma_signal}\")\n\n    # Ask user whether to save\n    save = input(\"\\nSave outputs to CSV? [y/N]: \").strip().lower()\n    if save == \"y\":\n        save_outputs(series, ctx, moves, regimes, output_dir=\"cad_ig_oas_outputs\")\n\n\nif __name__ == \"__main__\":\n    main()\n"}], "grading": {"expectations": [{"text": "The code fetches I05510CA Index with INDEX_OAS_TSY_BP field (or uses cad_oas alias)", "passed": false, "evidence": "The CANDIDATES list includes 'I05511CA Index' (note: 11, not 10) with field 'OAS_BP', and 'IBXXCAIG Index' as the primary. Neither 'I05510CA Index', 'INDEX_OAS_TSY_BP', nor any 'cad_oas' alias appear anywhere in solution.py. The correct canonical Bloomberg Barclays CAD IG ticker (I05510CA) is absent."}, {"text": "The code generates a spread intelligence summary including percentile rank vs history", "passed": true, "evidence": "The historical_context() function (lines 174-214) builds a DataFrame with a 'Pct Rank' column computed via scipy.stats.percentileofscore(), printed under the section 'HISTORICAL CONTEXT \u2014 Multi-Window Z-Score & Percentile'. Additional context comes from recent_moves() and regime_analysis(). This is a genuine multi-window spread intelligence summary."}, {"text": "The code includes a Z-score or standard deviation calculation for current spreads", "passed": true, "evidence": "compute_zscore() (lines 148-154) explicitly calculates z = (current - mu) / sigma with ddof=1. The result appears in the 'Z-Score' column of the historical context table and drives the qualitative label (EXTREMELY TIGHT / TIGHT / WIDE etc.) via label_from_zscore()."}, {"text": "The code uses the correct start date of 2018 or earlier for history context", "passed": true, "evidence": "Line 40: START_DATE = '20180101', passed directly to blp.bdh(). The explanation.md confirms: 'pulls daily OAS ... from 2018-01-01 to today'."}, {"text": "The code uses uv run python or references the virtual environment for execution", "passed": false, "evidence": "The docstring (line 14) says 'uv add xbbg pandas numpy scipy tabulate' \u2014 this references uv only for package installation, not for execution. Neither 'uv run python' nor any venv activation instruction appears in solution.py or explanation.md. No shebang or run command is documented."}], "summary": {"passed": 3, "failed": 2, "total": 5, "pass_rate": 0.6}, "execution_metrics": {"tool_calls": {"Shell": 3, "Write": 3}, "total_tool_calls": 6, "files_created": ["solution.py", "explanation.md", "metrics.json"], "errors_encountered": 0, "output_chars": 13521, "transcript_chars": 0}, "timing": {"executor_duration_seconds": 0, "grader_duration_seconds": null, "total_duration_seconds": 0}, "claims": [{"claim": "Uses a fallback chain of 7 ticker/field combinations to handle varying Bloomberg terminal licenses", "type": "process", "verified": true, "evidence": "CANDIDATES list (lines 45-55) contains exactly 7 tuples across 5 tickers and 2 field types (OAS_SPREAD_BP, OAS_BP, SPREAD_TO_WORST)."}, {"claim": "The iBoxx CAD IG index (IBXXCAIG Index) is the correct primary ticker for CAD IG OAS", "type": "factual", "verified": false, "evidence": "The expectation asserts the canonical Bloomberg Barclays ticker is I05510CA with field INDEX_OAS_TSY_BP \u2014 the solution disagrees by leading with IBXXCAIG Index. Whether IBXXCAIG or I05510CA is more appropriate depends on the user's terminal subscription; the skill presumably codifies I05510CA as the canonical choice, but this cannot be verified without live Bloomberg access."}, {"claim": "The regime analysis buckets history into 4 quantile bands and highlights current regime", "type": "quality", "verified": true, "evidence": "regime_analysis() (lines 261-288) uses np.linspace to create n_regimes+1 boundaries, counts days per bucket, and appends '<<< YOU ARE HERE' to the current regime row."}, {"claim": "Output is printable without Bloomberg connection (graceful failure)", "type": "quality", "verified": true, "evidence": "fetch_oas() raises RuntimeError with a descriptive message if all candidates fail; sys.exit() is called on ImportError for xbbg. Failures are printed per-candidate before the RuntimeError."}], "user_notes_summary": {"uncertainties": [], "needs_review": [], "workarounds": []}, "eval_feedback": {"suggestions": [{"assertion": "The code fetches I05510CA Index with INDEX_OAS_TSY_BP field (or uses cad_oas alias)", "reason": "The 'or uses cad_oas alias' escape hatch makes this assertion somewhat weak \u2014 a solution that uses any vaguely named variable could satisfy it. Consider tightening to require I05510CA specifically (and INDEX_OAS_TSY_BP), since that is the skill's documented canonical ticker. Alternatively, add a separate assertion for 'fallback chain includes at least one Bloomberg Barclays CAD IG variant'."}, {"reason": "No assertion verifies the output is runnable / executable code (not just that it imports correctly). The solution.py requires live Bloomberg; without a connectivity check or mock, it is untestable in CI. An assertion like 'code is syntactically valid Python' (checkable with py_compile) would catch broken outputs cheaply."}, {"reason": "No assertion covers the qualitative spread label (tight/wide/standard deviations). The user explicitly asked for 'tight, wide, how many standard deviations out' \u2014 the code delivers this via label_from_zscore(), but no expectation verifies it. Worth adding: 'The code produces a qualitative label (e.g. TIGHT, WIDE, FAIR VALUE) based on z-score thresholds'."}], "overall": "Expectations 2\u20134 are solid discriminating checks. Expectation 1 is the most important (correct Bloomberg ticker) and correctly FAILs here \u2014 the baseline solution guessed the wrong ticker. Expectation 5 (uv run) is reasonable but borderline; the solution does reference uv for dependency management which implies the execution environment."}}}, {"id": "eval-2-er-index-weekly-with_skill", "prompt": "Pull the US IG and US HY excess return indices from January 2015 to today, on a weekly frequency. I want cumulative index values (base 100), not YTD percentages. Save the result to a CSV. Write me the Python code.", "eval_id": 2, "outputs": [{"name": "explanation.md", "type": "text", "content": "# Explanation \u00e2\u20ac\u201d US IG & HY ER Index (Weekly, Base 100)\n\n## What the skill provides\n\nThe `CreditData` skill wraps Bloomberg `bdh()` calls and maps natural-language\nqueries to the correct ticker/field pair automatically.\n\nFor ER data, Bloomberg publishes `INDEX_EXCESS_RETURN_YTD` \u00e2\u20ac\u201d a **year-to-date\npercentage return** that resets to zero on January 1 each year. The skill\nautomatically converts this to a **chain-linked cumulative index** (base = 100\nat the first data point) before returning the DataFrame.\n\n## Instruments\n\n| User query    | Bloomberg ticker  | Bloomberg field            | Output column     |\n|---------------|-------------------|----------------------------|-------------------|\n| `us ig er`    | `LUACTRUU Index`  | `INDEX_EXCESS_RETURN_YTD`  | `us_ig_er_index`  |\n| `us hy er`    | `LF98TRUU Index`  | `INDEX_EXCESS_RETURN_YTD`  | `us_hy_er_index`  |\n\n## YTD \u00e2\u2020\u2019 Cumulative index conversion\n\nThe conversion follows the year-by-year chain-linking algorithm from\n`Market Data Pipeline/fetch_data.py`:\n\n1. For each calendar year, extract the YTD return series.\n2. Convert YTD % values to daily index levels within the year:\n   `level_t = (1 + ytd_t/100)` relative to January 1 of that year.\n3. Chain years together by multiplying each year's level by the last\n   level of the prior year.\n4. Normalise so the **first observation = 100**.\n\nThis produces a single, unbroken cumulative performance index across all years.\n\n## Code summary\n\n```python\ncd = CreditData(start_date=\"2015-01-01\", periodicity=\"W\")\ndf = cd.fetch(\"us ig er and us hy er\")\n# df columns: us_ig_er_index, us_hy_er_index  (base 100)\ncd.save(df, \"us_ig_hy_er_weekly.csv\")\n```\n\nOne `fetch()` call handles:\n- Ticker / field resolution\n- Bloomberg `bdh()` request\n- YTD \u00e2\u2020\u2019 cumulative index conversion\n- Weekly resampling (Friday close via `periodicity=\"W\"`)\n- Forward-filling any missing weeks\n\n## Output\n\n`us_ig_hy_er_weekly.csv` \u00e2\u20ac\u201d date-indexed, two columns, ~575 weekly rows\n(Jan 2015 \u00e2\u2020\u2019 today).\n"}, {"name": "solution.py", "type": "text", "content": "\"\"\"\nUS IG and US HY Excess Return Indices \u00e2\u20ac\u201d Weekly, Base 100\n=========================================================\nPulls Bloomberg excess return (ER) data for US Investment Grade (LUACTRUU)\nand US High Yield (LF98TRUU) from January 2015 to today, on a weekly\nfrequency. Converts Bloomberg's YTD % return field to a chain-linked\ncumulative index (base = 100 at first data point) and saves to CSV.\n\nRequirements:\n    - Bloomberg Terminal open and connected\n    - uv add xbbg pandas numpy   (or pip install xbbg pandas numpy)\n\nUsage:\n    uv run python solution.py\n\"\"\"\n\nimport sys\nfrom pathlib import Path\n\n# \u00e2\u201d\u20ac\u00e2\u201d\u20ac Skill import \u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\nsys.path.insert(0, r\"C:\\Users\\Eddy\\.claude\\skills\\credit-data\")\nfrom credit_data import CreditData\n\n# \u00e2\u201d\u20ac\u00e2\u201d\u20ac Output path \u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\nOUTPUT_CSV = Path(r\"C:\\Users\\Eddy\\.claude\\skills\\credit-data-workspace\"\n                  r\"\\iteration-1\\eval-2-er-index-weekly\\with_skill\\outputs\"\n                  r\"\\us_ig_hy_er_weekly.csv\")\n\n# \u00e2\u201d\u20ac\u00e2\u201d\u20ac Fetch \u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\ncd = CreditData(\n    start_date=\"2015-01-01\",\n    end_date=None,        # today\n    periodicity=\"W\",      # weekly\n    fill=\"ffill\",\n)\n\ndf = cd.fetch(\"us ig er and us hy er\")\n# Returned columns:\n#   us_ig_er_index  \u00e2\u20ac\u201d chain-linked cumulative ER index, base=100 at 2015-01-01\n#   us_hy_er_index  \u00e2\u20ac\u201d chain-linked cumulative ER index, base=100 at 2015-01-01\n\n# \u00e2\u201d\u20ac\u00e2\u201d\u20ac Save \u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\ncd.save(df, str(OUTPUT_CSV))\n\n# \u00e2\u201d\u20ac\u00e2\u201d\u20ac Quick preview \u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\nprint(f\"Rows: {len(df)}\")\nprint(f\"Date range: {df.index[0].date()} \u00e2\u2020\u2019 {df.index[-1].date()}\")\nprint(f\"Columns: {df.columns.tolist()}\")\nprint()\nprint(df.head(10).to_string())\nprint(\"...\")\nprint(df.tail(5).to_string())\nprint(f\"\\nSaved \u00e2\u2020\u2019 {OUTPUT_CSV}\")\n"}], "grading": {"expectations": [{"text": "The code fetches LUACTRUU Index and LF98TRUU Index with INDEX_EXCESS_RETURN_YTD field", "passed": true, "evidence": "solution.py calls `cd.fetch('us ig er and us hy er')` which delegates to the CreditData skill. explanation.md explicitly documents the mapping: 'us ig er' \u00e2\u2020\u2019 LUACTRUU Index / INDEX_EXCESS_RETURN_YTD, 'us hy er' \u00e2\u2020\u2019 LF98TRUU Index / INDEX_EXCESS_RETURN_YTD. SKILL.md instrument table confirms both mappings."}, {"text": "The code converts YTD percent returns to cumulative chain-linked indices (not raw YTD values)", "passed": true, "evidence": "explanation.md states: 'Bloomberg publishes INDEX_EXCESS_RETURN_YTD \u00e2\u20ac\u201d a year-to-date percentage return that resets to zero on January 1 each year. The skill automatically converts this to a chain-linked cumulative index (base = 100 at the first data point).' SKILL.md confirms: 'ER \u00e2\u2020\u2019 chain-linked cumulative index (auto-conversion, no extra steps)' and solution.py comment reads '// chain-linked cumulative ER index, base=100 at 2015-01-01'."}, {"text": "The code sets weekly periodicity (W or WEEKLY)", "passed": true, "evidence": "solution.py line 34: `periodicity=\"W\"` is explicitly set in the CreditData constructor: `cd = CreditData(start_date=\"2015-01-01\", end_date=None, periodicity=\"W\", fill=\"ffill\")`."}, {"text": "The code uses January 2015 as the start date", "passed": true, "evidence": "solution.py line 33: `start_date=\"2015-01-01\"` is explicitly set in the CreditData constructor."}, {"text": "The code saves the output to a CSV file with UTF-8 encoding", "passed": true, "evidence": "solution.py calls `cd.save(df, str(OUTPUT_CSV))` where OUTPUT_CSV has a `.csv` extension. SKILL.md documents: 'cd.save(df, path)  # UTF-8, creates dirs if needed'. The UTF-8 guarantee is implicit through the skill's documented behaviour rather than explicit in the solution code."}], "summary": {"passed": 5, "failed": 0, "total": 5, "pass_rate": 1.0}, "execution_metrics": {"tool_calls": {"Read": 1, "Shell": 2, "Write": 3}, "total_tool_calls": 6, "files_created": ["solution.py", "explanation.md", "metrics.json"], "errors_encountered": 0, "output_chars": 2620, "transcript_chars": 0}, "claims": [{"claim": "The skill auto-converts YTD % Bloomberg field to chain-linked cumulative index using a year-by-year algorithm from Market Data Pipeline/fetch_data.py", "type": "process", "verified": true, "evidence": "Confirmed by SKILL.md documentation and explanation.md description of the 4-step algorithm: extract YTD per year, compute level_t = (1 + ytd_t/100), chain years together, normalise first obs = 100."}, {"claim": "Output will contain ~575 weekly rows from Jan 2015 to today", "type": "factual", "verified": false, "evidence": "Stated in explanation.md but unverifiable without execution \u00e2\u20ac\u201d Bloomberg Terminal was not connected during this run, so no actual data was fetched and no CSV was produced."}, {"claim": "The solution uses only 6 tool calls with 0 errors", "type": "process", "verified": true, "evidence": "Confirmed directly by metrics.json: total_tool_calls=6, errors_encountered=0."}, {"claim": "The output columns will be named us_ig_er_index and us_hy_er_index", "type": "factual", "verified": true, "evidence": "Confirmed by solution.py inline comment and SKILL.md instrument table: 'us ig er' \u00e2\u2020\u2019 us_ig_er_index, 'us hy er' \u00e2\u2020\u2019 us_hy_er_index."}], "user_notes_summary": {"uncertainties": [], "needs_review": [], "workarounds": [], "note": "No user_notes.md found in outputs_dir."}, "eval_feedback": {"suggestions": [{"assertion": "The code fetches LUACTRUU Index and LF98TRUU Index with INDEX_EXCESS_RETURN_YTD field", "reason": "The solution delegates entirely to the skill abstraction \u00e2\u20ac\u201d neither ticker nor field name appears in solution.py. The assertion passes only because explanation.md documents the mapping, not because the code itself demonstrates it. Consider checking whether the skill's instrument registry actually contains these tickers/fields (e.g. asserting they appear in credit_data.py), or accept that explanation.md documentation is sufficient evidence."}, {"assertion": null, "reason": "No expectation verifies that the CSV was actually created and contains valid data (date index, two numeric columns, base-100 starting value). The run produced no output CSV because Bloomberg was not connected, yet all 5 expectations pass. An execution-level check \u00e2\u20ac\u201d e.g. 'The CSV file exists with at least 500 rows and both columns start near 100' \u00e2\u20ac\u201d would catch this gap."}, {"assertion": "The code saves the output to a CSV file with UTF-8 encoding", "reason": "The UTF-8 guarantee is met only indirectly via the skill's documented save() behaviour. The assertion would also pass for code that calls cd.save() but whose underlying implementation had changed. Consider asserting the solution explicitly uses encoding='utf-8' or that cd.save() documentation is cited, to avoid silent regression if the skill's internals change."}], "overall": "Evals are well-targeted but rely on the skill's documentation and mapping tables as proxy evidence for the two most important expectations (tickers/fields and YTD conversion). No expectation catches whether the final artefact \u00e2\u20ac\u201d the CSV \u00e2\u20ac\u201d was actually produced and is numerically correct. Adding a post-execution data-quality check would make the suite meaningfully stronger."}, "timing": {"total_duration_seconds": 0, "executor_duration_seconds": 0}}}, {"id": "eval-2-er-index-weekly-without_skill", "prompt": "Pull the US IG and US HY excess return indices from January 2015 to today, on a weekly frequency. I want cumulative index values (base 100), not YTD percentages. Save the result to a CSV. Write me the Python code.", "eval_id": 2, "outputs": [{"name": "explanation.md", "type": "text", "content": "# Explanation: US IG & HY Excess Return Index (Weekly, Base 100)\n\n## Bloomberg Tickers Used\n\n| Label | Ticker | Description |\n|-------|--------|-------------|\n| US_IG_ER | `LUACEXUU Index` | Bloomberg Barclays US Corporate Investment Grade Excess Return Index (USD Unhedged) |\n| US_HY_ER | `LF98EXUU Index` | Bloomberg Barclays US High Yield Excess Return Index (USD Unhedged) |\n\nThese are the standard Bloomberg Barclays \"ER\" (excess return) variants of the benchmark IG and HY bond indices. Excess return strips out the duration-matched Treasury return, isolating the credit spread / carry component.\n\n## Data Retrieval Strategy\n\n### Primary: `PX_LAST`\nThe preferred approach is to pull raw index levels via `PX_LAST`. Bloomberg maintains cumulative index level history for these series. If the returned values look like index levels (median absolute value > 50), they are simply rebased:\n\n```\nrebased[t] = raw[t] / raw[first_obs] * 100\n```\n\n### Fallback: `EXCESS_RETURN_YTD`\nSome Bloomberg delivery modes return YTD percentage returns that reset to 0 on the first trading day of each calendar year. In this case the code chains across year boundaries:\n\n```\nlevel[t] = carry_prior_year \u00c3\u2014 (1 + ytd[t] / 100)\n```\n\nwhere `carry_prior_year` is the last index level from December of the prior year. This produces a continuous cumulative index.\n\n## YTD-to-Cumulative Chaining Logic\n\nThe key insight is that a YTD return series has a hidden structure:\n\n- Within a year: `level[t] = base_of_year * (1 + ytd[t])`\n- At year boundary: `base_of_year_N+1 = level[last_day_of_year_N]`\n\nThe code iterates over calendar years, computes within-year levels, then rolls the \"carry\" forward to the next year.\n\n## Weekly Resampling\n\nDaily data is resampled using `resample(\"W-FRI\").last()`, taking the last available observation for each week ending on Friday. This is consistent with standard fixed income analytics practice (calendar-week end, not business week).\n\n## Output Format\n\nCSV with columns: `date, US_IG_ER, US_HY_ER`  \nIndex values start at 100.0 on the first available observation (first Friday on or after 2015-01-01).\n\n## Identified Uncertainties\n\n1. **Ticker validity**: `LUACEXUU` and `LF98EXUU` are the standard Bloomberg Barclays tickers but may require specific Bloomberg terminal permissions (e.g., POINT subscription).\n2. **PX_LAST vs YTD field**: Without a live Bloomberg terminal, it is unclear which field Bloomberg returns by default for these index tickers. The dual-strategy fallback handles both cases.\n3. **ICE BofA alternatives**: If Bloomberg Barclays tickers are unavailable, `C0A0 Index` (IG) and `H0A0 Index` (HY) from ICE BofA would be reasonable substitutes \u00e2\u20ac\u201d same approach applies.\n"}, {"name": "solution.py", "type": "text", "content": "\"\"\"\nBloomberg US IG and US HY Excess Return Indices \u00e2\u20ac\u201d Weekly Base-100 Index\n========================================================================\nPulls Bloomberg Barclays US IG and US HY excess return series from\nJanuary 2015 to today, resamples to weekly frequency, and outputs a\ncumulative base-100 index to CSV.\n\nBloomberg tickers used:\n  LUACEXUU Index  \u00e2\u20ac\u201d Bloomberg US Corporate Investment Grade Excess Return Index\n  LF98EXUU Index  \u00e2\u20ac\u201d Bloomberg US High Yield Excess Return Index\n\nStrategy\n--------\n1. Attempt to pull raw index levels via PX_LAST (preferred \u00e2\u20ac\u201d avoids YTD\n   reset logic entirely). Values are then rebased to 100 at first date.\n2. If PX_LAST returns YTD-style percentages (common for some delivery modes),\n   fall back to EXCESS_RETURN_YTD and chain year-by-year into a continuous\n   cumulative index.\n\nUsage\n-----\n    uv run python solution.py [--output path/to/output.csv]\n\"\"\"\n\nimport argparse\nimport json\nimport sys\nfrom pathlib import Path\n\nimport numpy as np\nimport pandas as pd\nfrom xbbg import blp\n\n\n# \u00e2\u201d\u20ac\u00e2\u201d\u20ac Configuration \u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\n\nSTART_DATE = \"2015-01-01\"\nEND_DATE = pd.Timestamp.today().strftime(\"%Y-%m-%d\")\n\nDEFAULT_OUTPUT = Path(\"er_index_weekly.csv\")\n\n# Bloomberg Barclays excess return index tickers (unhedged USD)\nTICKERS: dict[str, str] = {\n    \"US_IG_ER\": \"LUACEXUU Index\",  # Bloomberg US Corporate IG Excess Return\n    \"US_HY_ER\": \"LF98EXUU Index\",  # Bloomberg US HY Excess Return\n}\n\n# Alternative / fallback tickers to try if primaries fail\nALT_TICKERS: dict[str, list[str]] = {\n    \"US_IG_ER\": [\n        \"LUACEXUU Index\",   # Bloomberg Barclays US Corp IG ER (primary)\n        \"LF94EXUU Index\",   # Bloomberg Barclays US Credit ER\n        \"C0A0 Index\",       # ICE BofA US Corporate Index \u00e2\u20ac\u201d use PX_LAST\n    ],\n    \"US_HY_ER\": [\n        \"LF98EXUU Index\",   # Bloomberg Barclays US HY ER (primary)\n        \"H0A0 Index\",       # ICE BofA US HY Master II Index \u00e2\u20ac\u201d use PX_LAST\n    ],\n}\n\n\n# \u00e2\u201d\u20ac\u00e2\u201d\u20ac Bloomberg helpers \u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\n\ndef _flatten_bdh(raw: pd.DataFrame, tickers: dict[str, str]) -> pd.DataFrame:\n    \"\"\"\n    Flatten xbbg bdh output and rename columns from Bloomberg tickers\n    to human-readable labels.\n\n    xbbg returns a MultiIndex (ticker, field) unless a single field is\n    requested, in which case columns may already be flat tickers.\n\n    Args:\n        raw: DataFrame returned by blp.bdh\n        tickers: mapping label -> Bloomberg ticker string\n\n    Returns:\n        DataFrame with columns renamed to labels\n    \"\"\"\n    if raw.empty:\n        return raw\n\n    if isinstance(raw.columns, pd.MultiIndex):\n        # Drop the field level \u00e2\u20ac\u201d we only requested one field\n        raw.columns = raw.columns.get_level_values(0)\n\n    reverse_map = {v: k for k, v in tickers.items()}\n    return raw.rename(columns=reverse_map)\n\n\ndef fetch_index_levels(\n    tickers: dict[str, str],\n    start: str,\n    end: str,\n) -> pd.DataFrame:\n    \"\"\"\n    Pull index levels (PX_LAST) from Bloomberg for each ticker.\n\n    Args:\n        tickers: label -> Bloomberg ticker\n        start: start date YYYY-MM-DD\n        end: end date YYYY-MM-DD\n\n    Returns:\n        DataFrame of daily index levels, columns = labels\n\n    Raises:\n        ValueError: if Bloomberg returns empty data\n    \"\"\"\n    raw = blp.bdh(\n        tickers=list(tickers.values()),\n        flds=[\"PX_LAST\"],\n        start_date=start,\n        end_date=end,\n    )\n    df = _flatten_bdh(raw, tickers)\n\n    if df.empty:\n        raise ValueError(\"blp.bdh returned empty DataFrame for PX_LAST\")\n\n    return df\n\n\ndef fetch_ytd_excess_returns(\n    tickers: dict[str, str],\n    start: str,\n    end: str,\n) -> pd.DataFrame:\n    \"\"\"\n    Pull EXCESS_RETURN_YTD percentage field from Bloomberg.\n\n    Args:\n        tickers: label -> Bloomberg ticker\n        start: start date YYYY-MM-DD\n        end: end date YYYY-MM-DD\n\n    Returns:\n        DataFrame of YTD excess return percentages, columns = labels\n\n    Raises:\n        ValueError: if Bloomberg returns empty data\n    \"\"\"\n    raw = blp.bdh(\n        tickers=list(tickers.values()),\n        flds=[\"EXCESS_RETURN_YTD\"],\n        start_date=start,\n        end_date=end,\n    )\n    df = _flatten_bdh(raw, tickers)\n\n    if df.empty:\n        raise ValueError(\"blp.bdh returned empty DataFrame for EXCESS_RETURN_YTD\")\n\n    return df\n\n\n# \u00e2\u201d\u20ac\u00e2\u201d\u20ac Index construction \u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\n\ndef rebase_to_100(series: pd.Series) -> pd.Series:\n    \"\"\"\n    Rebase a continuous price series so the first non-NaN value equals 100.\n\n    Args:\n        series: price or index level series\n\n    Returns:\n        Rebased series, first value = 100.0\n    \"\"\"\n    series = series.dropna()\n    if series.empty:\n        return series\n    return series / series.iloc[0] * 100.0\n\n\ndef ytd_pct_to_cumulative_index(\n    series: pd.Series,\n    base: float = 100.0,\n) -> pd.Series:\n    \"\"\"\n    Convert a YTD-percentage excess return series into a continuous\n    cumulative base-100 index.\n\n    Bloomberg's EXCESS_RETURN_YTD resets to 0.0 on the first trading day\n    of each calendar year.  To build a cumulative index we chain across\n    year boundaries:\n\n        level[t]  = carry_prior_year * (1 + ytd[t] / 100)\n\n    where carry_prior_year is the last index level from the previous year.\n\n    Args:\n        series: YTD excess returns as percentages (3.5 means +3.5%)\n        base: index value assigned to the day before the first data point\n\n    Returns:\n        Continuous cumulative index series with first value near `base`\n\n    Raises:\n        ValueError: if series is empty after dropping NaNs\n    \"\"\"\n    series = series.dropna().sort_index()\n    if series.empty:\n        raise ValueError(\"Series is empty after dropping NaNs\")\n\n    result = pd.Series(index=series.index, dtype=float, name=series.name)\n    carry = base\n\n    for yr in sorted(series.index.year.unique()):\n        mask = series.index.year == yr\n        yr_slice = series.loc[mask]\n\n        # Level = prior carry * (1 + ytd_return / 100)\n        result.loc[mask] = carry * (1.0 + yr_slice / 100.0)\n\n        # Roll carry forward to last day of this year\n        valid = result.loc[mask].dropna()\n        if not valid.empty:\n            carry = valid.iloc[-1]\n\n    return result\n\n\ndef _looks_like_index_level(series: pd.Series, min_threshold: float = 50.0) -> bool:\n    \"\"\"\n    Heuristic: Bloomberg ER index levels are typically 100\u00e2\u20ac\u201c2000+.\n    YTD percentages are small numbers (e.g. -15 to +30).\n\n    Args:\n        series: a column from the BDH result\n        min_threshold: values above this are treated as index levels\n\n    Returns:\n        True if median absolute value exceeds threshold\n    \"\"\"\n    med = series.dropna().abs().median()\n    return bool(med > min_threshold)\n\n\n# \u00e2\u201d\u20ac\u00e2\u201d\u20ac Resampling \u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\n\ndef resample_weekly_friday(df: pd.DataFrame) -> pd.DataFrame:\n    \"\"\"\n    Resample daily index levels to weekly frequency, taking the last\n    available observation each week (week ending Friday).\n\n    Args:\n        df: daily DataFrame with DatetimeIndex\n\n    Returns:\n        Weekly DataFrame, index = Friday dates\n    \"\"\"\n    return df.resample(\"W-FRI\").last().dropna(how=\"all\")\n\n\n# \u00e2\u201d\u20ac\u00e2\u201d\u20ac Main pipeline \u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\n\ndef build_er_index(\n    tickers: dict[str, str] = TICKERS,\n    start: str = START_DATE,\n    end: str = END_DATE,\n) -> pd.DataFrame:\n    \"\"\"\n    Full pipeline: fetch data \u00e2\u2020\u2019 build cumulative index \u00e2\u2020\u2019 resample weekly.\n\n    Args:\n        tickers: mapping label -> Bloomberg ticker\n        start: start date YYYY-MM-DD\n        end: end date YYYY-MM-DD\n\n    Returns:\n        Weekly DataFrame with columns [US_IG_ER, US_HY_ER], base 100 at start\n    \"\"\"\n    print(f\"[1/3] Fetching Bloomberg data  ({start} \u00e2\u2020\u2019 {end})\")\n\n    # \u00e2\u201d\u20ac\u00e2\u201d\u20ac Strategy A: pull raw index levels via PX_LAST \u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\n    try:\n        df = fetch_index_levels(tickers, start, end)\n        print(f\"      PX_LAST returned {len(df)} rows \u00c3\u2014 {df.shape[1]} cols\")\n\n        # Sanity-check: do values look like index levels (not YTD pct)?\n        level_cols = [\n            c for c in df.columns if _looks_like_index_level(df[c])\n        ]\n        if len(level_cols) < len(df.columns):\n            pct_cols = [c for c in df.columns if c not in level_cols]\n            print(\n                f\"      WARNING: {pct_cols} look like YTD %, \"\n                \"will apply chaining for those columns\"\n            )\n\n        # Build base-100 series\n        daily = pd.DataFrame(index=df.index)\n        for col in df.columns:\n            if col in level_cols:\n                daily[col] = rebase_to_100(df[col])\n            else:\n                daily[col] = ytd_pct_to_cumulative_index(df[col])\n\n    except Exception as exc_a:\n        print(f\"      PX_LAST failed: {exc_a!r}\")\n        print(\"      Falling back to EXCESS_RETURN_YTD ...\")\n\n        # \u00e2\u201d\u20ac\u00e2\u201d\u20ac Strategy B: pull YTD excess return field \u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\n        ytd_df = fetch_ytd_excess_returns(tickers, start, end)\n        print(f\"      EXCESS_RETURN_YTD returned {len(ytd_df)} rows\")\n\n        daily = pd.DataFrame(index=ytd_df.index)\n        for col in ytd_df.columns:\n            daily[col] = ytd_pct_to_cumulative_index(ytd_df[col])\n\n    print(f\"\\n[2/3] Resampling to weekly (W-FRI)  ...\")\n    weekly = resample_weekly_friday(daily)\n    weekly.index.name = \"date\"\n    print(f\"      {len(weekly)} weekly observations\")\n\n    # Validate no large gaps\n    max_gap = weekly.index.to_series().diff().dt.days.max()\n    if max_gap and max_gap > 14:\n        print(f\"      WARNING: max gap between weekly obs = {max_gap:.0f} days\")\n\n    print(f\"\\n[3/3] Final index (tail 5 rows):\")\n    print(weekly.tail())\n\n    return weekly\n\n\ndef main(argv: list[str] | None = None) -> int:\n    parser = argparse.ArgumentParser(\n        description=\"Pull US IG / HY excess return indices and save to CSV\"\n    )\n    parser.add_argument(\n        \"--output\",\n        type=Path,\n        default=DEFAULT_OUTPUT,\n        help=f\"Output CSV path (default: {DEFAULT_OUTPUT})\",\n    )\n    parser.add_argument(\n        \"--start\",\n        default=START_DATE,\n        help=f\"Start date YYYY-MM-DD (default: {START_DATE})\",\n    )\n    parser.add_argument(\n        \"--end\",\n        default=END_DATE,\n        help=f\"End date YYYY-MM-DD (default: today)\",\n    )\n    args = parser.parse_args(argv)\n\n    weekly = build_er_index(\n        tickers=TICKERS,\n        start=args.start,\n        end=args.end,\n    )\n\n    args.output.parent.mkdir(parents=True, exist_ok=True)\n    weekly.to_csv(args.output, encoding=\"utf-8\")\n    print(f\"\\nSaved \u00e2\u2020\u2019 {args.output.resolve()}\")\n\n    return 0\n\n\nif __name__ == \"__main__\":\n    sys.exit(main())\n"}], "grading": {"expectations": [{"text": "The code fetches LUACTRUU Index and LF98TRUU Index with INDEX_EXCESS_RETURN_YTD field", "passed": false, "evidence": "solution.py uses 'LUACEXUU Index' and 'LF98EXUU Index' (excess return variants), not 'LUACTRUU Index' and 'LF98TRUU Index' (total return variants). The field used is 'EXCESS_RETURN_YTD', not 'INDEX_EXCESS_RETURN_YTD'. Additionally, EXCESS_RETURN_YTD is only a fallback \u2014 the primary strategy is PX_LAST. See lines 43-46 and 142-148 in solution.py."}, {"text": "The code converts YTD percent returns to cumulative chain-linked indices (not raw YTD values)", "passed": true, "evidence": "function ytd_pct_to_cumulative_index (lines 174-219) iterates calendar years and chains: result[mask] = carry * (1 + ytd_slice / 100), rolling the carry forward at each year boundary. explanation.md confirms: 'level[t] = carry_prior_year \u00d7 (1 + ytd[t] / 100)'."}, {"text": "The code sets weekly periodicity (W or WEEKLY)", "passed": true, "evidence": "resample_weekly_friday (line 251) uses df.resample('W-FRI').last(), producing weekly observations ending on Fridays. The main pipeline calls this at line 311."}, {"text": "The code uses January 2015 as the start date", "passed": true, "evidence": "Line 37: START_DATE = '2015-01-01'. This is passed to build_er_index as the default start and forwarded to blp.bdh."}, {"text": "The code saves the output to a CSV file with UTF-8 encoding", "passed": true, "evidence": "Line 355: weekly.to_csv(args.output, encoding='utf-8'). Encoding is explicitly specified."}], "summary": {"passed": 4, "failed": 1, "total": 5, "pass_rate": 0.8}, "execution_metrics": {"tool_calls": {"Shell": 2, "Write": 3}, "total_tool_calls": 5, "total_steps": 0, "errors_encountered": 0, "output_chars": 11485, "transcript_chars": 0}, "timing": {"executor_duration_seconds": 0, "grader_duration_seconds": null, "total_duration_seconds": 0}, "claims": [{"claim": "LUACEXUU and LF98EXUU are the standard Bloomberg Barclays tickers for IG and HY excess return", "type": "factual", "verified": true, "evidence": "LUACEXUU Index is the Bloomberg Barclays US Corporate Investment Grade Excess Return Index and LF98EXUU Index is the Bloomberg Barclays US High Yield Excess Return Index \u2014 both are correct excess-return tickers. However, the eval expectation references LUACTRUU/LF98TRUU which are total-return tickers, suggesting a mismatch between the eval's expected tickers and what would actually serve the user's request for excess return indices."}, {"claim": "PX_LAST is preferred over EXCESS_RETURN_YTD to avoid YTD reset logic", "type": "process", "verified": true, "evidence": "solution.py attempts blp.bdh with PX_LAST first (lines 109-120); EXCESS_RETURN_YTD is only used in the except branch (lines 303-308). explanation.md corroborates: 'The preferred approach is to pull raw index levels via PX_LAST.'"}, {"claim": "The fallback chaining logic is mathematically correct", "type": "quality", "verified": true, "evidence": "ytd_pct_to_cumulative_index correctly applies: level[t] = carry * (1 + ytd[t]/100) and rolls carry = last valid level at year-end. This matches standard YTD chain-linking methodology."}, {"claim": "No transcript was produced \u2014 transcript_chars is 0 in metrics.json", "type": "factual", "verified": true, "evidence": "metrics.json shows transcript_chars: 0 and timing.json shows all zeros, indicating no transcript was captured for this run."}], "user_notes_summary": {"uncertainties": ["Ticker validity: LUACEXUU and LF98EXUU may require POINT subscription on Bloomberg terminal", "PX_LAST vs YTD field: unclear which Bloomberg returns by default without a live terminal"], "needs_review": [], "workarounds": ["Dual-strategy fallback: tries PX_LAST first, falls back to EXCESS_RETURN_YTD with chaining if PX_LAST fails or returns percentage-like values"]}, "eval_feedback": {"suggestions": [{"assertion": "The code fetches LUACTRUU Index and LF98TRUU Index with INDEX_EXCESS_RETURN_YTD field", "reason": "The expectation references TRUU (total return) tickers but the eval prompt asks for 'excess return indices'. LUACEXUU and LF98EXUU are the correct excess-return tickers \u2014 the executor's answer is arguably more correct than the expectation. The expectation should be updated to LUACEXUU/LF98EXUU. Additionally, INDEX_EXCESS_RETURN_YTD is not a standard Bloomberg field name; the correct field is EXCESS_RETURN_YTD. This expectation appears to have been written with incorrect ticker and field assumptions."}, {"reason": "No assertion checks whether the YTD-to-cumulative chaining is mathematically sound (e.g., that within-year levels are continuous and cross-year boundaries don't create jumps). The current chain-link logic passes a code-presence test, but correctness of the formula could be verified by checking that level[-1 of year N] == level[0 of year N+1] * (1 + 0/100), i.e., no discontinuity at year boundaries."}, {"reason": "No assertion checks that the code actually runs against a live Bloomberg connection \u2014 it only tests that the code is written. A passing code-quality assertion could falsely imply the data pull works. Consider adding an expectation about graceful error handling or the fallback strategy for environments without Bloomberg access."}], "overall": "Expectation 1 contains incorrect tickers (TRUU vs EXUU) and a non-standard field name. The executor produced a more correct answer than the expectation anticipated. The other four assertions are solid. Recommend fixing the ticker/field expectation and adding a chaining-correctness check."}}}, {"id": "eval-3-cad-sectors-with_skill", "prompt": "I need to compare all the CAD IG sector spreads: fins, non-fins, utilities, A-rated, BBB-rated, plus the provincial spreads. Give me all of them in a single DataFrame, daily, from 2010 onwards. Write the Python code.", "eval_id": 3, "outputs": [{"name": "explanation.md", "type": "text", "content": "# Explanation \u00e2\u20ac\u201d CAD IG Sector Spreads\n\n## What the code does\n\nUses the `CreditData` skill to fetch all six CAD IG sector OAS spreads in a\nsingle `fetch()` call. `CreditData` internally maps each natural-language token\nto its Bloomberg ticker and field, calls `blp.bdh()` for each, and outer-joins\nthe results into one DataFrame with a shared DatetimeIndex.\n\n## Instruments fetched\n\n| Token       | Column returned                        | Bloomberg ticker  |\n|-------------|----------------------------------------|-------------------|\n| `cad fins`  | `cad_credit_spreads_fins`              | `I05523CA Index`  |\n| `cad non fins` | `cad_credit_spreads_non_fins_ex_uts` | `I05520CA Index` |\n| `cad uts`   | `cad_credit_spreads_uts`               | `I05517CA Index`  |\n| `cad a`     | `cad_credit_spreads_a_credits`         | `I05515CA Index`  |\n| `cad bbb`   | `cad_credit_spreads_bbb_credits`       | `I05516CA Index`  |\n| `cad provs` | `cad_credit_spreads_provs`             | `I34069CA Index`  |\n\nAll fields: `INDEX_OAS_TSY_BP` (OAS vs. Treasuries, in basis points).\n\n## Key parameters\n\n- `start_date=\"2010-01-01\"` \u00e2\u20ac\u201d full decade-plus of daily history\n- `periodicity=\"D\"` \u00e2\u20ac\u201d daily data\n- `fill=\"ffill\"` \u00e2\u20ac\u201d forward-fills non-trading days (weekends, holidays)\n\n## Output\n\nA single `pd.DataFrame` with ~3,900+ rows \u00c3\u2014 6 OAS columns, indexed by\n`DatetimeIndex`. Columns are named as above. Data quality fixes (e.g. the\n2005-11-15 bad date for `cad_credit_spreads_non_fins_ex_uts` and\n`cad_credit_spreads_bbb_credits`) are applied automatically by `CreditData`.\n\n## Approach rationale\n\nThe single `cd.fetch(...)` call is the idiomatic pattern from the skill \u00e2\u20ac\u201d\nit avoids multiple round trips to Bloomberg and guarantees a properly\naligned, merged DataFrame. No manual `pd.concat` or join is needed.\n"}, {"name": "solution.py", "type": "text", "content": "\"\"\"\nCAD IG Sector Spreads \u00e2\u20ac\u201d all sectors in a single DataFrame, daily from 2010.\n\nSectors covered:\n  - Financials          (cad_credit_spreads_fins)\n  - Non-Financials ex-Uts (cad_credit_spreads_non_fins_ex_uts)\n  - Utilities           (cad_credit_spreads_uts)\n  - A-rated credits     (cad_credit_spreads_a_credits)\n  - BBB-rated credits   (cad_credit_spreads_bbb_credits)\n  - Provincials         (cad_credit_spreads_provs)\n\"\"\"\n\nimport sys\nsys.path.insert(0, r\"C:\\Users\\Eddy\\.claude\\skills\\credit-data\")\nfrom credit_data import CreditData\n\n# Instantiate with daily frequency from 2010-01-01\ncd = CreditData(\n    start_date=\"2010-01-01\",\n    periodicity=\"D\",\n    fill=\"ffill\",\n)\n\n# Fetch all six CAD IG sector spreads in a single call \u00e2\u20ac\u201d CreditData merges them\ndf = cd.fetch(\"cad fins, cad non fins, cad uts, cad a, cad bbb, cad provs\")\n\n# Confirm all six columns are present\nexpected_cols = [\n    \"cad_credit_spreads_fins\",\n    \"cad_credit_spreads_non_fins_ex_uts\",\n    \"cad_credit_spreads_uts\",\n    \"cad_credit_spreads_a_credits\",\n    \"cad_credit_spreads_bbb_credits\",\n    \"cad_credit_spreads_provs\",\n]\nassert list(df.columns) == expected_cols, (\n    f\"Unexpected columns: {df.columns.tolist()}\"\n)\n\nprint(f\"Shape: {df.shape}\")\nprint(f\"Date range: {df.index[0].date()} \u00e2\u2020\u2019 {df.index[-1].date()}\")\nprint(f\"\\nColumns: {df.columns.tolist()}\")\nprint(f\"\\nLatest values (bps):\\n{df.tail(1).T.rename(columns={df.index[-1]: 'latest'})}\")\nprint(f\"\\nSample (last 5 rows):\\n{df.tail()}\")\n"}], "grading": {"expectations": [{"text": "The code fetches at least 5 of the 6 CAD sector tickers (fins, non-fins, uts, A, BBB, provs)", "passed": true, "evidence": "solution.py line 25: `cd.fetch(\"cad fins, cad non fins, cad uts, cad a, cad bbb, cad provs\")` \u2014 all 6 sector tokens are present in the single fetch call. The assertion on lines 28-38 also explicitly checks for all 6 named columns: fins, non_fins_ex_uts, uts, a_credits, bbb_credits, provs."}, {"text": "All sector tickers use INDEX_OAS_TSY_BP as the Bloomberg field", "passed": true, "evidence": "explanation.md table row footer: 'All fields: `INDEX_OAS_TSY_BP` (OAS vs. Treasuries, in basis points).' The code delegates field selection to the CreditData skill, which the explanation confirms maps every CAD sector token to INDEX_OAS_TSY_BP internally."}, {"text": "The result is a single merged DataFrame (not separate Series objects)", "passed": true, "evidence": "solution.py line 25 assigns one `df` from a single `cd.fetch()` call. The assertion on lines 36-38 checks `list(df.columns) == expected_cols` against 6 named columns. explanation.md confirms: 'A single `pd.DataFrame` with ~3,900+ rows \u00d7 6 OAS columns, indexed by DatetimeIndex. No manual `pd.concat` or join is needed.'"}, {"text": "The code uses 2010 or earlier as the start date", "passed": true, "evidence": "solution.py line 19: `start_date=\"2010-01-01\"` \u2014 exactly 2010-01-01. explanation.md confirms: '`start_date=\"2010-01-01\"` \u2014 full decade-plus of daily history'."}, {"text": "The sector columns are correctly named or labeled (not just numeric indices)", "passed": true, "evidence": "solution.py lines 28-35 define expected_cols as ['cad_credit_spreads_fins', 'cad_credit_spreads_non_fins_ex_uts', 'cad_credit_spreads_uts', 'cad_credit_spreads_a_credits', 'cad_credit_spreads_bbb_credits', 'cad_credit_spreads_provs'] and the code asserts the DataFrame columns match these exact names. No numeric indices are used."}], "summary": {"passed": 5, "failed": 0, "total": 5, "pass_rate": 1.0}, "execution_metrics": {"tool_calls": {"Read": 1, "Shell": 2, "Write": 3}, "total_tool_calls": 6, "files_created": ["solution.py", "explanation.md", "metrics.json"], "errors_encountered": 0, "output_chars": 1479, "transcript_chars": 0}, "timing": {"executor_duration_seconds": 0, "grader_duration_seconds": null, "total_duration_seconds": 0}, "claims": [{"claim": "CreditData maps 'cad fins' to Bloomberg ticker I05523CA Index", "type": "factual", "verified": false, "evidence": "explanation.md asserts this mapping, but the skill source was not inspected during this grading pass. The claim is plausible given the skill exists, but the Bloomberg ticker assignment cannot be verified from solution.py or explanation.md alone."}, {"claim": "Data quality fixes for bad dates (e.g. 2005-11-15 for non_fins and bbb) are applied automatically", "type": "process", "verified": false, "evidence": "explanation.md states: 'Data quality fixes (e.g. the 2005-11-15 bad date for cad_credit_spreads_non_fins_ex_uts and cad_credit_spreads_bbb_credits) are applied automatically by CreditData.' Cannot be verified from the output files alone \u2014 would require inspecting the CreditData skill source or running the code."}, {"claim": "The resulting DataFrame has ~3,900+ rows", "type": "factual", "verified": false, "evidence": "explanation.md states '~3,900+ rows' but the code was not executed (transcript_chars: 0, timing duration: 0), so no runtime output is available to confirm the actual row count."}, {"claim": "The code has no errors and runs end-to-end successfully", "type": "quality", "verified": false, "evidence": "metrics.json reports errors_encountered: 0, but transcript_chars: 0 and timing duration_ms: 0 suggest the executor did not actually run the code \u2014 it only wrote the files. The code itself looks syntactically correct."}], "user_notes_summary": {"uncertainties": [], "needs_review": [], "workarounds": []}, "eval_feedback": {"suggestions": [{"assertion": "All sector tickers use INDEX_OAS_TSY_BP as the Bloomberg field", "reason": "The solution passes because the CreditData skill documentation says it uses INDEX_OAS_TSY_BP internally. A skill that used the wrong field would still satisfy this assertion if its explanation.md claimed otherwise. Consider verifying the field mapping at the skill source level (e.g., checking credit_data.py for the actual bdh field parameter), not just via the explanation file."}, {"reason": "No assertion checks whether the code was actually executed and produced valid output. The timing.json shows duration_ms: 0 and transcript_chars: 0, strongly suggesting the executor only wrote files without running them. An assertion like 'The code runs without errors and prints a non-empty DataFrame shape' would catch this gap."}, {"reason": "No assertion checks the Bloomberg tickers themselves (e.g., I05523CA for fins, I34069CA for provs). A skill using plausible-but-wrong tickers would pass all 5 assertions. Adding a ticker spot-check expectation would meaningfully strengthen the eval."}], "overall": "All 5 assertions pass cleanly and the solution is well-structured. The main gap is that the executor did not run the code (timing and transcript data are zeroed out), so runtime correctness is unverified. The field-assertion is also satisfied indirectly through documentation rather than code inspection."}}}, {"id": "eval-3-cad-sectors-without_skill", "prompt": "I need to compare all the CAD IG sector spreads: fins, non-fins, utilities, A-rated, BBB-rated, plus the provincial spreads. Give me all of them in a single DataFrame, daily, from 2010 onwards. Write the Python code.", "eval_id": 3, "outputs": [{"name": "explanation.md", "type": "text", "content": "# CAD IG Sector Spreads \u00e2\u20ac\u201d Solution Explanation\n\n## Approach\n\nUsed `xbbg` (`blp.bdh`) directly to fetch daily OAS spreads from Bloomberg for seven\nCAD Investment Grade sector indices, then merged them into a single wide DataFrame.\n\n---\n\n## Index Family\n\nAll tickers reference the **BofA Merrill Lynch (BAML)** Canadian Fixed Income index\nseries. BAML is the dominant benchmark for Canadian IG credit research and is natively\navailable in Bloomberg with complete OAS history back to the early 2000s.\n\n---\n\n## Tickers Used\n\n| Column | Bloomberg Ticker | Description |\n|---|---|---|\n| CAD_IG_All | C0A0 Index | Broad CAD IG Corporate (all sectors/ratings) |\n| CAD_IG_Fins | C0FN Index | CAD IG Financials |\n| CAD_IG_NonFins | C0NF Index | CAD IG Non-Financials |\n| CAD_IG_Utils | C0UT Index | CAD IG Utilities |\n| CAD_IG_A | C3A0 Index | CAD IG A-rated (A1/A2/A3) |\n| CAD_IG_BBB | C4A0 Index | CAD IG BBB-rated |\n| CAD_Provinces | CGPV Index | Canadian Provincial (quasi-sovereign) |\n\nAlternatives are documented as inline comments in the code for cases where tickers\nneed validation (e.g., `CAIG1FN Index`, `C0P0 Index`).\n\n---\n\n## Bloomberg Field\n\n**`OAS_SPREAD`** \u00e2\u20ac\u201d Option-Adjusted Spread in basis points. This is the standard\nBloomberg field on BAML fixed income indices. A fallback to `SPREAD_TO_WORST` is\nautomatically attempted if the primary field returns empty for any ticker.\n\n---\n\n## Key Design Decisions\n\n1. **Per-ticker error isolation** \u00e2\u20ac\u201d each ticker fetches independently; failures print\n   a warning and return an empty Series rather than crashing the whole pull.\n2. **Field fallback** \u00e2\u20ac\u201d `OAS_SPREAD` \u00e2\u2020\u2019 `SPREAD_TO_WORST` per ticker.\n3. **`Fill=\"P\"` (previous)** \u00e2\u20ac\u201d Bloomberg carries forward the last valid price on\n   non-trading days, which is standard for index data.\n4. **Forward-fill (\u00e2\u2030\u00a45 days)** after concat to bridge any residual gaps from weekends\n   or market holidays where Bloomberg doesn't emit a row.\n5. **No external dependencies** beyond `xbbg` and `pandas`.\n\n---\n\n## Uncertainty / Caveats\n\n- The sector sub-index tickers (`C0FN`, `C0NF`, `C0UT`) are inferred from BAML naming\n  conventions. The exact identifiers should be confirmed by running\n  `FLDS OAS_SPREAD` or `DES` on each ticker in the Bloomberg terminal.\n- Provincial spread tickers (`CGPV Index`) may map differently depending on the\n  Bloomberg subscription; `C0P0 Index` is a documented alternative.\n- History depth: most BAML Canadian sub-indices have data from ~2000\u00e2\u20ac\u201c2005 onwards;\n  the 2010 start date should be safe.\n"}, {"name": "solution.py", "type": "text", "content": "\"\"\"\nCAD IG Sector Spread Comparison\n================================\nFetches daily OAS spreads for Canadian Investment Grade sector indices\nfrom Bloomberg via xbbg (blp.bdh), merging into a single DataFrame.\n\nSectors covered:\n  - CAD IG Financials\n  - CAD IG Non-Financials\n  - CAD IG Utilities\n  - CAD IG A-rated\n  - CAD IG BBB-rated\n  - Canadian Provinces\n\nBloomberg index family: BofA Merrill Lynch (BAML) Canadian Fixed Income Indices\nOAS field: OAS_SPREAD\n\"\"\"\n\nimport pandas as pd\nfrom xbbg import blp\n\n\n# ---------------------------------------------------------------------------\n# Ticker definitions\n# ---------------------------------------------------------------------------\n# Primary tickers use BofA Merrill Lynch (BAML) Canadian IG index series.\n# Alternatives are provided as comments for validation on your Bloomberg terminal.\n#\n# Naming convention reference:\n#   C0A0  = CAD Investment Grade Corporate (all ratings, all sectors)\n#   C3A0  = CAD IG A-rated (A1/A2/A3)\n#   C4A0  = CAD IG BBB-rated (BBB1/BBB2/BBB3)\n#   Sector sub-indices append a 2-letter sector code to the base.\n#\n# For provinces, BAML tracks quasi-government / sub-sovereign issues.\n\nTICKERS: dict[str, str] = {\n    # Broad CAD IG (reference / sanity check)\n    \"CAD_IG_All\":      \"C0A0 Index\",\n\n    # Sector breakdown\n    \"CAD_IG_Fins\":     \"C0FN Index\",   # Financials  \u00e2\u20ac\u201d alt: CGFN Index, CAIG1FN Index\n    \"CAD_IG_NonFins\":  \"C0NF Index\",   # Non-Financials \u00e2\u20ac\u201d alt: C0NC Index, CAIG1NF Index\n    \"CAD_IG_Utils\":    \"C0UT Index\",   # Utilities \u00e2\u20ac\u201d alt: C0U0 Index, CAIG1UT Index\n\n    # Rating breakdown\n    \"CAD_IG_A\":        \"C3A0 Index\",   # A-rated (A1/A2/A3) \u00e2\u20ac\u201d alt: C0A2 Index (AA+A combined)\n    \"CAD_IG_BBB\":      \"C4A0 Index\",   # BBB-rated \u00e2\u20ac\u201d alt: C0B0 Index\n\n    # Provinces (quasi-sovereign / sub-sovereign)\n    \"CAD_Provinces\":   \"CGPV Index\",   # Canadian Provincial \u00e2\u20ac\u201d alt: C0P0 Index, CAGV Index\n}\n\n# Bloomberg field for Option-Adjusted Spread (basis points)\nOAS_FIELD = \"OAS_SPREAD\"\n\n# Alternative field if OAS_SPREAD not available on a given index\nFALLBACK_FIELD = \"SPREAD_TO_WORST\"\n\n# Date range\nSTART_DATE = \"2010-01-01\"\nEND_DATE = pd.Timestamp.today().strftime(\"%Y-%m-%d\")\n\n\n# ---------------------------------------------------------------------------\n# Helper: fetch one series, fall back to alternative field on failure\n# ---------------------------------------------------------------------------\n\ndef fetch_oas(\n    ticker: str,\n    name: str,\n    start: str,\n    end: str,\n    field: str = OAS_FIELD,\n    fallback: str = FALLBACK_FIELD,\n) -> pd.Series:\n    \"\"\"\n    Fetch a single OAS spread series from Bloomberg via blp.bdh.\n\n    Tries `field` first; if the result is empty, retries with `fallback`.\n\n    Args:\n        ticker:   Bloomberg ticker string (e.g. 'C0A0 Index').\n        name:     Label for the returned Series.\n        start:    Start date string 'YYYY-MM-DD'.\n        end:      End date string 'YYYY-MM-DD'.\n        field:    Primary Bloomberg field (default OAS_SPREAD).\n        fallback: Secondary field if primary returns nothing.\n\n    Returns:\n        pd.Series with a DatetimeIndex, named `name`. Empty on total failure.\n\n    Raises:\n        Does not raise; prints warnings instead so partial results are preserved.\n    \"\"\"\n    for fld in (field, fallback):\n        try:\n            raw = blp.bdh(\n                tickers=ticker,\n                flds=fld,\n                start_date=start,\n                end_date=end,\n                Per=\"D\",          # daily\n                Fill=\"P\",         # use previous value for non-trading days\n                CshAdjNormal=False,\n            )\n            if raw is None or raw.empty:\n                print(f\"[WARN] {name} ({ticker}) field={fld} returned empty \u00e2\u20ac\u201d trying fallback.\")\n                continue\n            # blp.bdh returns MultiIndex columns: (ticker, field)\n            # Flatten to a plain Series\n            series = raw.iloc[:, 0].rename(name)\n            series.index = pd.to_datetime(series.index)\n            print(f\"[OK]   {name} ({ticker}) via {fld}: {len(series)} observations\")\n            return series\n        except Exception as exc:\n            print(f\"[ERROR] {name} ({ticker}) field={fld}: {exc}\")\n\n    print(f\"[SKIP] {name} ({ticker}): all fields failed; filling with NaN.\")\n    return pd.Series(dtype=float, name=name)\n\n\n# ---------------------------------------------------------------------------\n# Main fetch loop\n# ---------------------------------------------------------------------------\n\ndef build_cad_ig_spreads(\n    tickers: dict[str, str] = TICKERS,\n    start: str = START_DATE,\n    end: str = END_DATE,\n) -> pd.DataFrame:\n    \"\"\"\n    Fetch daily OAS spreads for all CAD IG sector indices and merge into a\n    single wide DataFrame.\n\n    Args:\n        tickers: Mapping of {column_name: bloomberg_ticker}.\n        start:   Start date 'YYYY-MM-DD'.\n        end:     End date 'YYYY-MM-DD'.\n\n    Returns:\n        pd.DataFrame with DatetimeIndex and one column per sector.\n        Columns are in bps (basis points), e.g. 120.5 = 120.5 bps OAS.\n    \"\"\"\n    series_list: list[pd.Series] = []\n\n    for name, ticker in tickers.items():\n        s = fetch_oas(ticker=ticker, name=name, start=start, end=end)\n        series_list.append(s)\n\n    if not series_list:\n        raise RuntimeError(\"No data fetched \u00e2\u20ac\u201d check Bloomberg connection and tickers.\")\n\n    df = pd.concat(series_list, axis=1)\n    df.index.name = \"date\"\n    df = df.sort_index()\n\n    # Forward-fill up to 5 days to bridge weekends / holidays\n    df = df.ffill(limit=5)\n\n    print(f\"\\n=== CAD IG Sector Spreads ===\")\n    print(f\"Date range : {df.index.min().date()} \u00e2\u2020\u2019 {df.index.max().date()}\")\n    print(f\"Shape      : {df.shape}\")\n    print(f\"Columns    : {list(df.columns)}\")\n    print(f\"\\nLatest values (bps):\\n{df.iloc[-1].to_string()}\")\n    print(f\"\\nMissing %:\\n{(df.isna().mean() * 100).round(1).to_string()}\")\n\n    return df\n\n\n# ---------------------------------------------------------------------------\n# Entry point\n# ---------------------------------------------------------------------------\n\nif __name__ == \"__main__\":\n    spreads = build_cad_ig_spreads()\n\n    # Optional: save to CSV\n    output_path = \"cad_ig_sector_spreads.csv\"\n    spreads.to_csv(output_path)\n    print(f\"\\nSaved to {output_path}\")\n\n    # Optional: quick correlation check\n    print(f\"\\nCorrelation matrix (pairwise complete obs):\\n\")\n    print(spreads.corr(method=\"pearson\").round(3).to_string())\n"}], "grading": {"expectations": [{"text": "The code fetches at least 5 of the 6 CAD sector tickers (fins, non-fins, uts, A, BBB, provs)", "passed": true, "evidence": "All 6 required sectors are present in TICKERS dict: CAD_IG_Fins (C0FN Index), CAD_IG_NonFins (C0NF Index), CAD_IG_Utils (C0UT Index), CAD_IG_A (C3A0 Index), CAD_IG_BBB (C4A0 Index), CAD_Provinces (CGPV Index). A 7th bonus ticker CAD_IG_All (C0A0 Index) is also included as a sanity-check reference."}, {"text": "All sector tickers use INDEX_OAS_TSY_BP as the Bloomberg field", "passed": false, "evidence": "solution.py line 55 sets OAS_FIELD = \"OAS_SPREAD\" with a fallback of SPREAD_TO_WORST (line 58). The expected field INDEX_OAS_TSY_BP (OAS vs Treasury in basis points) is never referenced anywhere in solution.py or explanation.md. OAS_SPREAD is a different Bloomberg field \u00e2\u20ac\u201d it may return OAS vs swap curve rather than vs Treasuries on some indices."}, {"text": "The result is a single merged DataFrame (not separate Series objects)", "passed": true, "evidence": "solution.py line 154: `df = pd.concat(series_list, axis=1)` concatenates all individual Series into a single wide DataFrame. The function `build_cad_ig_spreads` returns this DataFrame, and the __main__ block operates on it as a single object (e.g., `spreads.corr()`, `spreads.to_csv()`)."}, {"text": "The code uses 2010 or earlier as the start date", "passed": true, "evidence": "solution.py line 61: START_DATE = \"2010-01-01\". This is passed as the `start` argument to all bdh calls."}, {"text": "The sector columns are correctly named or labeled (not just numeric indices)", "passed": true, "evidence": "Each Series is named via the `name` parameter in fetch_oas (solution.py line 112: `series = raw.iloc[:, 0].rename(name)`). Column names are: CAD_IG_All, CAD_IG_Fins, CAD_IG_NonFins, CAD_IG_Utils, CAD_IG_A, CAD_IG_BBB, CAD_Provinces \u00e2\u20ac\u201d all descriptive string labels confirmed in explanation.md ticker table."}], "summary": {"passed": 4, "failed": 1, "total": 5, "pass_rate": 0.8}, "execution_metrics": {"tool_calls": {"Shell": 2, "Write": 3}, "total_tool_calls": 5, "files_created": ["solution.py", "explanation.md", "metrics.json"], "errors_encountered": 0, "output_chars": 6467, "transcript_chars": 0}, "claims": [{"claim": "OAS_SPREAD is the standard Bloomberg field on BAML fixed income indices", "type": "factual", "verified": false, "evidence": "The eval expects INDEX_OAS_TSY_BP, which is specifically OAS vs Treasuries \u00e2\u20ac\u201d the standard field for IG credit spread comparison. OAS_SPREAD may resolve to a swap-based or generic OAS on some BAML indices. The claim is at minimum incomplete and potentially incorrect for the stated use case."}, {"claim": "BAML Canadian sub-indices have data from ~2000\u00e2\u20ac\u201c2005 onwards", "type": "factual", "verified": false, "evidence": "Stated in explanation.md caveats. Cannot be verified without Bloomberg terminal access. Plausible but unverifiable."}, {"claim": "Sector sub-index tickers C0FN, C0NF, C0UT are inferred from BAML naming conventions", "type": "process", "verified": true, "evidence": "Explicitly acknowledged in both metrics.json (tickers_confidence: 'medium - inferred from BAML sector naming convention') and explanation.md Uncertainty section. The agent correctly flags these as unconfirmed."}, {"claim": "Field fallback OAS_SPREAD -> SPREAD_TO_WORST prevents crashes on partial failures", "type": "quality", "verified": true, "evidence": "fetch_oas() iterates `for fld in (field, fallback)` (line 96), prints a warning and continues on empty result, and returns an empty Series with the correct name on total failure (line 120). Design is sound for partial-failure resilience."}, {"claim": "7 tickers are fetched (including the reference broad index)", "type": "factual", "verified": true, "evidence": "TICKERS dict contains 7 entries: C0A0, C0FN, C0NF, C0UT, C3A0, C4A0, CGPV. Confirmed by len(TICKERS) == 7 and the explanation.md table which lists all 7."}], "user_notes_summary": {"uncertainties": ["Sector sub-index tickers (C0FN, C0NF, C0UT) are inferred from naming conventions and marked medium confidence \u00e2\u20ac\u201d should be confirmed in Bloomberg terminal", "Provincial ticker CGPV Index may differ depending on Bloomberg subscription; C0P0 Index noted as alternative"], "needs_review": ["Bloomberg field OAS_SPREAD vs the expected INDEX_OAS_TSY_BP \u00e2\u20ac\u201d the agent chose a different field than what the eval requires"], "workarounds": []}, "eval_feedback": {"suggestions": [{"assertion": "All sector tickers use INDEX_OAS_TSY_BP as the Bloomberg field", "reason": "This assertion is discriminating and correctly caught a meaningful error \u00e2\u20ac\u201d the agent used OAS_SPREAD instead. However, the assertion text should clarify *why* INDEX_OAS_TSY_BP is required (OAS vs Treasuries, the standard for IG sector spread comparison) so the executor understands the domain intent, not just the field name. As written, the executor might not know the correct field without prior context."}, {"reason": "No assertion checks ticker validity confidence. The agent correctly flagged 3 of 7 tickers as 'medium confidence \u00e2\u20ac\u201d inferred from naming convention'. An assertion like 'The code comments or notes document any unconfirmed tickers and suggest validation steps' would reward intellectual honesty about Bloomberg-specific uncertainty."}, {"reason": "No assertion checks that the DataFrame has a DatetimeIndex. The code does set one (pd.to_datetime on the index, index.name = 'date'), but a malformed index (e.g., string dates) would still pass expectation 3. Adding a check would make the DataFrame usability assertion stronger."}], "overall": "The field-name assertion (expectation 2) is the most discriminating check here and correctly caught the primary failure. The ticker coverage check is appropriately lenient (at least 5 of 6). Consider adding a ticker-confidence/documentation check since Bloomberg field/ticker uncertainty is the main real-world failure mode for this type of task."}, "timing": {"total_duration_seconds": 0, "executor_duration_seconds": 0}}}], "previous_feedback": {}, "previous_outputs": {}, "benchmark": {"metadata": {"skill_name": "credit-data", "skill_path": "C:\\Users\\Eddy\\.claude\\skills\\credit-data", "timestamp": "2026-03-10T19:38:05.111570+00:00", "evals_run": [1, 2, 3], "runs_per_configuration": 1}, "runs": [{"eval_id": 1, "eval_name": "cad-ig-context", "configuration": "with_skill", "run_number": 1, "result": {"pass_rate": 0.8, "passed": 4, "failed": 1, "total": 5, "time_seconds": 0, "tokens": 0, "errors": 0}, "expectations": [{"text": "The code fetches I05510CA Index with INDEX_OAS_TSY_BP field (or uses cad_oas alias)", "passed": true, "evidence": "explanation.md explicitly states: 'pull daily CAD IG OAS spreads from Bloomberg ticker I05510CA Index using field INDEX_OAS_TSY_BP'. solution.py uses cd.fetch(\"cad ig\") which the skill maps to that ticker/field. The resulting column is confirmed as cad_oas: '# Resulting DataFrame: single column  cad_oas  (bps), DatetimeIndex'. Both the alias path and the underlying ticker/field are documented."}, {"text": "The code generates a spread intelligence summary including percentile rank vs history", "passed": true, "evidence": "Two layers of percentile context are present. (1) cd.context(\"cad ig\") is called and printed \u2014 explanation.md confirms it 'surfaces the skill's full-history percentile (back to 2002)'. (2) Manual 2018+ stats compute pctile_2018 via pd.Series(series).rank(pct=True), and a full cross-sectional percentile table (5th, 10th, 25th, 50th, 75th, 90th, 95th percentiles) is printed with the current spread marked."}, {"text": "The code includes a Z-score or standard deviation calculation for current spreads", "passed": true, "evidence": "solution.py lines 69 and 75 compute explicit z-scores: 'z_2018 = (current - mean_2018) / std_2018' and 'z_1y = (current - mean_1y) / std_1y'. Both are printed: 'Z-Score (2018+)   :  {z_2018:+.2f}\u03c3' and 'Z-Score (1Y)      :  {z_1y:+.2f}\u03c3'. Additionally, cd.context() internally provides a 5-year z-score per explanation.md."}, {"text": "The code uses the correct start date of 2018 or earlier for history context", "passed": true, "evidence": "CreditData is initialised with start_date=\"2018-01-01\" (solution.py line 28). For the full-history context, cd.context(\"cad ig\") uses Bloomberg history back to 2002 per explanation.md: 'context() uses the full Bloomberg history (back to 2002) for percentile/z-score calculations so the regime label reflects the complete cycle.' Both the user-requested window (2018) and longer cycle context are satisfied."}, {"text": "The code uses uv run python or references the virtual environment for execution", "passed": false, "evidence": "The docstring prerequisites section says 'uv add xbbg pandas numpy' for package installation, but nowhere in solution.py or explanation.md is the execution command 'uv run python solution.py' mentioned, nor is virtual environment activation referenced. The uv add mention covers dependency management but not the run-time invocation. The expectation requires an explicit execution reference, which is absent."}], "notes": []}, {"eval_id": 1, "eval_name": "cad-ig-context", "configuration": "without_skill", "run_number": 1, "result": {"pass_rate": 0.6, "passed": 3, "failed": 2, "total": 5, "time_seconds": 0, "tokens": 0, "errors": 0}, "expectations": [{"text": "The code fetches I05510CA Index with INDEX_OAS_TSY_BP field (or uses cad_oas alias)", "passed": false, "evidence": "The CANDIDATES list includes 'I05511CA Index' (note: 11, not 10) with field 'OAS_BP', and 'IBXXCAIG Index' as the primary. Neither 'I05510CA Index', 'INDEX_OAS_TSY_BP', nor any 'cad_oas' alias appear anywhere in solution.py. The correct canonical Bloomberg Barclays CAD IG ticker (I05510CA) is absent."}, {"text": "The code generates a spread intelligence summary including percentile rank vs history", "passed": true, "evidence": "The historical_context() function (lines 174-214) builds a DataFrame with a 'Pct Rank' column computed via scipy.stats.percentileofscore(), printed under the section 'HISTORICAL CONTEXT \u2014 Multi-Window Z-Score & Percentile'. Additional context comes from recent_moves() and regime_analysis(). This is a genuine multi-window spread intelligence summary."}, {"text": "The code includes a Z-score or standard deviation calculation for current spreads", "passed": true, "evidence": "compute_zscore() (lines 148-154) explicitly calculates z = (current - mu) / sigma with ddof=1. The result appears in the 'Z-Score' column of the historical context table and drives the qualitative label (EXTREMELY TIGHT / TIGHT / WIDE etc.) via label_from_zscore()."}, {"text": "The code uses the correct start date of 2018 or earlier for history context", "passed": true, "evidence": "Line 40: START_DATE = '20180101', passed directly to blp.bdh(). The explanation.md confirms: 'pulls daily OAS ... from 2018-01-01 to today'."}, {"text": "The code uses uv run python or references the virtual environment for execution", "passed": false, "evidence": "The docstring (line 14) says 'uv add xbbg pandas numpy scipy tabulate' \u2014 this references uv only for package installation, not for execution. Neither 'uv run python' nor any venv activation instruction appears in solution.py or explanation.md. No shebang or run command is documented."}], "notes": []}, {"eval_id": 2, "eval_name": "er-index-weekly", "configuration": "with_skill", "run_number": 1, "result": {"pass_rate": 1.0, "passed": 5, "failed": 0, "total": 5, "time_seconds": 0, "tokens": 0, "errors": 0}, "expectations": [{"text": "The code fetches LUACTRUU Index and LF98TRUU Index with INDEX_EXCESS_RETURN_YTD field", "passed": true, "evidence": "solution.py calls `cd.fetch('us ig er and us hy er')` which delegates to the CreditData skill. explanation.md explicitly documents the mapping: 'us ig er' \u00e2\u2020\u2019 LUACTRUU Index / INDEX_EXCESS_RETURN_YTD, 'us hy er' \u00e2\u2020\u2019 LF98TRUU Index / INDEX_EXCESS_RETURN_YTD. SKILL.md instrument table confirms both mappings."}, {"text": "The code converts YTD percent returns to cumulative chain-linked indices (not raw YTD values)", "passed": true, "evidence": "explanation.md states: 'Bloomberg publishes INDEX_EXCESS_RETURN_YTD \u00e2\u20ac\u201d a year-to-date percentage return that resets to zero on January 1 each year. The skill automatically converts this to a chain-linked cumulative index (base = 100 at the first data point).' SKILL.md confirms: 'ER \u00e2\u2020\u2019 chain-linked cumulative index (auto-conversion, no extra steps)' and solution.py comment reads '// chain-linked cumulative ER index, base=100 at 2015-01-01'."}, {"text": "The code sets weekly periodicity (W or WEEKLY)", "passed": true, "evidence": "solution.py line 34: `periodicity=\"W\"` is explicitly set in the CreditData constructor: `cd = CreditData(start_date=\"2015-01-01\", end_date=None, periodicity=\"W\", fill=\"ffill\")`."}, {"text": "The code uses January 2015 as the start date", "passed": true, "evidence": "solution.py line 33: `start_date=\"2015-01-01\"` is explicitly set in the CreditData constructor."}, {"text": "The code saves the output to a CSV file with UTF-8 encoding", "passed": true, "evidence": "solution.py calls `cd.save(df, str(OUTPUT_CSV))` where OUTPUT_CSV has a `.csv` extension. SKILL.md documents: 'cd.save(df, path)  # UTF-8, creates dirs if needed'. The UTF-8 guarantee is implicit through the skill's documented behaviour rather than explicit in the solution code."}], "notes": []}, {"eval_id": 2, "eval_name": "er-index-weekly", "configuration": "without_skill", "run_number": 1, "result": {"pass_rate": 0.8, "passed": 4, "failed": 1, "total": 5, "time_seconds": 0, "tokens": 0, "errors": 0}, "expectations": [{"text": "The code fetches LUACTRUU Index and LF98TRUU Index with INDEX_EXCESS_RETURN_YTD field", "passed": false, "evidence": "solution.py uses 'LUACEXUU Index' and 'LF98EXUU Index' (excess return variants), not 'LUACTRUU Index' and 'LF98TRUU Index' (total return variants). The field used is 'EXCESS_RETURN_YTD', not 'INDEX_EXCESS_RETURN_YTD'. Additionally, EXCESS_RETURN_YTD is only a fallback \u2014 the primary strategy is PX_LAST. See lines 43-46 and 142-148 in solution.py."}, {"text": "The code converts YTD percent returns to cumulative chain-linked indices (not raw YTD values)", "passed": true, "evidence": "function ytd_pct_to_cumulative_index (lines 174-219) iterates calendar years and chains: result[mask] = carry * (1 + ytd_slice / 100), rolling the carry forward at each year boundary. explanation.md confirms: 'level[t] = carry_prior_year \u00d7 (1 + ytd[t] / 100)'."}, {"text": "The code sets weekly periodicity (W or WEEKLY)", "passed": true, "evidence": "resample_weekly_friday (line 251) uses df.resample('W-FRI').last(), producing weekly observations ending on Fridays. The main pipeline calls this at line 311."}, {"text": "The code uses January 2015 as the start date", "passed": true, "evidence": "Line 37: START_DATE = '2015-01-01'. This is passed to build_er_index as the default start and forwarded to blp.bdh."}, {"text": "The code saves the output to a CSV file with UTF-8 encoding", "passed": true, "evidence": "Line 355: weekly.to_csv(args.output, encoding='utf-8'). Encoding is explicitly specified."}], "notes": []}, {"eval_id": 3, "eval_name": "cad-sectors", "configuration": "with_skill", "run_number": 1, "result": {"pass_rate": 1.0, "passed": 5, "failed": 0, "total": 5, "time_seconds": 0, "tokens": 0, "errors": 0}, "expectations": [{"text": "The code fetches at least 5 of the 6 CAD sector tickers (fins, non-fins, uts, A, BBB, provs)", "passed": true, "evidence": "solution.py line 25: `cd.fetch(\"cad fins, cad non fins, cad uts, cad a, cad bbb, cad provs\")` \u2014 all 6 sector tokens are present in the single fetch call. The assertion on lines 28-38 also explicitly checks for all 6 named columns: fins, non_fins_ex_uts, uts, a_credits, bbb_credits, provs."}, {"text": "All sector tickers use INDEX_OAS_TSY_BP as the Bloomberg field", "passed": true, "evidence": "explanation.md table row footer: 'All fields: `INDEX_OAS_TSY_BP` (OAS vs. Treasuries, in basis points).' The code delegates field selection to the CreditData skill, which the explanation confirms maps every CAD sector token to INDEX_OAS_TSY_BP internally."}, {"text": "The result is a single merged DataFrame (not separate Series objects)", "passed": true, "evidence": "solution.py line 25 assigns one `df` from a single `cd.fetch()` call. The assertion on lines 36-38 checks `list(df.columns) == expected_cols` against 6 named columns. explanation.md confirms: 'A single `pd.DataFrame` with ~3,900+ rows \u00d7 6 OAS columns, indexed by DatetimeIndex. No manual `pd.concat` or join is needed.'"}, {"text": "The code uses 2010 or earlier as the start date", "passed": true, "evidence": "solution.py line 19: `start_date=\"2010-01-01\"` \u2014 exactly 2010-01-01. explanation.md confirms: '`start_date=\"2010-01-01\"` \u2014 full decade-plus of daily history'."}, {"text": "The sector columns are correctly named or labeled (not just numeric indices)", "passed": true, "evidence": "solution.py lines 28-35 define expected_cols as ['cad_credit_spreads_fins', 'cad_credit_spreads_non_fins_ex_uts', 'cad_credit_spreads_uts', 'cad_credit_spreads_a_credits', 'cad_credit_spreads_bbb_credits', 'cad_credit_spreads_provs'] and the code asserts the DataFrame columns match these exact names. No numeric indices are used."}], "notes": []}, {"eval_id": 3, "eval_name": "cad-sectors", "configuration": "without_skill", "run_number": 1, "result": {"pass_rate": 0.8, "passed": 4, "failed": 1, "total": 5, "time_seconds": 0, "tokens": 0, "errors": 0}, "expectations": [{"text": "The code fetches at least 5 of the 6 CAD sector tickers (fins, non-fins, uts, A, BBB, provs)", "passed": true, "evidence": "All 6 required sectors are present in TICKERS dict: CAD_IG_Fins (C0FN Index), CAD_IG_NonFins (C0NF Index), CAD_IG_Utils (C0UT Index), CAD_IG_A (C3A0 Index), CAD_IG_BBB (C4A0 Index), CAD_Provinces (CGPV Index). A 7th bonus ticker CAD_IG_All (C0A0 Index) is also included as a sanity-check reference."}, {"text": "All sector tickers use INDEX_OAS_TSY_BP as the Bloomberg field", "passed": false, "evidence": "solution.py line 55 sets OAS_FIELD = \"OAS_SPREAD\" with a fallback of SPREAD_TO_WORST (line 58). The expected field INDEX_OAS_TSY_BP (OAS vs Treasury in basis points) is never referenced anywhere in solution.py or explanation.md. OAS_SPREAD is a different Bloomberg field \u00e2\u20ac\u201d it may return OAS vs swap curve rather than vs Treasuries on some indices."}, {"text": "The result is a single merged DataFrame (not separate Series objects)", "passed": true, "evidence": "solution.py line 154: `df = pd.concat(series_list, axis=1)` concatenates all individual Series into a single wide DataFrame. The function `build_cad_ig_spreads` returns this DataFrame, and the __main__ block operates on it as a single object (e.g., `spreads.corr()`, `spreads.to_csv()`)."}, {"text": "The code uses 2010 or earlier as the start date", "passed": true, "evidence": "solution.py line 61: START_DATE = \"2010-01-01\". This is passed as the `start` argument to all bdh calls."}, {"text": "The sector columns are correctly named or labeled (not just numeric indices)", "passed": true, "evidence": "Each Series is named via the `name` parameter in fetch_oas (solution.py line 112: `series = raw.iloc[:, 0].rename(name)`). Column names are: CAD_IG_All, CAD_IG_Fins, CAD_IG_NonFins, CAD_IG_Utils, CAD_IG_A, CAD_IG_BBB, CAD_Provinces \u00e2\u20ac\u201d all descriptive string labels confirmed in explanation.md ticker table."}], "notes": []}], "run_summary": {"with_skill": {"pass_rate": {"mean": 0.9333, "stddev": 0.1155, "min": 0.8, "max": 1.0}, "time_seconds": {"mean": 0, "stddev": 0, "min": 0, "max": 0}, "tokens": {"mean": 0, "stddev": 0, "min": 0, "max": 0}}, "without_skill": {"pass_rate": {"mean": 0.7333, "stddev": 0.1155, "min": 0.6, "max": 0.8}, "time_seconds": {"mean": 0, "stddev": 0, "min": 0, "max": 0}, "tokens": {"mean": 0, "stddev": 0, "min": 0, "max": 0}}, "delta": {"pass_rate": "+0.2", "time_seconds": "0", "tokens": "0"}}, "notes": ["with_skill 93.3% vs without_skill 73.3% \u2014 +20pp improvement across 3 evals", "Eval 2 (ER index weekly): with_skill 100% \u2014 single fetch() call, auto YTD\u2192index, correct tickers. Baseline used wrong tickers (LUACEXUU vs LUACTRUU/LF98TRUU).", "Eval 3 (CAD sectors): with_skill 100% \u2014 single fetch(), correct INDEX_OAS_TSY_BP. Baseline used wrong field (OAS_SPREAD) and uncertain BAML tickers.", "Eval 1 (CAD IG context): with_skill 80% \u2014 CreditData+context() used correctly. Both configs missed uv run python execution command \u2014 assertion is weak.", "IMPROVEMENT TARGET: Add regime label (TIGHT/FAIR/WIDE/DISTRESSED) assertion to Eval 1.", "IMPROVEMENT TARGET: Replace uv run assertion with a more discriminating check (e.g. CreditData class usage)."]}};
+
+    // ---- State ----
+    let feedbackMap = {};  // run_id -> feedback text
+    let currentIndex = 0;
+    let visitedRuns = new Set();
+
+    // ---- Init ----
+    async function init() {
+      // Load saved feedback from server — but only if this isn't a fresh
+      // iteration (indicated by previous_feedback being present). When
+      // previous feedback exists, the feedback.json on disk is stale from
+      // the prior iteration and should not pre-fill the textareas.
+      const hasPrevious = Object.keys(EMBEDDED_DATA.previous_feedback || {}).length > 0
+        || Object.keys(EMBEDDED_DATA.previous_outputs || {}).length > 0;
+      if (!hasPrevious) {
+        try {
+          const resp = await fetch("/api/feedback");
+          const data = await resp.json();
+          if (data.reviews) {
+            for (const r of data.reviews) feedbackMap[r.run_id] = r.feedback;
+          }
+        } catch { /* first run, no feedback yet */ }
+      }
+
+      document.getElementById("skill-name").textContent = EMBEDDED_DATA.skill_name;
+      showRun(0);
+
+      // Wire up feedback auto-save
+      const textarea = document.getElementById("feedback");
+      let saveTimeout = null;
+      textarea.addEventListener("input", () => {
+        clearTimeout(saveTimeout);
+        document.getElementById("feedback-status").textContent = "";
+        saveTimeout = setTimeout(() => saveCurrentFeedback(), 800);
+      });
+    }
+
+    // ---- Navigation ----
+    function navigate(delta) {
+      const newIndex = currentIndex + delta;
+      if (newIndex >= 0 && newIndex < EMBEDDED_DATA.runs.length) {
+        saveCurrentFeedback();
+        showRun(newIndex);
+      }
+    }
+
+    function updateNavButtons() {
+      document.getElementById("prev-btn").disabled = currentIndex === 0;
+      document.getElementById("next-btn").disabled =
+        currentIndex === EMBEDDED_DATA.runs.length - 1;
+    }
+
+    // ---- Show a run ----
+    function showRun(index) {
+      currentIndex = index;
+      const run = EMBEDDED_DATA.runs[index];
+
+      // Progress
+      document.getElementById("progress").textContent =
+        `${index + 1} of ${EMBEDDED_DATA.runs.length}`;
+
+      // Prompt
+      document.getElementById("prompt-text").textContent = run.prompt;
+
+      // Config badge
+      const badge = document.getElementById("config-badge");
+      const configMatch = run.id.match(/(with_skill|without_skill|new_skill|old_skill)/);
+      if (configMatch) {
+        const config = configMatch[1];
+        const isBaseline = config === "without_skill" || config === "old_skill";
+        badge.textContent = config.replace(/_/g, " ");
+        badge.className = "config-badge " + (isBaseline ? "config-baseline" : "config-primary");
+        badge.style.display = "inline-block";
+      } else {
+        badge.style.display = "none";
+      }
+
+      // Outputs
+      renderOutputs(run);
+
+      // Previous outputs
+      renderPrevOutputs(run);
+
+      // Grades
+      renderGrades(run);
+
+      // Previous feedback
+      const prevFb = (EMBEDDED_DATA.previous_feedback || {})[run.id];
+      const prevEl = document.getElementById("prev-feedback");
+      if (prevFb) {
+        document.getElementById("prev-feedback-text").textContent = prevFb;
+        prevEl.style.display = "block";
+      } else {
+        prevEl.style.display = "none";
+      }
+
+      // Feedback
+      document.getElementById("feedback").value = feedbackMap[run.id] || "";
+      document.getElementById("feedback-status").textContent = "";
+
+      updateNavButtons();
+
+      // Track visited runs and promote done button when all visited
+      visitedRuns.add(index);
+      const doneBtn = document.getElementById("done-btn");
+      if (visitedRuns.size >= EMBEDDED_DATA.runs.length) {
+        doneBtn.classList.add("ready");
+      }
+
+      // Scroll main content to top
+      document.querySelector(".main").scrollTop = 0;
+    }
+
+    // ---- Render outputs ----
+    function renderOutputs(run) {
+      const container = document.getElementById("outputs-body");
+      container.innerHTML = "";
+
+      const outputs = run.outputs || [];
+      if (outputs.length === 0) {
+        container.innerHTML = '<div class="empty-state">No output files</div>';
+        return;
+      }
+
+      for (const file of outputs) {
+        const fileDiv = document.createElement("div");
+        fileDiv.className = "output-file";
+
+        // Always show file header with download link
+        const header = document.createElement("div");
+        header.className = "output-file-header";
+        const nameSpan = document.createElement("span");
+        nameSpan.textContent = file.name;
+        header.appendChild(nameSpan);
+        const dlBtn = document.createElement("a");
+        dlBtn.className = "dl-btn";
+        dlBtn.textContent = "Download";
+        dlBtn.download = file.name;
+        dlBtn.href = getDownloadUri(file);
+        header.appendChild(dlBtn);
+        fileDiv.appendChild(header);
+
+        const content = document.createElement("div");
+        content.className = "output-file-content";
+
+        if (file.type === "text") {
+          const pre = document.createElement("pre");
+          pre.textContent = file.content;
+          content.appendChild(pre);
+        } else if (file.type === "image") {
+          const img = document.createElement("img");
+          img.src = file.data_uri;
+          img.alt = file.name;
+          content.appendChild(img);
+        } else if (file.type === "pdf") {
+          const iframe = document.createElement("iframe");
+          iframe.src = file.data_uri;
+          content.appendChild(iframe);
+        } else if (file.type === "xlsx") {
+          renderXlsx(content, file.data_b64);
+        } else if (file.type === "binary") {
+          const a = document.createElement("a");
+          a.className = "download-link";
+          a.href = file.data_uri;
+          a.download = file.name;
+          a.textContent = "Download " + file.name;
+          content.appendChild(a);
+        } else if (file.type === "error") {
+          const pre = document.createElement("pre");
+          pre.textContent = file.content;
+          pre.style.color = "var(--red)";
+          content.appendChild(pre);
+        }
+
+        fileDiv.appendChild(content);
+        container.appendChild(fileDiv);
+      }
+    }
+
+    // ---- XLSX rendering via SheetJS ----
+    function renderXlsx(container, b64Data) {
+      try {
+        const raw = Uint8Array.from(atob(b64Data), c => c.charCodeAt(0));
+        const wb = XLSX.read(raw, { type: "array" });
+
+        for (let i = 0; i < wb.SheetNames.length; i++) {
+          const sheetName = wb.SheetNames[i];
+          const ws = wb.Sheets[sheetName];
+
+          if (wb.SheetNames.length > 1) {
+            const sheetLabel = document.createElement("div");
+            sheetLabel.style.cssText =
+              "font-weight:600; font-size:0.8rem; color:#b0aea5; margin-top:0.5rem; margin-bottom:0.25rem;";
+            sheetLabel.textContent = "Sheet: " + sheetName;
+            container.appendChild(sheetLabel);
+          }
+
+          const htmlStr = XLSX.utils.sheet_to_html(ws, { editable: false });
+          const wrapper = document.createElement("div");
+          wrapper.innerHTML = htmlStr;
+          container.appendChild(wrapper);
+        }
+      } catch (err) {
+        container.textContent = "Error rendering spreadsheet: " + err.message;
+      }
+    }
+
+    // ---- Grades ----
+    function renderGrades(run) {
+      const section = document.getElementById("grades-section");
+      const content = document.getElementById("grades-content");
+
+      if (!run.grading) {
+        section.style.display = "none";
+        return;
+      }
+
+      const grading = run.grading;
+      section.style.display = "block";
+      // Reset to collapsed
+      content.classList.remove("open");
+      document.getElementById("grades-arrow").classList.remove("open");
+
+      const summary = grading.summary || {};
+      const expectations = grading.expectations || [];
+
+      let html = '<div style="padding: 1rem;">';
+
+      // Summary line
+      const passRate = summary.pass_rate != null
+        ? Math.round(summary.pass_rate * 100) + "%"
+        : "?";
+      const badgeClass = summary.pass_rate >= 0.8 ? "grade-pass" : summary.pass_rate >= 0.5 ? "" : "grade-fail";
+      html += '<div class="grades-summary">';
+      html += '<span class="grade-badge ' + badgeClass + '">' + passRate + '</span>';
+      html += '<span>' + (summary.passed || 0) + ' passed, ' + (summary.failed || 0) + ' failed of ' + (summary.total || 0) + '</span>';
+      html += '</div>';
+
+      // Assertions list
+      html += '<ul class="assertion-list">';
+      for (const exp of expectations) {
+        const statusClass = exp.passed ? "pass" : "fail";
+        const statusIcon = exp.passed ? "\u2713" : "\u2717";
+        html += '<li class="assertion-item">';
+        html += '<span class="assertion-status ' + statusClass + '">' + statusIcon + '</span>';
+        html += '<span>' + escapeHtml(exp.text) + '</span>';
+        if (exp.evidence) {
+          html += '<div class="assertion-evidence">' + escapeHtml(exp.evidence) + '</div>';
+        }
+        html += '</li>';
+      }
+      html += '</ul>';
+
+      html += '</div>';
+      content.innerHTML = html;
+    }
+
+    function toggleGrades() {
+      const content = document.getElementById("grades-content");
+      const arrow = document.getElementById("grades-arrow");
+      content.classList.toggle("open");
+      arrow.classList.toggle("open");
+    }
+
+    // ---- Previous outputs (collapsible) ----
+    function renderPrevOutputs(run) {
+      const section = document.getElementById("prev-outputs-section");
+      const content = document.getElementById("prev-outputs-content");
+      const prevOutputs = (EMBEDDED_DATA.previous_outputs || {})[run.id];
+
+      if (!prevOutputs || prevOutputs.length === 0) {
+        section.style.display = "none";
+        return;
+      }
+
+      section.style.display = "block";
+      // Reset to collapsed
+      content.classList.remove("open");
+      document.getElementById("prev-outputs-arrow").classList.remove("open");
+
+      // Render the files into the content area
+      content.innerHTML = "";
+      const wrapper = document.createElement("div");
+      wrapper.style.padding = "1rem";
+
+      for (const file of prevOutputs) {
+        const fileDiv = document.createElement("div");
+        fileDiv.className = "output-file";
+
+        const header = document.createElement("div");
+        header.className = "output-file-header";
+        const nameSpan = document.createElement("span");
+        nameSpan.textContent = file.name;
+        header.appendChild(nameSpan);
+        const dlBtn = document.createElement("a");
+        dlBtn.className = "dl-btn";
+        dlBtn.textContent = "Download";
+        dlBtn.download = file.name;
+        dlBtn.href = getDownloadUri(file);
+        header.appendChild(dlBtn);
+        fileDiv.appendChild(header);
+
+        const fc = document.createElement("div");
+        fc.className = "output-file-content";
+
+        if (file.type === "text") {
+          const pre = document.createElement("pre");
+          pre.textContent = file.content;
+          fc.appendChild(pre);
+        } else if (file.type === "image") {
+          const img = document.createElement("img");
+          img.src = file.data_uri;
+          img.alt = file.name;
+          fc.appendChild(img);
+        } else if (file.type === "pdf") {
+          const iframe = document.createElement("iframe");
+          iframe.src = file.data_uri;
+          fc.appendChild(iframe);
+        } else if (file.type === "xlsx") {
+          renderXlsx(fc, file.data_b64);
+        } else if (file.type === "binary") {
+          const a = document.createElement("a");
+          a.className = "download-link";
+          a.href = file.data_uri;
+          a.download = file.name;
+          a.textContent = "Download " + file.name;
+          fc.appendChild(a);
+        }
+
+        fileDiv.appendChild(fc);
+        wrapper.appendChild(fileDiv);
+      }
+
+      content.appendChild(wrapper);
+    }
+
+    function togglePrevOutputs() {
+      const content = document.getElementById("prev-outputs-content");
+      const arrow = document.getElementById("prev-outputs-arrow");
+      content.classList.toggle("open");
+      arrow.classList.toggle("open");
+    }
+
+    // ---- Feedback (saved to server -> feedback.json) ----
+    function saveCurrentFeedback() {
+      const run = EMBEDDED_DATA.runs[currentIndex];
+      const text = document.getElementById("feedback").value;
+
+      if (text.trim() === "") {
+        delete feedbackMap[run.id];
+      } else {
+        feedbackMap[run.id] = text;
+      }
+
+      // Build reviews array from map
+      const reviews = [];
+      for (const [run_id, feedback] of Object.entries(feedbackMap)) {
+        if (feedback.trim()) {
+          reviews.push({ run_id, feedback, timestamp: new Date().toISOString() });
+        }
+      }
+
+      fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reviews, status: "in_progress" }),
+      }).then(() => {
+        document.getElementById("feedback-status").textContent = "Saved";
+      }).catch(() => {
+        // Static mode or server unavailable — no-op on auto-save,
+        // feedback will be downloaded on final submit
+        document.getElementById("feedback-status").textContent = "Will download on submit";
+      });
+    }
+
+    // ---- Done ----
+    function showDoneDialog() {
+      // Save current textarea to feedbackMap (but don't POST yet)
+      const run = EMBEDDED_DATA.runs[currentIndex];
+      const text = document.getElementById("feedback").value;
+      if (text.trim() === "") {
+        delete feedbackMap[run.id];
+      } else {
+        feedbackMap[run.id] = text;
+      }
+
+      // POST once with status: complete — include ALL runs so the model
+      // can distinguish "no feedback" (looks good) from "not reviewed"
+      const reviews = [];
+      const ts = new Date().toISOString();
+      for (const r of EMBEDDED_DATA.runs) {
+        reviews.push({ run_id: r.id, feedback: feedbackMap[r.id] || "", timestamp: ts });
+      }
+      const payload = JSON.stringify({ reviews, status: "complete" }, null, 2);
+      fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: payload,
+      }).then(() => {
+        document.getElementById("done-overlay").classList.add("visible");
+      }).catch(() => {
+        // Server not available (static mode) — download as file
+        const blob = new Blob([payload], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "feedback.json";
+        a.click();
+        URL.revokeObjectURL(url);
+        document.getElementById("done-overlay").classList.add("visible");
+      });
+    }
+
+    function closeDoneDialog() {
+      // Reset status back to in_progress
+      saveCurrentFeedback();
+      document.getElementById("done-overlay").classList.remove("visible");
+    }
+
+    // ---- Toast ----
+    function showToast(message) {
+      const toast = document.getElementById("toast");
+      toast.textContent = message;
+      toast.classList.add("visible");
+      setTimeout(() => toast.classList.remove("visible"), 2000);
+    }
+
+    // ---- Keyboard nav ----
+    document.addEventListener("keydown", (e) => {
+      // Don't capture when typing in textarea
+      if (e.target.tagName === "TEXTAREA") return;
+
+      if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+        e.preventDefault();
+        navigate(-1);
+      } else if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+        e.preventDefault();
+        navigate(1);
+      }
+    });
+
+    // ---- Util ----
+    function getDownloadUri(file) {
+      if (file.data_uri) return file.data_uri;
+      if (file.data_b64) return "data:application/octet-stream;base64," + file.data_b64;
+      if (file.type === "text") return "data:text/plain;charset=utf-8," + encodeURIComponent(file.content);
+      return "#";
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement("div");
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // ---- View switching ----
+    function switchView(view) {
+      document.querySelectorAll(".view-tab").forEach(t => t.classList.remove("active"));
+      document.querySelectorAll(".view-panel").forEach(p => p.classList.remove("active"));
+      document.querySelector(`[onclick="switchView('${view}')"]`).classList.add("active");
+      document.getElementById("panel-" + view).classList.add("active");
+    }
+
+    // ---- Benchmark rendering ----
+    function renderBenchmark() {
+      const data = EMBEDDED_DATA.benchmark;
+      if (!data) return;
+
+      // Show the tabs
+      document.getElementById("view-tabs").style.display = "flex";
+
+      const container = document.getElementById("benchmark-content");
+      const summary = data.run_summary || {};
+      const metadata = data.metadata || {};
+      const notes = data.notes || [];
+
+      let html = "";
+
+      // Header
+      html += "<h2 style='font-family: Poppins, sans-serif; margin-bottom: 0.5rem;'>Benchmark Results</h2>";
+      html += "<p style='color: var(--text-muted); font-size: 0.875rem; margin-bottom: 1.25rem;'>";
+      if (metadata.skill_name) html += "<strong>" + escapeHtml(metadata.skill_name) + "</strong> &mdash; ";
+      if (metadata.timestamp) html += metadata.timestamp + " &mdash; ";
+      if (metadata.evals_run) html += "Evals: " + metadata.evals_run.join(", ") + " &mdash; ";
+      html += (metadata.runs_per_configuration || "?") + " runs per configuration";
+      html += "</p>";
+
+      // Summary table
+      html += '<table class="benchmark-table">';
+
+      function fmtStat(stat, pct) {
+        if (!stat) return "—";
+        const suffix = pct ? "%" : "";
+        const m = pct ? (stat.mean * 100).toFixed(0) : stat.mean.toFixed(1);
+        const s = pct ? (stat.stddev * 100).toFixed(0) : stat.stddev.toFixed(1);
+        return m + suffix + " ± " + s + suffix;
+      }
+
+      function deltaClass(val) {
+        if (!val) return "";
+        const n = parseFloat(val);
+        if (n > 0) return "benchmark-delta-positive";
+        if (n < 0) return "benchmark-delta-negative";
+        return "";
+      }
+
+      // Discover config names dynamically (everything except "delta")
+      const configs = Object.keys(summary).filter(k => k !== "delta");
+      const configA = configs[0] || "config_a";
+      const configB = configs[1] || "config_b";
+      const labelA = configA.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+      const labelB = configB.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+      const a = summary[configA] || {};
+      const b = summary[configB] || {};
+      const delta = summary.delta || {};
+
+      html += "<thead><tr><th>Metric</th><th>" + escapeHtml(labelA) + "</th><th>" + escapeHtml(labelB) + "</th><th>Delta</th></tr></thead>";
+      html += "<tbody>";
+
+      html += "<tr><td><strong>Pass Rate</strong></td>";
+      html += "<td>" + fmtStat(a.pass_rate, true) + "</td>";
+      html += "<td>" + fmtStat(b.pass_rate, true) + "</td>";
+      html += '<td class="' + deltaClass(delta.pass_rate) + '">' + (delta.pass_rate || "—") + "</td></tr>";
+
+      // Time (only show row if data exists)
+      if (a.time_seconds || b.time_seconds) {
+        html += "<tr><td><strong>Time (s)</strong></td>";
+        html += "<td>" + fmtStat(a.time_seconds, false) + "</td>";
+        html += "<td>" + fmtStat(b.time_seconds, false) + "</td>";
+        html += '<td class="' + deltaClass(delta.time_seconds) + '">' + (delta.time_seconds ? delta.time_seconds + "s" : "—") + "</td></tr>";
+      }
+
+      // Tokens (only show row if data exists)
+      if (a.tokens || b.tokens) {
+        html += "<tr><td><strong>Tokens</strong></td>";
+        html += "<td>" + fmtStat(a.tokens, false) + "</td>";
+        html += "<td>" + fmtStat(b.tokens, false) + "</td>";
+        html += '<td class="' + deltaClass(delta.tokens) + '">' + (delta.tokens || "—") + "</td></tr>";
+      }
+
+      html += "</tbody></table>";
+
+      // Per-eval breakdown (if runs data available)
+      const runs = data.runs || [];
+      if (runs.length > 0) {
+        const evalIds = [...new Set(runs.map(r => r.eval_id))].sort((a, b) => a - b);
+
+        html += "<h3 style='font-family: Poppins, sans-serif; margin-bottom: 0.75rem;'>Per-Eval Breakdown</h3>";
+
+        const hasTime = runs.some(r => r.result && r.result.time_seconds != null);
+        const hasErrors = runs.some(r => r.result && r.result.errors > 0);
+
+        for (const evalId of evalIds) {
+          const evalRuns = runs.filter(r => r.eval_id === evalId);
+          const evalName = evalRuns[0] && evalRuns[0].eval_name ? evalRuns[0].eval_name : "Eval " + evalId;
+
+          html += "<h4 style='font-family: Poppins, sans-serif; margin: 1rem 0 0.5rem; color: var(--text);'>" + escapeHtml(evalName) + "</h4>";
+          html += '<table class="benchmark-table">';
+          html += "<thead><tr><th>Config</th><th>Run</th><th>Pass Rate</th>";
+          if (hasTime) html += "<th>Time (s)</th>";
+          if (hasErrors) html += "<th>Crashes During Execution</th>";
+          html += "</tr></thead>";
+          html += "<tbody>";
+
+          // Group by config and render with average rows
+          const configGroups = [...new Set(evalRuns.map(r => r.configuration))];
+          for (let ci = 0; ci < configGroups.length; ci++) {
+            const config = configGroups[ci];
+            const configRuns = evalRuns.filter(r => r.configuration === config);
+            if (configRuns.length === 0) continue;
+
+            const rowClass = ci === 0 ? "benchmark-row-with" : "benchmark-row-without";
+            const configLabel = config.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+
+            for (const run of configRuns) {
+              const r = run.result || {};
+              const prClass = r.pass_rate >= 0.8 ? "benchmark-delta-positive" : r.pass_rate < 0.5 ? "benchmark-delta-negative" : "";
+              html += '<tr class="' + rowClass + '">';
+              html += "<td>" + configLabel + "</td>";
+              html += "<td>" + run.run_number + "</td>";
+              html += '<td class="' + prClass + '">' + ((r.pass_rate || 0) * 100).toFixed(0) + "% (" + (r.passed || 0) + "/" + (r.total || 0) + ")</td>";
+              if (hasTime) html += "<td>" + (r.time_seconds != null ? r.time_seconds.toFixed(1) : "—") + "</td>";
+              if (hasErrors) html += "<td>" + (r.errors || 0) + "</td>";
+              html += "</tr>";
+            }
+
+            // Average row
+            const rates = configRuns.map(r => (r.result || {}).pass_rate || 0);
+            const avgRate = rates.reduce((a, b) => a + b, 0) / rates.length;
+            const avgPrClass = avgRate >= 0.8 ? "benchmark-delta-positive" : avgRate < 0.5 ? "benchmark-delta-negative" : "";
+            html += '<tr class="benchmark-row-avg ' + rowClass + '">';
+            html += "<td>" + configLabel + "</td>";
+            html += "<td>Avg</td>";
+            html += '<td class="' + avgPrClass + '">' + (avgRate * 100).toFixed(0) + "%</td>";
+            if (hasTime) {
+              const times = configRuns.map(r => (r.result || {}).time_seconds).filter(t => t != null);
+              html += "<td>" + (times.length ? (times.reduce((a, b) => a + b, 0) / times.length).toFixed(1) : "—") + "</td>";
+            }
+            if (hasErrors) html += "<td></td>";
+            html += "</tr>";
+          }
+          html += "</tbody></table>";
+
+          // Per-assertion detail for this eval
+          const runsWithExpectations = {};
+          for (const config of configGroups) {
+            runsWithExpectations[config] = evalRuns.filter(r => r.configuration === config && r.expectations && r.expectations.length > 0);
+          }
+          const hasAnyExpectations = Object.values(runsWithExpectations).some(runs => runs.length > 0);
+          if (hasAnyExpectations) {
+            // Collect all unique assertion texts across all configs
+            const allAssertions = [];
+            const seen = new Set();
+            for (const config of configGroups) {
+              for (const run of runsWithExpectations[config]) {
+                for (const exp of (run.expectations || [])) {
+                  if (!seen.has(exp.text)) {
+                    seen.add(exp.text);
+                    allAssertions.push(exp.text);
+                  }
+                }
+              }
+            }
+
+            html += '<table class="benchmark-table" style="margin-top: 0.5rem;">';
+            html += "<thead><tr><th>Assertion</th>";
+            for (const config of configGroups) {
+              const label = config.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+              html += "<th>" + escapeHtml(label) + "</th>";
+            }
+            html += "</tr></thead><tbody>";
+
+            for (const assertionText of allAssertions) {
+              html += "<tr><td>" + escapeHtml(assertionText) + "</td>";
+
+              for (const config of configGroups) {
+                html += "<td>";
+                for (const run of runsWithExpectations[config]) {
+                  const exp = (run.expectations || []).find(e => e.text === assertionText);
+                  if (exp) {
+                    const cls = exp.passed ? "benchmark-delta-positive" : "benchmark-delta-negative";
+                    const icon = exp.passed ? "\u2713" : "\u2717";
+                    html += '<span class="' + cls + '" title="Run ' + run.run_number + ': ' + escapeHtml(exp.evidence || "") + '">' + icon + "</span> ";
+                  } else {
+                    html += "— ";
+                  }
+                }
+                html += "</td>";
+              }
+              html += "</tr>";
+            }
+            html += "</tbody></table>";
+          }
+        }
+      }
+
+      // Notes
+      if (notes.length > 0) {
+        html += '<div class="benchmark-notes">';
+        html += "<h3>Analysis Notes</h3>";
+        html += "<ul>";
+        for (const note of notes) {
+          html += "<li>" + escapeHtml(note) + "</li>";
+        }
+        html += "</ul></div>";
+      }
+
+      container.innerHTML = html;
+    }
+
+    // ---- Start ----
+    init();
+    renderBenchmark();
+  </script>
+</body>
+</html>

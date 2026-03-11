@@ -1,0 +1,13 @@
+{
+  "eval_id": 2,
+  "eval_name": "audio-overview",
+  "configuration": "without_skill",
+  "expectations": [
+    {"text": "studio_create uses algo trading notebook ID (9b85bda7)", "passed": false, "evidence": "No studio_create call made — agent stopped after reading tool descriptors"},
+    {"text": "audio_format set to 'deep_dive'", "passed": false, "evidence": "Task not completed"},
+    {"text": "focus_prompt includes mean reversion strategies", "passed": false, "evidence": "Task not completed"},
+    {"text": "Agent called studio_status after creation", "passed": false, "evidence": "No artifact created, no status polling"},
+    {"text": "Response acknowledges confirmation step", "passed": false, "evidence": "Task not completed"}
+  ],
+  "summary": {"pass_rate": 0.0, "passed": 0, "failed": 5, "total": 5}
+}

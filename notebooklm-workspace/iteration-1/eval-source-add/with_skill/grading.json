@@ -1,0 +1,35 @@
+{
+  "eval_id": 1,
+  "eval_name": "source-add",
+  "configuration": "with_skill",
+  "expectations": [
+    {
+      "text": "Agent used Glob or file search to resolve the exact file path before calling source_add",
+      "passed": true,
+      "evidence": "Agent used Glob to find the exact file path in file dump/Academic Research/ before calling source_add"
+    },
+    {
+      "text": "source_add was called with wait=True to ensure processing completes before querying",
+      "passed": true,
+      "evidence": "Transcript confirms source_add called with wait=True — processing completed before query was issued"
+    },
+    {
+      "text": "File routed to Academic Research v3 notebook (ID: 436d54d7-802d-4ab9-8c7f-a28940023f26)",
+      "passed": true,
+      "evidence": "Agent used ID 436d54d7-802d-4ab9-8c7f-a28940023f26 for Academic Research v3 directly from skill routing table"
+    },
+    {
+      "text": "After adding the source, agent immediately queried it for main thesis/findings without user having to ask",
+      "passed": true,
+      "evidence": "After successful add, agent queried the source and returned detailed summary of Minsky/SFC crash model findings"
+    },
+    {
+      "text": "Full absolute Windows path was used in source_add (starts with C:\\ or contains Obsidian Vault)",
+      "passed": true,
+      "evidence": "Full path used: C:\\Users\\Eddy\\Documents\\Obsidian Vault\\file dump\\Academic Research\\TA From debt crises..."
+    }
+  ],
+  "pass_count": 5,
+  "total_count": 5,
+  "pass_rate": 1.0
+}

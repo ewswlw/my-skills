@@ -1,0 +1,13 @@
+{
+  "eval_id": 1,
+  "eval_name": "source-add",
+  "configuration": "without_skill",
+  "expectations": [
+    {"text": "Agent used Glob to resolve exact file path before source_add", "passed": true, "evidence": "Agent found the PDF file path correctly"},
+    {"text": "source_add called with wait=True", "passed": true, "evidence": "wait=True used — good default behavior"},
+    {"text": "File routed to Academic Research v3 (ID: 436d54d7)", "passed": true, "evidence": "Selected v3 as most recently modified via notebook_list"},
+    {"text": "Agent immediately queried source after adding", "passed": true, "evidence": "Detailed summary returned after add"},
+    {"text": "Full absolute Windows path used in source_add", "passed": true, "evidence": "Full absolute path used"}
+  ],
+  "summary": {"pass_rate": 1.0, "passed": 5, "failed": 0, "total": 5}
+}

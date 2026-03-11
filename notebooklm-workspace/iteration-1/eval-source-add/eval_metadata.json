@@ -1,0 +1,27 @@
+{
+  "eval_id": 1,
+  "eval_name": "source-add",
+  "prompt": "I just dropped a new PDF in my file dump — it's in the Academic Research folder, it's called something like 'TA From debt crises to financial crashes'. Can you add it to the right notebook and tell me what it's about?",
+  "assertions": [
+    {
+      "id": "glob-to-find-file",
+      "text": "Agent used Glob or file search to resolve the exact file path before calling source_add"
+    },
+    {
+      "id": "wait-true",
+      "text": "source_add was called with wait=True to ensure processing completes before querying"
+    },
+    {
+      "id": "correct-notebook",
+      "text": "File routed to Academic Research v3 notebook (ID: 436d54d7-802d-4ab9-8c7f-a28940023f26)"
+    },
+    {
+      "id": "immediate-query",
+      "text": "After adding the source, agent immediately queried it for main thesis/findings without user having to ask"
+    },
+    {
+      "id": "absolute-path",
+      "text": "Full absolute Windows path was used in source_add (starts with C:\\ or contains Obsidian Vault)"
+    }
+  ]
+}

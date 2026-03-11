@@ -1,0 +1,12 @@
+{
+  "eval_id": 3,
+  "eval_name": "cad-sectors",
+  "prompt": "I need to compare all the CAD IG sector spreads: fins, non-fins, utilities, A-rated, BBB-rated, plus the provincial spreads. Give me all of them in a single DataFrame, daily, from 2010 onwards. Write the Python code.",
+  "assertions": [
+    "The code fetches at least 5 of the 6 CAD sector tickers (fins, non-fins, uts, A, BBB, provs)",
+    "All sector tickers use INDEX_OAS_TSY_BP as the Bloomberg field",
+    "The result is a single merged DataFrame (not separate Series objects)",
+    "The code uses 2010 or earlier as the start date",
+    "The sector columns are correctly named or labeled (not just numeric indices)"
+  ]
+}

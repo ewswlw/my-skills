@@ -1,0 +1,35 @@
+{
+  "eval_id": 1,
+  "eval_name": "source-add",
+  "configuration": "without_skill",
+  "expectations": [
+    {
+      "text": "Agent used Glob or file search to resolve the exact file path before calling source_add",
+      "passed": true,
+      "evidence": "Agent did find the PDF file path correctly"
+    },
+    {
+      "text": "source_add was called with wait=True to ensure processing completes before querying",
+      "passed": true,
+      "evidence": "Agent used wait=True — good default behavior even without explicit skill instructions"
+    },
+    {
+      "text": "File routed to Academic Research v3 notebook (ID: 436d54d7-802d-4ab9-8c7f-a28940023f26)",
+      "passed": true,
+      "evidence": "Agent selected Academic Research v3 as the most recently modified academic notebook via notebook_list"
+    },
+    {
+      "text": "After adding the source, agent immediately queried it for main thesis/findings without user having to ask",
+      "passed": true,
+      "evidence": "Agent queried the newly added source and returned a detailed summary"
+    },
+    {
+      "text": "Full absolute Windows path was used in source_add (starts with C:\\ or contains Obsidian Vault)",
+      "passed": true,
+      "evidence": "Full absolute path used"
+    }
+  ],
+  "pass_count": 5,
+  "total_count": 5,
+  "pass_rate": 1.0
+}

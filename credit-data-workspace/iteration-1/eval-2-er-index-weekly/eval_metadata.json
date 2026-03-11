@@ -1,0 +1,12 @@
+{
+  "eval_id": 2,
+  "eval_name": "er-index-weekly",
+  "prompt": "Pull the US IG and US HY excess return indices from January 2015 to today, on a weekly frequency. I want cumulative index values (base 100), not YTD percentages. Save the result to a CSV. Write me the Python code.",
+  "assertions": [
+    "The code fetches LUACTRUU Index and LF98TRUU Index with INDEX_EXCESS_RETURN_YTD field",
+    "The code converts YTD percent returns to cumulative chain-linked indices (not raw YTD values)",
+    "The code sets weekly periodicity (W or WEEKLY)",
+    "The code uses January 2015 as the start date",
+    "The code saves the output to a CSV file with UTF-8 encoding"
+  ]
+}

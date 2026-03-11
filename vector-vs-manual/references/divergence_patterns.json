@@ -1,0 +1,28 @@
+[
+    {
+        "root_cause_code": "RC-1",
+        "name": "Execution Timing Mismatch (1-Day Lag)",
+        "signature": {
+            "daily_diff_mean_abs_gt": 1e-05,
+            "daily_diff_nonzero_pct_lt": 10,
+            "divergence_days_concentrated_on": "first_trading_day_of_month"
+        },
+        "fix": {
+            "type": "weight_shift_correction",
+            "description": "Pass unshifted weights to vbt.from_orders so it trades at month-end close and holds from T+1, matching the manual backtest."
+        },
+        "success_rate": 0.95
+    },
+    {
+        "root_cause_code": "RC-2",
+        "name": "Weight Construction Error (Sum > 1)",
+        "signature": {
+            "weight_sum_gt": 1.001
+        },
+        "fix": {
+            "type": "weight_normalization",
+            "description": "Normalize target weights to sum to 1.0 on every rebalancing date. Check for double-counting of assets."
+        },
+        "success_rate": 0.99
+    }
+]

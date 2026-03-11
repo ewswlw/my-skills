@@ -1,0 +1,328 @@
+{
+  "metadata": {
+    "skill_name": "credit-data",
+    "skill_path": "C:\\Users\\Eddy\\.claude\\skills\\credit-data",
+    "timestamp": "2026-03-10T19:38:05.111570+00:00",
+    "evals_run": [
+      1,
+      2,
+      3
+    ],
+    "runs_per_configuration": 1
+  },
+  "runs": [
+    {
+      "eval_id": 1,
+      "eval_name": "cad-ig-context",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.8,
+        "passed": 4,
+        "failed": 1,
+        "total": 5,
+        "time_seconds": 0,
+        "tokens": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "The code fetches I05510CA Index with INDEX_OAS_TSY_BP field (or uses cad_oas alias)",
+          "passed": true,
+          "evidence": "explanation.md explicitly states: 'pull daily CAD IG OAS spreads from Bloomberg ticker I05510CA Index using field INDEX_OAS_TSY_BP'. solution.py uses cd.fetch(\"cad ig\") which the skill maps to that ticker/field. The resulting column is confirmed as cad_oas: '# Resulting DataFrame: single column  cad_oas  (bps), DatetimeIndex'. Both the alias path and the underlying ticker/field are documented."
+        },
+        {
+          "text": "The code generates a spread intelligence summary including percentile rank vs history",
+          "passed": true,
+          "evidence": "Two layers of percentile context are present. (1) cd.context(\"cad ig\") is called and printed \u2014 explanation.md confirms it 'surfaces the skill's full-history percentile (back to 2002)'. (2) Manual 2018+ stats compute pctile_2018 via pd.Series(series).rank(pct=True), and a full cross-sectional percentile table (5th, 10th, 25th, 50th, 75th, 90th, 95th percentiles) is printed with the current spread marked."
+        },
+        {
+          "text": "The code includes a Z-score or standard deviation calculation for current spreads",
+          "passed": true,
+          "evidence": "solution.py lines 69 and 75 compute explicit z-scores: 'z_2018 = (current - mean_2018) / std_2018' and 'z_1y = (current - mean_1y) / std_1y'. Both are printed: 'Z-Score (2018+)   :  {z_2018:+.2f}\u03c3' and 'Z-Score (1Y)      :  {z_1y:+.2f}\u03c3'. Additionally, cd.context() internally provides a 5-year z-score per explanation.md."
+        },
+        {
+          "text": "The code uses the correct start date of 2018 or earlier for history context",
+          "passed": true,
+          "evidence": "CreditData is initialised with start_date=\"2018-01-01\" (solution.py line 28). For the full-history context, cd.context(\"cad ig\") uses Bloomberg history back to 2002 per explanation.md: 'context() uses the full Bloomberg history (back to 2002) for percentile/z-score calculations so the regime label reflects the complete cycle.' Both the user-requested window (2018) and longer cycle context are satisfied."
+        },
+        {
+          "text": "The code uses uv run python or references the virtual environment for execution",
+          "passed": false,
+          "evidence": "The docstring prerequisites section says 'uv add xbbg pandas numpy' for package installation, but nowhere in solution.py or explanation.md is the execution command 'uv run python solution.py' mentioned, nor is virtual environment activation referenced. The uv add mention covers dependency management but not the run-time invocation. The expectation requires an explicit execution reference, which is absent."
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 1,
+      "eval_name": "cad-ig-context",
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.6,
+        "passed": 3,
+        "failed": 2,
+        "total": 5,
+        "time_seconds": 0,
+        "tokens": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "The code fetches I05510CA Index with INDEX_OAS_TSY_BP field (or uses cad_oas alias)",
+          "passed": false,
+          "evidence": "The CANDIDATES list includes 'I05511CA Index' (note: 11, not 10) with field 'OAS_BP', and 'IBXXCAIG Index' as the primary. Neither 'I05510CA Index', 'INDEX_OAS_TSY_BP', nor any 'cad_oas' alias appear anywhere in solution.py. The correct canonical Bloomberg Barclays CAD IG ticker (I05510CA) is absent."
+        },
+        {
+          "text": "The code generates a spread intelligence summary including percentile rank vs history",
+          "passed": true,
+          "evidence": "The historical_context() function (lines 174-214) builds a DataFrame with a 'Pct Rank' column computed via scipy.stats.percentileofscore(), printed under the section 'HISTORICAL CONTEXT \u2014 Multi-Window Z-Score & Percentile'. Additional context comes from recent_moves() and regime_analysis(). This is a genuine multi-window spread intelligence summary."
+        },
+        {
+          "text": "The code includes a Z-score or standard deviation calculation for current spreads",
+          "passed": true,
+          "evidence": "compute_zscore() (lines 148-154) explicitly calculates z = (current - mu) / sigma with ddof=1. The result appears in the 'Z-Score' column of the historical context table and drives the qualitative label (EXTREMELY TIGHT / TIGHT / WIDE etc.) via label_from_zscore()."
+        },
+        {
+          "text": "The code uses the correct start date of 2018 or earlier for history context",
+          "passed": true,
+          "evidence": "Line 40: START_DATE = '20180101', passed directly to blp.bdh(). The explanation.md confirms: 'pulls daily OAS ... from 2018-01-01 to today'."
+        },
+        {
+          "text": "The code uses uv run python or references the virtual environment for execution",
+          "passed": false,
+          "evidence": "The docstring (line 14) says 'uv add xbbg pandas numpy scipy tabulate' \u2014 this references uv only for package installation, not for execution. Neither 'uv run python' nor any venv activation instruction appears in solution.py or explanation.md. No shebang or run command is documented."
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 2,
+      "eval_name": "er-index-weekly",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 5,
+        "failed": 0,
+        "total": 5,
+        "time_seconds": 0,
+        "tokens": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "The code fetches LUACTRUU Index and LF98TRUU Index with INDEX_EXCESS_RETURN_YTD field",
+          "passed": true,
+          "evidence": "solution.py calls `cd.fetch('us ig er and us hy er')` which delegates to the CreditData skill. explanation.md explicitly documents the mapping: 'us ig er' \u00e2\u2020\u2019 LUACTRUU Index / INDEX_EXCESS_RETURN_YTD, 'us hy er' \u00e2\u2020\u2019 LF98TRUU Index / INDEX_EXCESS_RETURN_YTD. SKILL.md instrument table confirms both mappings."
+        },
+        {
+          "text": "The code converts YTD percent returns to cumulative chain-linked indices (not raw YTD values)",
+          "passed": true,
+          "evidence": "explanation.md states: 'Bloomberg publishes INDEX_EXCESS_RETURN_YTD \u00e2\u20ac\u201d a year-to-date percentage return that resets to zero on January 1 each year. The skill automatically converts this to a chain-linked cumulative index (base = 100 at the first data point).' SKILL.md confirms: 'ER \u00e2\u2020\u2019 chain-linked cumulative index (auto-conversion, no extra steps)' and solution.py comment reads '// chain-linked cumulative ER index, base=100 at 2015-01-01'."
+        },
+        {
+          "text": "The code sets weekly periodicity (W or WEEKLY)",
+          "passed": true,
+          "evidence": "solution.py line 34: `periodicity=\"W\"` is explicitly set in the CreditData constructor: `cd = CreditData(start_date=\"2015-01-01\", end_date=None, periodicity=\"W\", fill=\"ffill\")`."
+        },
+        {
+          "text": "The code uses January 2015 as the start date",
+          "passed": true,
+          "evidence": "solution.py line 33: `start_date=\"2015-01-01\"` is explicitly set in the CreditData constructor."
+        },
+        {
+          "text": "The code saves the output to a CSV file with UTF-8 encoding",
+          "passed": true,
+          "evidence": "solution.py calls `cd.save(df, str(OUTPUT_CSV))` where OUTPUT_CSV has a `.csv` extension. SKILL.md documents: 'cd.save(df, path)  # UTF-8, creates dirs if needed'. The UTF-8 guarantee is implicit through the skill's documented behaviour rather than explicit in the solution code."
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 2,
+      "eval_name": "er-index-weekly",
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.8,
+        "passed": 4,
+        "failed": 1,
+        "total": 5,
+        "time_seconds": 0,
+        "tokens": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "The code fetches LUACTRUU Index and LF98TRUU Index with INDEX_EXCESS_RETURN_YTD field",
+          "passed": false,
+          "evidence": "solution.py uses 'LUACEXUU Index' and 'LF98EXUU Index' (excess return variants), not 'LUACTRUU Index' and 'LF98TRUU Index' (total return variants). The field used is 'EXCESS_RETURN_YTD', not 'INDEX_EXCESS_RETURN_YTD'. Additionally, EXCESS_RETURN_YTD is only a fallback \u2014 the primary strategy is PX_LAST. See lines 43-46 and 142-148 in solution.py."
+        },
+        {
+          "text": "The code converts YTD percent returns to cumulative chain-linked indices (not raw YTD values)",
+          "passed": true,
+          "evidence": "function ytd_pct_to_cumulative_index (lines 174-219) iterates calendar years and chains: result[mask] = carry * (1 + ytd_slice / 100), rolling the carry forward at each year boundary. explanation.md confirms: 'level[t] = carry_prior_year \u00d7 (1 + ytd[t] / 100)'."
+        },
+        {
+          "text": "The code sets weekly periodicity (W or WEEKLY)",
+          "passed": true,
+          "evidence": "resample_weekly_friday (line 251) uses df.resample('W-FRI').last(), producing weekly observations ending on Fridays. The main pipeline calls this at line 311."
+        },
+        {
+          "text": "The code uses January 2015 as the start date",
+          "passed": true,
+          "evidence": "Line 37: START_DATE = '2015-01-01'. This is passed to build_er_index as the default start and forwarded to blp.bdh."
+        },
+        {
+          "text": "The code saves the output to a CSV file with UTF-8 encoding",
+          "passed": true,
+          "evidence": "Line 355: weekly.to_csv(args.output, encoding='utf-8'). Encoding is explicitly specified."
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 3,
+      "eval_name": "cad-sectors",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 5,
+        "failed": 0,
+        "total": 5,
+        "time_seconds": 0,
+        "tokens": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "The code fetches at least 5 of the 6 CAD sector tickers (fins, non-fins, uts, A, BBB, provs)",
+          "passed": true,
+          "evidence": "solution.py line 25: `cd.fetch(\"cad fins, cad non fins, cad uts, cad a, cad bbb, cad provs\")` \u2014 all 6 sector tokens are present in the single fetch call. The assertion on lines 28-38 also explicitly checks for all 6 named columns: fins, non_fins_ex_uts, uts, a_credits, bbb_credits, provs."
+        },
+        {
+          "text": "All sector tickers use INDEX_OAS_TSY_BP as the Bloomberg field",
+          "passed": true,
+          "evidence": "explanation.md table row footer: 'All fields: `INDEX_OAS_TSY_BP` (OAS vs. Treasuries, in basis points).' The code delegates field selection to the CreditData skill, which the explanation confirms maps every CAD sector token to INDEX_OAS_TSY_BP internally."
+        },
+        {
+          "text": "The result is a single merged DataFrame (not separate Series objects)",
+          "passed": true,
+          "evidence": "solution.py line 25 assigns one `df` from a single `cd.fetch()` call. The assertion on lines 36-38 checks `list(df.columns) == expected_cols` against 6 named columns. explanation.md confirms: 'A single `pd.DataFrame` with ~3,900+ rows \u00d7 6 OAS columns, indexed by DatetimeIndex. No manual `pd.concat` or join is needed.'"
+        },
+        {
+          "text": "The code uses 2010 or earlier as the start date",
+          "passed": true,
+          "evidence": "solution.py line 19: `start_date=\"2010-01-01\"` \u2014 exactly 2010-01-01. explanation.md confirms: '`start_date=\"2010-01-01\"` \u2014 full decade-plus of daily history'."
+        },
+        {
+          "text": "The sector columns are correctly named or labeled (not just numeric indices)",
+          "passed": true,
+          "evidence": "solution.py lines 28-35 define expected_cols as ['cad_credit_spreads_fins', 'cad_credit_spreads_non_fins_ex_uts', 'cad_credit_spreads_uts', 'cad_credit_spreads_a_credits', 'cad_credit_spreads_bbb_credits', 'cad_credit_spreads_provs'] and the code asserts the DataFrame columns match these exact names. No numeric indices are used."
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 3,
+      "eval_name": "cad-sectors",
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.8,
+        "passed": 4,
+        "failed": 1,
+        "total": 5,
+        "time_seconds": 0,
+        "tokens": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "The code fetches at least 5 of the 6 CAD sector tickers (fins, non-fins, uts, A, BBB, provs)",
+          "passed": true,
+          "evidence": "All 6 required sectors are present in TICKERS dict: CAD_IG_Fins (C0FN Index), CAD_IG_NonFins (C0NF Index), CAD_IG_Utils (C0UT Index), CAD_IG_A (C3A0 Index), CAD_IG_BBB (C4A0 Index), CAD_Provinces (CGPV Index). A 7th bonus ticker CAD_IG_All (C0A0 Index) is also included as a sanity-check reference."
+        },
+        {
+          "text": "All sector tickers use INDEX_OAS_TSY_BP as the Bloomberg field",
+          "passed": false,
+          "evidence": "solution.py line 55 sets OAS_FIELD = \"OAS_SPREAD\" with a fallback of SPREAD_TO_WORST (line 58). The expected field INDEX_OAS_TSY_BP (OAS vs Treasury in basis points) is never referenced anywhere in solution.py or explanation.md. OAS_SPREAD is a different Bloomberg field \u00e2\u20ac\u201d it may return OAS vs swap curve rather than vs Treasuries on some indices."
+        },
+        {
+          "text": "The result is a single merged DataFrame (not separate Series objects)",
+          "passed": true,
+          "evidence": "solution.py line 154: `df = pd.concat(series_list, axis=1)` concatenates all individual Series into a single wide DataFrame. The function `build_cad_ig_spreads` returns this DataFrame, and the __main__ block operates on it as a single object (e.g., `spreads.corr()`, `spreads.to_csv()`)."
+        },
+        {
+          "text": "The code uses 2010 or earlier as the start date",
+          "passed": true,
+          "evidence": "solution.py line 61: START_DATE = \"2010-01-01\". This is passed as the `start` argument to all bdh calls."
+        },
+        {
+          "text": "The sector columns are correctly named or labeled (not just numeric indices)",
+          "passed": true,
+          "evidence": "Each Series is named via the `name` parameter in fetch_oas (solution.py line 112: `series = raw.iloc[:, 0].rename(name)`). Column names are: CAD_IG_All, CAD_IG_Fins, CAD_IG_NonFins, CAD_IG_Utils, CAD_IG_A, CAD_IG_BBB, CAD_Provinces \u00e2\u20ac\u201d all descriptive string labels confirmed in explanation.md ticker table."
+        }
+      ],
+      "notes": []
+    }
+  ],
+  "run_summary": {
+    "with_skill": {
+      "pass_rate": {
+        "mean": 0.9333,
+        "stddev": 0.1155,
+        "min": 0.8,
+        "max": 1.0
+      },
+      "time_seconds": {
+        "mean": 0,
+        "stddev": 0,
+        "min": 0,
+        "max": 0
+      },
+      "tokens": {
+        "mean": 0,
+        "stddev": 0,
+        "min": 0,
+        "max": 0
+      }
+    },
+    "without_skill": {
+      "pass_rate": {
+        "mean": 0.7333,
+        "stddev": 0.1155,
+        "min": 0.6,
+        "max": 0.8
+      },
+      "time_seconds": {
+        "mean": 0,
+        "stddev": 0,
+        "min": 0,
+        "max": 0
+      },
+      "tokens": {
+        "mean": 0,
+        "stddev": 0,
+        "min": 0,
+        "max": 0
+      }
+    },
+    "delta": {
+      "pass_rate": "+0.2",
+      "time_seconds": "0",
+      "tokens": "0"
+    }
+  },
+  "notes": [
+    "with_skill 93.3% vs without_skill 73.3% \u2014 +20pp improvement across 3 evals",
+    "Eval 2 (ER index weekly): with_skill 100% \u2014 single fetch() call, auto YTD\u2192index, correct tickers. Baseline used wrong tickers (LUACEXUU vs LUACTRUU/LF98TRUU).",
+    "Eval 3 (CAD sectors): with_skill 100% \u2014 single fetch(), correct INDEX_OAS_TSY_BP. Baseline used wrong field (OAS_SPREAD) and uncertain BAML tickers.",
+    "Eval 1 (CAD IG context): with_skill 80% \u2014 CreditData+context() used correctly. Both configs missed uv run python execution command \u2014 assertion is weak.",
+    "IMPROVEMENT TARGET: Add regime label (TIGHT/FAIR/WIDE/DISTRESSED) assertion to Eval 1.",
+    "IMPROVEMENT TARGET: Replace uv run assertion with a more discriminating check (e.g. CreditData class usage)."
+  ]
+}

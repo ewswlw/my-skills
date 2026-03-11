@@ -1,0 +1,27 @@
+{
+  "eval_id": 0,
+  "eval_name": "query-routing",
+  "prompt": "I want to know what my research says about momentum factor decay — like how quickly momentum signals lose their alpha after formation. Also, separately, does my algo trading notebook have anything on transaction cost models for equity strategies?",
+  "assertions": [
+    {
+      "id": "used-hardcoded-ids",
+      "text": "Response uses hardcoded notebook IDs directly (contains '436d54d7' or '9b85bda7') without calling notebook_list first"
+    },
+    {
+      "id": "correct-routing",
+      "text": "Momentum decay question routed to Academic Research notebook; transaction cost question routed to algo trading notebook (not both to same notebook)"
+    },
+    {
+      "id": "source-attribution",
+      "text": "Response identifies which notebook answered each part of the question"
+    },
+    {
+      "id": "follow-up-suggestions",
+      "text": "Response includes at least 2 follow-up suggestions or related actions"
+    },
+    {
+      "id": "substantive-answer",
+      "text": "Response contains substantive content from the notebooks, not just metadata or a description of what was queried"
+    }
+  ]
+}

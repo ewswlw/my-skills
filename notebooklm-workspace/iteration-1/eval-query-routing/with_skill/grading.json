@@ -1,0 +1,35 @@
+{
+  "eval_id": 0,
+  "eval_name": "query-routing",
+  "configuration": "with_skill",
+  "expectations": [
+    {
+      "text": "Response uses hardcoded notebook IDs directly (contains '436d54d7' or '9b85bda7') without calling notebook_list first",
+      "passed": true,
+      "evidence": "Agent used IDs 436d54d7 for Academic Research v3 and 9b85bda7 for algo trading directly from the skill's directory — no notebook_list call made"
+    },
+    {
+      "text": "Momentum decay question routed to Academic Research notebook; transaction cost question routed to algo trading notebook (not both to same notebook)",
+      "passed": true,
+      "evidence": "Momentum decay → Academic Research v3; transaction cost models → algo trading. Correct split routing."
+    },
+    {
+      "text": "Response identifies which notebook answered each part of the question",
+      "passed": true,
+      "evidence": "Response clearly labels 'Academic Research v3 — Momentum Factor Decay' and 'algo trading — Transaction Cost Models' with sources section"
+    },
+    {
+      "text": "Response includes at least 2 follow-up suggestions or related actions",
+      "passed": true,
+      "evidence": "3 follow-up suggestions provided: deeper Academic Research query, algo trading rebalancing query, and audio overview suggestion"
+    },
+    {
+      "text": "Response contains substantive content from the notebooks, not just metadata or a description of what was queried",
+      "passed": true,
+      "evidence": "Rich content: specific findings on momentum decay (iMOM, post-decimalization halving, 28% reversal erosion), detailed transaction cost model approaches (IRL, bps stress-testing, capacity estimation)"
+    }
+  ],
+  "pass_count": 5,
+  "total_count": 5,
+  "pass_rate": 1.0
+}

@@ -1,0 +1,323 @@
+{
+  "metadata": {
+    "skill_name": "notebooklm",
+    "skill_path": "<path/to/skill>",
+    "executor_model": "<model-name>",
+    "analyzer_model": "<model-name>",
+    "timestamp": "2026-03-10T13:23:39Z",
+    "evals_run": [
+      0,
+      1,
+      2
+    ],
+    "runs_per_configuration": 3
+  },
+  "runs": [
+    {
+      "eval_id": 2,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 5,
+        "failed": 0,
+        "total": 5,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "studio_create uses algo trading notebook ID (9b85bda7)",
+          "passed": true,
+          "evidence": "ID 9b85bda7 used directly from skill directory"
+        },
+        {
+          "text": "audio_format set to 'deep_dive'",
+          "passed": true,
+          "evidence": "audio_format='deep_dive' confirmed"
+        },
+        {
+          "text": "focus_prompt includes mean reversion strategies",
+          "passed": true,
+          "evidence": "focus_prompt includes statistical arbitrage, pairs trading, cointegration, Ornstein-Uhlenbeck"
+        },
+        {
+          "text": "Agent called studio_status after creation",
+          "passed": true,
+          "evidence": "Polled studio_status every 15s for 60s total"
+        },
+        {
+          "text": "Response acknowledges confirmation step",
+          "passed": true,
+          "evidence": "Explicitly notes confirm=True requirement and pre-approval"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 0,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 5,
+        "failed": 0,
+        "total": 5,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Response uses hardcoded notebook IDs directly without calling notebook_list first",
+          "passed": true,
+          "evidence": "Agent used IDs 436d54d7 and 9b85bda7 directly from skill directory \u00e2\u20ac\u201d no notebook_list call"
+        },
+        {
+          "text": "Momentum decay routed to Academic Research; transaction cost routed to algo trading",
+          "passed": true,
+          "evidence": "Correct split routing confirmed from transcript"
+        },
+        {
+          "text": "Response identifies which notebook answered each part",
+          "passed": true,
+          "evidence": "Clear section headers with notebook names and sources cited"
+        },
+        {
+          "text": "Response includes at least 2 follow-up suggestions",
+          "passed": true,
+          "evidence": "3 follow-up suggestions provided"
+        },
+        {
+          "text": "Response contains substantive notebook content",
+          "passed": true,
+          "evidence": "Rich findings: iMOM, post-decimalization halving, IRL cost modeling, capacity estimation"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 1,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 5,
+        "failed": 0,
+        "total": 5,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Agent used Glob to resolve exact file path before source_add",
+          "passed": true,
+          "evidence": "Glob used to find file in file dump/Academic Research/"
+        },
+        {
+          "text": "source_add called with wait=True",
+          "passed": true,
+          "evidence": "wait=True confirmed in transcript"
+        },
+        {
+          "text": "File routed to Academic Research v3 (ID: 436d54d7)",
+          "passed": true,
+          "evidence": "ID 436d54d7 used directly from skill routing table"
+        },
+        {
+          "text": "Agent immediately queried source after adding",
+          "passed": true,
+          "evidence": "Post-add query returned detailed Minsky/SFC crash model summary"
+        },
+        {
+          "text": "Full absolute Windows path used in source_add",
+          "passed": true,
+          "evidence": "C:\\Users\\Eddy\\Documents\\Obsidian Vault\\file dump\\... path confirmed"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 2,
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.0,
+        "passed": 0,
+        "failed": 5,
+        "total": 5,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "studio_create uses algo trading notebook ID (9b85bda7)",
+          "passed": false,
+          "evidence": "No studio_create call made \u00e2\u20ac\u201d agent stopped after reading tool descriptors"
+        },
+        {
+          "text": "audio_format set to 'deep_dive'",
+          "passed": false,
+          "evidence": "Task not completed"
+        },
+        {
+          "text": "focus_prompt includes mean reversion strategies",
+          "passed": false,
+          "evidence": "Task not completed"
+        },
+        {
+          "text": "Agent called studio_status after creation",
+          "passed": false,
+          "evidence": "No artifact created, no status polling"
+        },
+        {
+          "text": "Response acknowledges confirmation step",
+          "passed": false,
+          "evidence": "Task not completed"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 0,
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.6,
+        "passed": 3,
+        "failed": 2,
+        "total": 5,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Response uses hardcoded notebook IDs directly without calling notebook_list first",
+          "passed": false,
+          "evidence": "Agent called notebook_list first \u00e2\u20ac\u201d no hardcoded IDs without the skill"
+        },
+        {
+          "text": "Momentum decay routed to Academic Research; transaction cost routed to algo trading",
+          "passed": true,
+          "evidence": "Correct routing via runtime discovery"
+        },
+        {
+          "text": "Response identifies which notebook answered each part",
+          "passed": true,
+          "evidence": "Section headers with notebook names"
+        },
+        {
+          "text": "Response includes at least 2 follow-up suggestions",
+          "passed": false,
+          "evidence": "No follow-up suggestions section"
+        },
+        {
+          "text": "Response contains substantive notebook content",
+          "passed": true,
+          "evidence": "Good content returned, slightly less specific than with-skill"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 1,
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 5,
+        "failed": 0,
+        "total": 5,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Agent used Glob to resolve exact file path before source_add",
+          "passed": true,
+          "evidence": "Agent found the PDF file path correctly"
+        },
+        {
+          "text": "source_add called with wait=True",
+          "passed": true,
+          "evidence": "wait=True used \u00e2\u20ac\u201d good default behavior"
+        },
+        {
+          "text": "File routed to Academic Research v3 (ID: 436d54d7)",
+          "passed": true,
+          "evidence": "Selected v3 as most recently modified via notebook_list"
+        },
+        {
+          "text": "Agent immediately queried source after adding",
+          "passed": true,
+          "evidence": "Detailed summary returned after add"
+        },
+        {
+          "text": "Full absolute Windows path used in source_add",
+          "passed": true,
+          "evidence": "Full absolute path used"
+        }
+      ],
+      "notes": []
+    }
+  ],
+  "run_summary": {
+    "with_skill": {
+      "pass_rate": {
+        "mean": 1.0,
+        "stddev": 0.0,
+        "min": 1.0,
+        "max": 1.0
+      },
+      "time_seconds": {
+        "mean": 0.0,
+        "stddev": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "tokens": {
+        "mean": 0.0,
+        "stddev": 0.0,
+        "min": 0,
+        "max": 0
+      }
+    },
+    "without_skill": {
+      "pass_rate": {
+        "mean": 0.5333,
+        "stddev": 0.5033,
+        "min": 0.0,
+        "max": 1.0
+      },
+      "time_seconds": {
+        "mean": 0.0,
+        "stddev": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "tokens": {
+        "mean": 0.0,
+        "stddev": 0.0,
+        "min": 0,
+        "max": 0
+      }
+    },
+    "delta": {
+      "pass_rate": "+0.47",
+      "time_seconds": "+0.0",
+      "tokens": "+0"
+    }
+  },
+  "notes": []
+}

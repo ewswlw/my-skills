@@ -1,0 +1,104 @@
+{
+  "expectations": [
+    {
+      "text": "The code fetches LUACTRUU Index and LF98TRUU Index with INDEX_EXCESS_RETURN_YTD field",
+      "passed": true,
+      "evidence": "solution.py calls `cd.fetch('us ig er and us hy er')` which delegates to the CreditData skill. explanation.md explicitly documents the mapping: 'us ig er' \u00e2\u2020\u2019 LUACTRUU Index / INDEX_EXCESS_RETURN_YTD, 'us hy er' \u00e2\u2020\u2019 LF98TRUU Index / INDEX_EXCESS_RETURN_YTD. SKILL.md instrument table confirms both mappings."
+    },
+    {
+      "text": "The code converts YTD percent returns to cumulative chain-linked indices (not raw YTD values)",
+      "passed": true,
+      "evidence": "explanation.md states: 'Bloomberg publishes INDEX_EXCESS_RETURN_YTD \u00e2\u20ac\u201d a year-to-date percentage return that resets to zero on January 1 each year. The skill automatically converts this to a chain-linked cumulative index (base = 100 at the first data point).' SKILL.md confirms: 'ER \u00e2\u2020\u2019 chain-linked cumulative index (auto-conversion, no extra steps)' and solution.py comment reads '// chain-linked cumulative ER index, base=100 at 2015-01-01'."
+    },
+    {
+      "text": "The code sets weekly periodicity (W or WEEKLY)",
+      "passed": true,
+      "evidence": "solution.py line 34: `periodicity=\"W\"` is explicitly set in the CreditData constructor: `cd = CreditData(start_date=\"2015-01-01\", end_date=None, periodicity=\"W\", fill=\"ffill\")`."
+    },
+    {
+      "text": "The code uses January 2015 as the start date",
+      "passed": true,
+      "evidence": "solution.py line 33: `start_date=\"2015-01-01\"` is explicitly set in the CreditData constructor."
+    },
+    {
+      "text": "The code saves the output to a CSV file with UTF-8 encoding",
+      "passed": true,
+      "evidence": "solution.py calls `cd.save(df, str(OUTPUT_CSV))` where OUTPUT_CSV has a `.csv` extension. SKILL.md documents: 'cd.save(df, path)  # UTF-8, creates dirs if needed'. The UTF-8 guarantee is implicit through the skill's documented behaviour rather than explicit in the solution code."
+    }
+  ],
+  "summary": {
+    "passed": 5,
+    "failed": 0,
+    "total": 5,
+    "pass_rate": 1.0
+  },
+  "execution_metrics": {
+    "tool_calls": {
+      "Read": 1,
+      "Shell": 2,
+      "Write": 3
+    },
+    "total_tool_calls": 6,
+    "files_created": [
+      "solution.py",
+      "explanation.md",
+      "metrics.json"
+    ],
+    "errors_encountered": 0,
+    "output_chars": 2620,
+    "transcript_chars": 0
+  },
+  "claims": [
+    {
+      "claim": "The skill auto-converts YTD % Bloomberg field to chain-linked cumulative index using a year-by-year algorithm from Market Data Pipeline/fetch_data.py",
+      "type": "process",
+      "verified": true,
+      "evidence": "Confirmed by SKILL.md documentation and explanation.md description of the 4-step algorithm: extract YTD per year, compute level_t = (1 + ytd_t/100), chain years together, normalise first obs = 100."
+    },
+    {
+      "claim": "Output will contain ~575 weekly rows from Jan 2015 to today",
+      "type": "factual",
+      "verified": false,
+      "evidence": "Stated in explanation.md but unverifiable without execution \u00e2\u20ac\u201d Bloomberg Terminal was not connected during this run, so no actual data was fetched and no CSV was produced."
+    },
+    {
+      "claim": "The solution uses only 6 tool calls with 0 errors",
+      "type": "process",
+      "verified": true,
+      "evidence": "Confirmed directly by metrics.json: total_tool_calls=6, errors_encountered=0."
+    },
+    {
+      "claim": "The output columns will be named us_ig_er_index and us_hy_er_index",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Confirmed by solution.py inline comment and SKILL.md instrument table: 'us ig er' \u00e2\u2020\u2019 us_ig_er_index, 'us hy er' \u00e2\u2020\u2019 us_hy_er_index."
+    }
+  ],
+  "user_notes_summary": {
+    "uncertainties": [],
+    "needs_review": [],
+    "workarounds": [],
+    "note": "No user_notes.md found in outputs_dir."
+  },
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "The code fetches LUACTRUU Index and LF98TRUU Index with INDEX_EXCESS_RETURN_YTD field",
+        "reason": "The solution delegates entirely to the skill abstraction \u00e2\u20ac\u201d neither ticker nor field name appears in solution.py. The assertion passes only because explanation.md documents the mapping, not because the code itself demonstrates it. Consider checking whether the skill's instrument registry actually contains these tickers/fields (e.g. asserting they appear in credit_data.py), or accept that explanation.md documentation is sufficient evidence."
+      },
+      {
+        "assertion": null,
+        "reason": "No expectation verifies that the CSV was actually created and contains valid data (date index, two numeric columns, base-100 starting value). The run produced no output CSV because Bloomberg was not connected, yet all 5 expectations pass. An execution-level check \u00e2\u20ac\u201d e.g. 'The CSV file exists with at least 500 rows and both columns start near 100' \u00e2\u20ac\u201d would catch this gap."
+      },
+      {
+        "assertion": "The code saves the output to a CSV file with UTF-8 encoding",
+        "reason": "The UTF-8 guarantee is met only indirectly via the skill's documented save() behaviour. The assertion would also pass for code that calls cd.save() but whose underlying implementation had changed. Consider asserting the solution explicitly uses encoding='utf-8' or that cd.save() documentation is cited, to avoid silent regression if the skill's internals change."
+      }
+    ],
+    "overall": "Evals are well-targeted but rely on the skill's documentation and mapping tables as proxy evidence for the two most important expectations (tickers/fields and YTD conversion). No expectation catches whether the final artefact \u00e2\u20ac\u201d the CSV \u00e2\u20ac\u201d was actually produced and is numerically correct. Adding a post-execution data-quality check would make the suite meaningfully stronger."
+  },
+  "timing": {
+    "total_duration_seconds": 0,
+    "executor_duration_seconds": 0
+  }
+}
