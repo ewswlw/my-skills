@@ -1,0 +1,9 @@
+{
+  "name": "chrome-cdp-skill",
+  "version": "1.0.0",
+  "description": "Chrome CDP CLI - Node 20 polyfill for WebSocket",
+  "type": "module",
+  "optionalDependencies": {
+    "ws": "^8.18.0"
+  }
+}

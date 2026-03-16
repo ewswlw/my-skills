@@ -1,6 +1,13 @@
 ---
 name: portfolio123
-description: Full-surface automation for Portfolio123 quantitative investing platform. API integration (p123api), browser automation for strategy creation and AI Factor training, ranking systems, universes, screens, backtests, factor discovery, and continual learning. Use when working with Portfolio123, P123, ranking systems, backtests, AI factors, screens, universes, or quantitative strategy development.
+description: >
+  Portfolio123 (P123) full-surface skill: automation, formula language, and data reference.
+  Trigger on: Portfolio123, P123, p123api, DataMiner, ranking systems, screens, backtests,
+  strategies, AI factors, universes. Also trigger for P123 formula writing (SetVar, FRank, FHist,
+  Eval, NodeRank, ZScore, Aggregate, FHistRank, LoopSum), technical analysis in P123 (RSI, MACD,
+  SMA, ATR, Bollinger), financial statement factors (Sales, OpInc, FCF, EPS, ROE, EBITDA, MktCap),
+  macro/FRED constants (##FEDFUNDS, ##UST10YR, ##CPI, ##UNRATE), universe IDs (SP500, Prussell3000),
+  and replicating academic strategies on P123 (BAB, Piotroski, momentum, value, quality, low-vol).
 ---
 
 # Portfolio123 Agent Skill
@@ -9,17 +16,34 @@ Automate every supported Portfolio123 workflow: API data collection, ranking sys
 
 ## Decision Tree — Route to Reference File
 
+### Automation & API Tasks
 | Task Type | Keywords | Read |
 |-----------|----------|------|
-| **Data collection** | prices, factors, universe data, data_prices, data_universe | [api-reference.md](api-reference.md) |
+| **Data collection** | prices, factors, universe data, data_prices, data_universe, DataMiner | [api-reference.md](api-reference.md) |
 | **Ranking system** | create ranking, update ranking, test rank, rank stocks | [ranking-templates.md](ranking-templates.md) |
-| **Universe** | create universe, update universe, filter stocks, Ticker | [ranking-templates.md](ranking-templates.md) |
+| **Universe creation** | create universe, update universe, filter stocks, universe rules | [ranking-templates.md](ranking-templates.md) |
+| **Universe ID lookup** | SP500, Prussell3000, ALLSTOCKS, which universe string to use | [references/macros-constants.md](references/macros-constants.md) |
 | **Screen / backtest** | run screen, backtest, rolling backtest, parameter sweep | [api-reference.md](api-reference.md) + [strategy-templates.md](strategy-templates.md) |
 | **Strategy creation** | create strategy, Stock strategy, ETF strategy, TAA, wizard | [browser-workflows.md](browser-workflows.md) + [strategy-templates.md](strategy-templates.md) |
+| **Strategy buy/sell rules** | NoBars, EntryPrice, MaxPosRet%, trailing stop, time exit, rank sell | [references/technical-functions.md](references/technical-functions.md) |
 | **AI Factor** | configure, train, validate, evaluate, predictor, LightGBM, ExtraTrees | [ai-factor-guide.md](ai-factor-guide.md) + [browser-workflows.md](browser-workflows.md) |
-| **Factor lookup** | find factor name, P123 syntax, doc_detail | [factor-quickref.md](factor-quickref.md) |
+| **Quick factor lookup** | ~50 validated factors by category, common pitfalls | [factor-quickref.md](factor-quickref.md) |
+| **Complete factor lookup** | full financial statement factor list, pre-built factor naming | [references/fundamental-data.md](references/fundamental-data.md) |
 | **Pipeline** | create-and-backtest, optimize-ranking, full-strategy-build | [strategy-templates.md](strategy-templates.md) |
 | **Learning review** | review discoveries, promote learnings, DNA fingerprint | [learnings.md](learnings.md) |
+
+### Formula Language Tasks
+| Task Type | Keywords | Read |
+|-----------|----------|------|
+| **Write any P123 formula** | screen rule, ranking formula, formula syntax, SetVar, Eval, FRank, ZScore, Aggregate, FHist, NodeRank, NA handling, Bound, IsNA | [references/formula-quick-reference.md](references/formula-quick-reference.md) |
+| **Academic strategy replication** | Piotroski, BAB, momentum, value, quality, low-vol, factor investing formula | [references/formula-quick-reference.md](references/formula-quick-reference.md) + [references/fundamental-data.md](references/fundamental-data.md) |
+| **Financial statement data** | balance sheet, income statement, cash flow, Sales(), OpInc(), FCF(), EPS(), EBITDA, book value, debt, working capital, pre-built factor naming | [references/fundamental-data.md](references/fundamental-data.md) |
+| **Technical analysis** | RSI, MACD, SMA, EMA, Bollinger, ATR, ADX, Stochastic, volume, 52-week high, streak, relative strength | [references/technical-functions.md](references/technical-functions.md) |
+| **Advanced formula logic** | FHistRank, FHistZScore, LoopSum, Group, AI Factor formula, consensus estimates, dividends, screen-only functions | [references/advanced-functions.md](references/advanced-functions.md) |
+| **FHist / historical lookback** | FHist, historical average, historical rank, how did X change over time | [references/formula-quick-reference.md](references/formula-quick-reference.md) — for syntax; [references/advanced-functions.md](references/advanced-functions.md) — for FHistRank/FHistZScore |
+| **Macros / constants / universes** | ##FEDFUNDS, ##UST10YR, ##CPI, ##UNRATE, FRED series, #Bench, $SPY, FX rates, #SPEPSTTM, universe ID strings | [references/macros-constants.md](references/macros-constants.md) |
+
+> **Multi-domain formula tasks** (e.g., Piotroski uses balance sheet + cash flow + formula syntax): read `formula-quick-reference.md` first, then the relevant domain file (`fundamental-data.md`, `technical-functions.md`, etc.).
 
 ## Core Rules
 
@@ -33,7 +57,8 @@ Automate every supported Portfolio123 workflow: API data collection, ranking sys
 
 ## Quick Reference Links
 
-- **API:** [api-reference.md](api-reference.md) — endpoints, auth, credits, retry, code examples
+### Automation & Platform
+- **API:** [api-reference.md](api-reference.md) — all endpoints, auth, credits, retry, pitfalls, code examples
 - **Browser:** [browser-workflows.md](browser-workflows.md) — login, strategy wizard, AI Factor config, snapshot-verify
 - **Rankings:** [ranking-templates.md](ranking-templates.md) — 5 XML templates, validation checklist
 - **Strategies:** [strategy-templates.md](strategy-templates.md) — TAA, Small Cap Alpha, Large Cap AI Factor, pipelines
@@ -42,25 +67,47 @@ Automate every supported Portfolio123 workflow: API data collection, ranking sys
 - **Philosophy:** [andreas-reference.md](andreas-reference.md) — robustness-first, Train Wide Filter Smart
 - **Learning:** [learnings.md](learnings.md) — discoveries, promotion rules, DNA fingerprinting
 
+### Formula Language Reference
+- **Formula Quick Ref:** [references/formula-quick-reference.md](references/formula-quick-reference.md) — operators, SetVar, Eval, FRank, ZScore, Aggregate, FHist, NA handling, common patterns
+- **Fundamental Data:** [references/fundamental-data.md](references/fundamental-data.md) — all balance sheet / income / cash flow functions + pre-built factor naming system
+- **Technical Functions:** [references/technical-functions.md](references/technical-functions.md) — moving averages, RSI, MACD, Bollinger, ATR, ADX, streaks, strategy-only functions
+- **Advanced Functions:** [references/advanced-functions.md](references/advanced-functions.md) — FHistRank, FHistZScore, LoopSum, Group, AI Factor functions, consensus estimates, dividends
+- **Macros & Constants:** [references/macros-constants.md](references/macros-constants.md) — FRED series (##FEDFUNDS, ##CPI, etc.), universe IDs, price IDs, FX rates, S&P 500 aggregates
+
 ## Learning Hooks — What to Watch After Each Operation
 
 | Operation | Watch For | Log To |
 |-----------|-----------|--------|
-| API call | quotaRemaining, response keys (snake_case?), credit cost | learnings.md → api-reference.md |
-| Factor in ranking | Did it work? Exact P123 name used | learnings.md → factor-quickref.md |
-| Browser action | Selector that worked, text content used | learnings.md → browser-workflows.md |
+| API call | quotaRemaining, response keys (snake_case?), actual credit cost | learnings.md → api-reference.md |
+| Factor in ranking | Did it work? Exact P123 name used, any name correction needed | learnings.md → factor-quickref.md |
+| Browser action | Selector that worked, text content used, any changed UI element | learnings.md → browser-workflows.md |
 | Backtest result | annualized_return, sharpe_ratio, max_drawdown, ranking config | learnings.md → Strategy DNA fingerprint |
 | XML save | Any validation error, fix applied | learnings.md → ranking-templates.md |
+| P123 formula used | Did the formula evaluate without error? Exact syntax that worked, any NA surprises | learnings.md → references/formula-quick-reference.md |
+| Financial statement factor | Exact pre-built factor name confirmed (e.g., `SalesGr%TTM` not `SalesGrowthTTM`) | learnings.md → references/fundamental-data.md |
+| Technical function | Parameter order confirmed (e.g., `ATR(bars, offset, series)`), any gotchas | learnings.md → references/technical-functions.md |
+| Macro constant | Was the FRED series current? Any stale data lag observed | learnings.md → references/macros-constants.md |
+| Academic strategy replication | Which formula pattern worked, what the P123 equivalent of the paper's metric is | learnings.md → references/formula-quick-reference.md |
 
 ## Graceful Degradation
 
-When browser automation fails after 3 attempts, output:
+### Browser Automation Failure (after 3 attempts)
+Output a manual instruction block:
 1. Exact URL to navigate to
 2. Field-by-field values to enter
 3. Buttons to click in order
 4. Expected confirmation text
 
-Pipeline pauses until user types `done`.
+Then pause: tell the user to complete the steps and type `done` to resume the pipeline.
+
+### API `data_universe` → "data license required" error
+Fall back to `client.data()` with explicit tickers instead. Inform the user that `data_universe()` requires a FactSet/Compustat data license and offer the ticker-based alternative.
+
+### `doc_detail.jsp` unreachable for factor validation
+Fall back to: (1) search `references/fundamental-data.md` for the function name, (2) search `factor-quickref.md`, (3) use the pre-built factor naming pattern from `references/fundamental-data.md` to derive the name. Warn the user the name is unconfirmed and may need manual validation.
+
+### Ranking XML validation error on save
+Apply the fix documented in `ranking-templates.md` validation checklist. If the same error persists after 2 attempts, output the corrected XML for the user to paste manually via the XML editor (Settings → Raw XML).
 
 ## Terminology
 
