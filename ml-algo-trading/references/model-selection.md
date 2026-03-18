@@ -333,3 +333,182 @@ def trading_metrics(returns: pd.Series, benchmark: pd.Series = None, freq: int =
     
     return metrics
 ```
+
+---
+
+## Non-Linear Factor Aggregation
+
+### Why Not Just Average Factors?
+
+A simple IC-weighted linear combination of alpha factors assumes:
+- Each factor contributes independently (no interactions)
+- Factor weights are constant across all market regimes
+- Returns scale linearly with factor exposure
+
+All three assumptions are wrong in practice. A LightGBM synthesis layer captures:
+- **Interaction effects**: two correlated momentum factors don't stack linearly — the GBM learns diminishing returns
+- **Regime-dependent thresholds**: factor X works only when factor Y is above a certain level
+- **Non-linear payoffs**: a volatility factor may be valuable only in its extremes, not linearly
+
+### Pattern: Factors as Inputs, GBM as Synthesizer
+
+This is distinct from using GBM as a direct predictor on raw features. Here, each input to the GBM is an **already-validated alpha factor** (passed the |t| > 3.0 screening gate). The GBM's job is to learn optimal *combination logic*, not raw prediction.
+
+```
+Raw Data -> Primitives -> Factor Grammar -> Screening Gate (|t|>3) -> Validated Factors
+                                                                          |
+                                                              GBM Synthesis Layer
+                                                                          |
+                                                              Combined Alpha Signal
+```
+
+### Implementation
+
+```python
+import lightgbm as lgb
+import numpy as np
+import pandas as pd
+
+def build_synthesis_layer(
+    factor_matrix: pd.DataFrame,
+    forward_returns: pd.Series,
+    n_splits: int = 5,
+    embargo_pct: float = 0.01,
+) -> dict:
+    """
+    Train a LightGBM model to combine validated alpha factors non-linearly.
+
+    Args:
+        factor_matrix: DataFrame where each column is a validated factor
+                       (all must have passed |t-stat| > 3.0)
+        forward_returns: Next-period returns for labeling
+        n_splits: Purged CV folds
+        embargo_pct: Embargo fraction for purged CV
+
+    Returns:
+        Dict with trained model, feature importance, and CV scores
+    """
+    labels = (forward_returns > 0).astype(int)
+    common = factor_matrix.dropna().index.intersection(labels.dropna().index)
+    X = factor_matrix.loc[common]
+    y = labels.loc[common]
+
+    model = lgb.LGBMClassifier(
+        n_estimators=200,
+        num_leaves=8,           # Shallow — factors are already informative
+        learning_rate=0.05,
+        min_child_samples=30,
+        subsample=0.8,
+        colsample_bytree=0.8,
+        reg_alpha=0.1,
+        reg_lambda=1.0,
+        random_state=42,
+        verbose=-1,
+    )
+
+    # Use purged CV for evaluation (see validation-backtesting.md)
+    from sklearn.base import clone
+
+    cv_scores = []
+    cv_probas = pd.Series(dtype=float, index=common)
+
+    fold_size = len(X) // n_splits
+    embargo_size = int(len(X) * embargo_pct)
+
+    for i in range(n_splits):
+        test_start = i * fold_size
+        test_end = min((i + 1) * fold_size, len(X))
+        test_idx = list(range(test_start, test_end))
+
+        purge_start = max(0, test_start - 1)
+        embargo_end = min(len(X), test_end + embargo_size)
+        excluded = set(range(purge_start, embargo_end))
+        train_idx = [j for j in range(len(X)) if j not in excluded]
+
+        m = clone(model)
+        m.fit(X.iloc[train_idx], y.iloc[train_idx])
+        proba = m.predict_proba(X.iloc[test_idx])[:, 1]
+        score = m.score(X.iloc[test_idx], y.iloc[test_idx])
+
+        cv_scores.append(score)
+        cv_probas.iloc[test_idx] = proba
+
+    # Train final model on all data
+    model.fit(X, y)
+
+    return {
+        "model": model,
+        "cv_scores": cv_scores,
+        "cv_mean": np.mean(cv_scores),
+        "cv_std": np.std(cv_scores),
+        "oos_probas": cv_probas,
+        "feature_importance": pd.Series(
+            model.feature_importances_, index=X.columns
+        ).sort_values(ascending=False),
+    }
+```
+
+### Linear Baseline Comparison
+
+Always compare the GBM synthesis layer against a simple IC-weighted linear combination. If the GBM doesn't meaningfully outperform, prefer the linear model for its transparency.
+
+```python
+def ic_weighted_combination(
+    factor_matrix: pd.DataFrame,
+    forward_returns: pd.Series,
+) -> pd.Series:
+    """
+    Baseline: combine factors using IC-weighted linear combination.
+    Compare against GBM synthesis to justify non-linear complexity.
+    """
+    ics = {}
+    for col in factor_matrix.columns:
+        valid = factor_matrix[col].dropna()
+        aligned = forward_returns.reindex(valid.index).dropna()
+        common = valid.index.intersection(aligned.index)
+        if len(common) > 30:
+            ics[col] = valid.loc[common].corr(aligned.loc[common])
+
+    ic_series = pd.Series(ics)
+    weights = ic_series / ic_series.sum()
+
+    combined = (factor_matrix[weights.index] * weights).sum(axis=1)
+    return combined
+
+
+def compare_aggregation_methods(
+    factor_matrix: pd.DataFrame,
+    forward_returns: pd.Series,
+    gbm_probas: pd.Series,
+    freq: int = 52,
+) -> pd.DataFrame:
+    """
+    Compare GBM synthesis vs IC-weighted linear combination.
+    The GBM must outperform to justify its complexity.
+    """
+    linear_signal = ic_weighted_combination(factor_matrix, forward_returns)
+
+    # Convert signals to returns
+    common = forward_returns.dropna().index
+    linear_returns = forward_returns.loc[common] * (linear_signal.reindex(common) > linear_signal.median()).astype(int)
+    gbm_returns = forward_returns.loc[common] * (gbm_probas.reindex(common) > 0.5).astype(int)
+
+    results = {}
+    for name, rets in [("linear_ic_weighted", linear_returns), ("gbm_synthesis", gbm_returns)]:
+        ann_ret = (1 + rets.mean()) ** freq - 1
+        ann_vol = rets.std() * np.sqrt(freq)
+        results[name] = {
+            "ann_return": round(ann_ret, 4),
+            "sharpe": round(ann_ret / ann_vol, 2) if ann_vol > 0 else 0,
+            "hit_rate": round((rets > 0).mean(), 3),
+        }
+
+    return pd.DataFrame(results).T
+```
+
+### Guard Rails
+
+- The synthesis layer itself **must pass walk-forward validation and DSR** (Steps 6-7) — non-linear aggregation can overfit faster than linear
+- Use **shallow trees** (num_leaves=8, max_depth=3) — the inputs are already validated signals, not raw noisy features
+- Monitor **feature importance stability** across CV folds — if importance rankings shift dramatically, the GBM is fitting noise
+- If GBM Sharpe is < 10% better than linear baseline, prefer the linear model for auditability

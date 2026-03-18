@@ -630,9 +630,279 @@ When reporting GA results, always include:
 
 ---
 
+# Section C: Discovery Memory & Search Policy
+
+## Philosophy
+
+**Strategy development is not a one-shot process — it's an iterative discovery system.** Each cycle of hypothesis, test, and result should update a persistent memory that guides future cycles. Without memory, you re-test discredited hypotheses, fail to build on near-misses, and cannot balance exploration of new ideas against exploitation of proven patterns.
+
+---
+
+## Discovery Memory Format
+
+After every factor discovery or strategy development cycle, log a structured record — regardless of whether the result passed or failed.
+
+```python
+import json
+from datetime import datetime
+from pathlib import Path
+
+MEMORY_PATH = Path("discovery_memory.jsonl")
+
+def log_discovery(
+    hypothesis: str,
+    factor_expression: str,
+    reasoning_trace: dict,
+    screening_result: dict,
+    oos_result: dict = None,
+    failure_mode: str = None,
+    tags: list = None,
+) -> dict:
+    """
+    Log a single discovery cycle to persistent memory.
+
+    Args:
+        hypothesis: One-sentence economic thesis
+        factor_expression: Factor grammar expression tested
+        reasoning_trace: The 4-element reasoning trace from Step 1
+        screening_result: Output of screen_factors() — t_stat, IC, passed/failed
+        oos_result: Walk-forward OOS metrics (if factor passed screening)
+        failure_mode: Why it failed (if applicable)
+        tags: Category tags (e.g., ['momentum', 'credit', 'volume'])
+
+    Returns:
+        The logged record
+    """
+    record = {
+        "timestamp": datetime.now().isoformat(),
+        "hypothesis": hypothesis,
+        "factor_expression": factor_expression,
+        "reasoning_trace": reasoning_trace,
+        "screening": {
+            "t_stat": screening_result.get("t_stat"),
+            "ic": screening_result.get("ic"),
+            "passed": screening_result.get("passed", False),
+        },
+        "oos": oos_result,
+        "failure_mode": failure_mode,
+        "tags": tags or [],
+        "status": "passed" if (oos_result and oos_result.get("sharpe", 0) > 0) else "failed",
+    }
+
+    with open(MEMORY_PATH, "a", encoding="utf-8") as f:
+        f.write(json.dumps(record, ensure_ascii=False) + "\n")
+
+    return record
+
+
+def load_memory() -> list:
+    """Load all discovery records."""
+    if not MEMORY_PATH.exists():
+        return []
+    records = []
+    with open(MEMORY_PATH, "r", encoding="utf-8") as f:
+        for line in f:
+            if line.strip():
+                records.append(json.loads(line))
+    return records
+```
+
+### Memory Record Schema
+
+| Field | Type | Purpose |
+|---|---|---|
+| `timestamp` | ISO datetime | When the cycle ran |
+| `hypothesis` | str | One-sentence economic thesis |
+| `factor_expression` | str | Grammar expression (e.g., `rank(mom_13w) * z_score(spread)`) |
+| `reasoning_trace` | dict | The 4-element trace from SKILL.md Step 1 |
+| `screening.t_stat` | float | Univariate t-statistic from screening gate |
+| `screening.ic` | float | Information coefficient |
+| `screening.passed` | bool | Whether it cleared |t| > 3.0 |
+| `oos.sharpe` | float | Walk-forward OOS Sharpe (if reached that stage) |
+| `oos.regime_performance` | dict | Per-regime Sharpe breakdown |
+| `failure_mode` | str | Why it failed (e.g., "regime-specific", "below hurdle", "OOS collapse") |
+| `tags` | list | Category tags for search |
+| `status` | str | "passed" or "failed" |
+
+---
+
+## Negative Memory
+
+**Failed hypotheses are as valuable as successes.** Explicitly recording *why* something failed prevents:
+1. Re-testing the same discredited idea in a future session
+2. Making the same structural mistake (e.g., "momentum features always fail below 4w lookback in this asset class")
+3. Wasting the multiple-testing budget on known dead-ends
+
+```python
+def get_failed_patterns(memory: list) -> dict:
+    """
+    Extract recurring failure patterns from discovery memory.
+
+    Returns:
+        Dict grouping failures by failure_mode with counts and examples
+    """
+    failures = [r for r in memory if r["status"] == "failed"]
+    patterns = {}
+    for r in failures:
+        mode = r.get("failure_mode", "unknown")
+        if mode not in patterns:
+            patterns[mode] = {"count": 0, "examples": []}
+        patterns[mode]["count"] += 1
+        patterns[mode]["examples"].append({
+            "hypothesis": r["hypothesis"],
+            "factor": r["factor_expression"],
+            "t_stat": r["screening"]["t_stat"],
+        })
+    return patterns
+```
+
+---
+
+## Exploration vs Exploitation Balance
+
+The search policy must balance two competing needs:
+- **Exploitation**: Refine existing successful factors (tweak lookback, add cross-asset confirmation)
+- **Exploration**: Test entirely new hypothesis families (different asset, different inefficiency type)
+
+### Policy Rules
+
+1. **After 3 consecutive exploitation cycles** (refinements of the same factor family), the next cycle **must** be exploratory — a new hypothesis family not present in memory
+2. **Near-miss factors** (t-stat 2.0-3.0) are exploitation candidates — the hypothesis was directionally correct but the expression needs refinement
+3. **Factors with regime-specific failures** should be re-tested with a regime filter, not abandoned entirely — this counts as exploitation
+4. **If the last 5 discoveries all failed**, step back and re-run the predictability gate (Step 2) — the target series may have shifted regime
+
+```python
+def suggest_next_action(memory: list, max_exploit_streak: int = 3) -> dict:
+    """
+    Analyze discovery memory and suggest whether to explore or exploit.
+
+    Returns:
+        Dict with 'action' ('explore' or 'exploit'), 'reason', and 'candidates'
+    """
+    if not memory:
+        return {"action": "explore", "reason": "empty memory", "candidates": []}
+
+    recent = memory[-max_exploit_streak:]
+    recent_tags = [set(r.get("tags", [])) for r in recent]
+
+    # Check if recent cycles are all in the same family
+    if len(recent) >= max_exploit_streak:
+        common_tags = recent_tags[0]
+        for tags in recent_tags[1:]:
+            common_tags = common_tags.intersection(tags)
+        if common_tags:
+            return {
+                "action": "explore",
+                "reason": f"last {max_exploit_streak} cycles all in family: {common_tags}",
+                "candidates": _suggest_unexplored_families(memory),
+            }
+
+    # Check for near-misses to exploit
+    near_misses = [
+        r for r in memory
+        if not r["screening"]["passed"]
+        and r["screening"]["t_stat"] is not None
+        and abs(r["screening"]["t_stat"]) > 2.0
+    ]
+    if near_misses:
+        return {
+            "action": "exploit",
+            "reason": f"{len(near_misses)} near-miss factors to refine",
+            "candidates": near_misses[-3:],
+        }
+
+    # Check for consecutive failure streak
+    recent_5 = memory[-5:]
+    if all(r["status"] == "failed" for r in recent_5):
+        return {
+            "action": "explore",
+            "reason": "last 5 discoveries failed -- re-run predictability gate",
+            "candidates": [],
+        }
+
+    return {"action": "explore", "reason": "default -- seek new hypotheses", "candidates": []}
+
+
+def _suggest_unexplored_families(memory: list) -> list:
+    """Identify tag families not yet tested."""
+    all_tags = set()
+    for r in memory:
+        all_tags.update(r.get("tags", []))
+
+    known_families = [
+        "momentum", "mean_reversion", "volatility", "carry", "liquidity",
+        "sentiment", "flow", "structural", "cross_asset", "yield_curve",
+    ]
+    unexplored = [f for f in known_families if f not in all_tags]
+    return unexplored
+```
+
+---
+
+## Policy Evolution
+
+After each discovery cycle, update search priors based on accumulated evidence.
+
+```python
+def compute_search_priors(memory: list) -> dict:
+    """
+    Compute empirical success rates by tag family to guide future search.
+
+    Returns:
+        Dict of {tag: {'attempts': N, 'successes': N, 'avg_t_stat': float, 'priority': str}}
+    """
+    tag_stats = {}
+    for r in memory:
+        for tag in r.get("tags", []):
+            if tag not in tag_stats:
+                tag_stats[tag] = {"attempts": 0, "successes": 0, "t_stats": []}
+            tag_stats[tag]["attempts"] += 1
+            if r["status"] == "passed":
+                tag_stats[tag]["successes"] += 1
+            t = r["screening"].get("t_stat")
+            if t is not None:
+                tag_stats[tag]["t_stats"].append(abs(t))
+
+    result = {}
+    for tag, stats in tag_stats.items():
+        success_rate = stats["successes"] / stats["attempts"] if stats["attempts"] > 0 else 0
+        avg_t = sum(stats["t_stats"]) / len(stats["t_stats"]) if stats["t_stats"] else 0
+        result[tag] = {
+            "attempts": stats["attempts"],
+            "successes": stats["successes"],
+            "success_rate": round(success_rate, 2),
+            "avg_t_stat": round(avg_t, 2),
+            "priority": "high" if success_rate > 0.3 else "medium" if success_rate > 0.1 else "low",
+        }
+
+    return dict(sorted(result.items(), key=lambda x: x[1]["success_rate"], reverse=True))
+```
+
+### Using Priors in Practice
+
+- **High-priority families** (success rate > 30%): allocate more exploitation cycles here
+- **Medium-priority families** (10-30%): occasional exploration, combine with regime filters
+- **Low-priority families** (< 10%): only explore with a genuinely new hypothesis, not parameter tweaks
+- **Untested families**: always worth at least one exploration cycle
+
+---
+
+## Integration with the Pipeline
+
+Discovery memory connects to the main pipeline at three points:
+
+1. **Step 1 (Hypothesis)**: Before writing the reasoning trace, check memory for prior attempts on the same inefficiency. Build on successes, avoid repeating failures.
+2. **Step 3 (Screening Gate)**: Log every screened factor — passed or failed — with its t-stat and IC.
+3. **Step 6 (Walk-Forward)**: Log OOS results and regime-specific performance for factors that reached this stage.
+
+---
+
 ## See Also
 
+- `feature-engineering.md` — Factor Screening Gate logs results to discovery memory; factor grammar and symbolic regression
+- `SKILL.md` Step 1 — Reasoning Trace should reference prior discoveries
+- `model-selection.md` — Non-Linear Factor Aggregation uses validated factors from the screening gate
+- `regime-philosophy.md` — Regime-specific failures are a key failure mode to track; test across regimes not just time
 - `validation-backtesting.md` — DSR calculation for multiple trials (essential after GA); drawdown analysis
-- `regime-philosophy.md` — test GA-optimized strategy across regimes, not just time
-- `predictability-analysis.md` — run predictability score before GA to confirm signal exists
+- `predictability-analysis.md` — Run predictability score before GA to confirm signal exists
 - `eda-ml-practices.md` — EDA methodology and ML best practices applicable before and after GA runs

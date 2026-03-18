@@ -29,7 +29,7 @@ Full ML workflow, 16 hyperparameter presets, 4 validation methods, evaluation di
 - **Scaling:** Rank (percentile) or Z-Score. Rank maintains order, Z-Score normalizes.
 - **NA handling:** Replace with median
 - **Trim:** 7.5% each side (15% total omitted for distribution stats)
-- **Outlier limit:** Cap extreme values
+- **Outlier limit:** **5 sigma default** (not 2.5 sigma). Test up to 10 sigma to confirm optimality. Clipping at 2.5 sigma collapses the signal gradient — the model can no longer distinguish "strong" from "extreme." Fat tails carry signal, not noise.
 
 ## Validation Methods
 
@@ -42,11 +42,43 @@ Full ML workflow, 16 hyperparameter presets, 4 validation methods, evaluation di
 
 ## Algorithms
 
-- **LightGBM** — High performance, directional targets. Risk: overfitting, high turnover.
-- **ExtraTrees** — Robust, lower turnover. Good for noisy horizons.
+- **LightGBM** — High performance, directional targets. Risk: overfitting, high turnover. Mode: "efficiently try to hit the target" — sharper but can miss badly when it overfits.
+- **ExtraTrees** — Robust, lower turnover. Good for noisy horizons. Mode: "reduce noise by averaging" — stability-oriented, easier to explain.
 - **XGBoost** — Alternative gradient boosting.
 
 **Ensemble (Small Cap Alpha):** LightGBM (ranking) + ExtraTrees (buy filter). LightGBM finds patterns; ExtraTrees gates quality.
+
+### LightGBM Learning Logic: How It Works
+
+LightGBM uses **histogram binning**: instead of searching infinite real-valued split thresholds, it rounds continuous features (e.g., ROE) into ~255 bins. Each stock's feature value becomes a bin index. Split search becomes finite: "which bin boundary reduces loss most?" using precomputed bin-level gradient aggregates.
+
+- **Result:** Dramatically faster split search → can evaluate more features and candidates → better splits
+- **Investing intuition:** Instead of "find the perfect ROE decimal cutoff," bucket ROE into ranges and use range statistics to compare quickly
+
+### LightGBM Overfitting Risk
+
+LightGBM can learn past noise as real "laws." When conditions don't repeat in the future, the model confidently predicts in the wrong direction → huge misses. This risk is amplified with:
+- Deep leaf-wise growth (high `num_leaves` / `max_depth`)
+- Many trees without regularization
+
+### LightGBM Anti-Overfitting Hyperparameters
+
+| Parameter | Recommendation | Why |
+|-----------|---------------|-----|
+| `learning_rate` (η) | Lower (e.g., 0.01) + more trees | Don't nail it in one shot; correct gradually |
+| `min_data_in_leaf` | Set meaningfully (e.g., 100) | **Extremely important for stocks** — prevents optimizing to a handful of stocks |
+| `num_leaves` / `max_depth` | Constrain (e.g., max_depth=7) | Overly fine branching becomes a "past-only rule" |
+| `feature_fraction` / `bagging_fraction` | Apply sampling | Reduce dependence on features that happened to work |
+| Validation | Time-series walk-forward + early stopping | Random splits hide future performance collapse |
+
+### ExtraTrees vs. LightGBM Decision Guideline
+
+| Scenario | Choice |
+|----------|--------|
+| Starting out / baseline / conservative | **ExtraTrees** — stable, easy to explain, hard to overfit |
+| Features have genuine predictive power AND you apply regularization | **LightGBM** — more accuracy but requires careful tuning |
+| Buy filter / quality gate in ensemble | **ExtraTrees** |
+| Ranking 500 stocks monthly, buy top-ranked | Compare by **hit rate in top X%** not regression error — reveals LightGBM strength and overfitting risk more clearly |
 
 ## Key Hyperparameter Presets
 
@@ -55,6 +87,8 @@ Full ML workflow, 16 hyperparameter presets, 4 validation methods, evaluation di
 - ExtraTrees: n_estimators=600, max_features=0.3
 
 **Maestro (P123 default):** Balanced, professional-grade. Use when unsure.
+
+**All-Must-Perform Rule:** When testing hyperparameter presets, ALL sets must produce positive lift — not just the top three. If the signal only works under one specific configuration, it is fragile. Real signals survive hyperparameter variance by design.
 
 **13 Meeting Types:** FastFire, DeepThinker, RuleMaster, ComplianceCore, SharpShooter, RiskBalancer, BigBrain, EarlyStopper, OverfitArtist, ZenMinimalist — see vault AI Factor Reference for full configs.
 
@@ -76,6 +110,7 @@ Full ML workflow, 16 hyperparameter presets, 4 validation methods, evaluation di
 5. **H-L spread:** Top vs bottom quantile return gap
 6. **Turnover:** High bucket turnover — practical to implement?
 7. **Time resilience:** Structural (shape stable) vs Semantic (does Bucket1 stay "bad"?)
+8. **Hit rate in top X%:** For stock-scoring strategies, evaluate ranking performance (hit rate in top 10%/20%) in addition to regression error — better reflects real portfolio impact and exposes overfitting risk
 
 ## Ranking System with AI Factor
 

@@ -344,3 +344,188 @@ stationarity = check_stationarity(df, feature_cols)
 failing = stationarity[~stationarity['stationary']]
 # → Apply fractional differentiation to failing features
 ```
+
+---
+
+## Autonomous Factor Discovery
+
+Traditional feature engineering relies on a static cookbook of known features. Autonomous factor discovery uses **symbolic reasoning** to systematically compose novel alpha factors from interpretable primitives, governed by a strict grammar that keeps results auditable.
+
+### Interpretable Primitives
+
+All composed factors must be built from these base primitives. Never use raw price levels — always use transforms that are economically interpretable.
+
+| Category | Primitives | Examples |
+|---|---|---|
+| **Price-relative** | `pct_change(N)`, `rank(pct_change(N))`, `log_return(N)` | 4w momentum, cross-sectional return rank |
+| **Volume** | `volume_ratio(N)`, `volume_zscore(N)`, `obv_slope(N)` | Volume vs 20-day average, OBV trend |
+| **Volatility state** | `realized_vol(N)`, `vol_ratio(fast, slow)`, `vol_zscore(N)` | Vol regime, vol compression/expansion |
+| **Mean-reversion** | `z_score(series, N)`, `percentile(series, N)` | Spread z-score, percentile rank |
+| **Structural** | `slope(series, N)`, `curvature(a, b, c)`, `correlation(x, y, N)` | Yield curve slope, rolling beta |
+
+### Factor Grammar
+
+Composed factors are expressions built by applying **operators** to primitives. The grammar enforces auditability.
+
+```
+FACTOR       := OPERATOR(PRIMITIVE, ...) | OPERATOR(FACTOR, PRIMITIVE)
+OPERATOR     := rank | z_score | lag | diff | ratio | product | max | min | conditional
+PRIMITIVE    := (see table above)
+MAX_DEPTH    := 3   (no more than 3 nested operations)
+```
+
+**Composition rules:**
+1. Every leaf node must be an interpretable primitive — no magic numbers or opaque transforms
+2. Maximum nesting depth of 3 — deeper compositions are unauditable
+3. Every composed factor must have a one-sentence economic rationale *before* computation
+4. Cross-sectional operators (`rank`, `z_score`) are preferred over raw values for comparability
+
+```python
+# Example: composing a "liquidity-adjusted momentum" factor
+# Rationale: momentum signals are stronger when confirmed by above-average volume
+
+# Primitives
+mom_13w = df['price'].pct_change(13)
+vol_ratio = df['volume'].rolling(4).mean() / df['volume'].rolling(26).mean()
+
+# Composed factor (depth=2): product(rank(momentum), rank(volume_ratio))
+factor = mom_13w.rank(pct=True) * vol_ratio.rank(pct=True)
+
+# Depth check: rank(pct_change) = depth 1, product(rank, rank) = depth 2 ✓
+```
+
+### Symbolic Regression for Factor Search
+
+When the hypothesis space is large, use symbolic regression to search over factor grammar expressions programmatically.
+
+```python
+from gplearn.genetic import SymbolicRegressor
+
+def symbolic_factor_search(
+    X: pd.DataFrame,
+    y: pd.Series,
+    population_size: int = 500,
+    generations: int = 20,
+    parsimony_coefficient: float = 0.01,
+) -> dict:
+    """
+    Search for novel factor expressions via symbolic regression.
+
+    Args:
+        X: Primitive features (columns = interpretable primitives)
+        y: Forward returns or labels
+        population_size: GP population size
+        generations: Evolution generations
+        parsimony_coefficient: Penalty for complexity (higher = simpler expressions)
+
+    Returns:
+        Dict with best program expression, fitness, and complexity
+    """
+    sr = SymbolicRegressor(
+        population_size=population_size,
+        generations=generations,
+        parsimony_coefficient=parsimony_coefficient,
+        function_set=['add', 'sub', 'mul', 'div', 'sqrt', 'abs', 'max', 'min'],
+        max_samples=0.8,
+        random_state=42,
+        n_jobs=-1,
+    )
+    sr.fit(X.values, y.values)
+
+    return {
+        'expression': str(sr._program),
+        'fitness': sr._program.fitness_,
+        'complexity': sr._program.length_,
+        'feature_names': X.columns.tolist(),
+    }
+
+# CRITICAL: record total evaluations for DSR
+# n_trials = population_size * generations
+# Every expression tested counts toward the multiple-testing penalty
+```
+
+### LLM-Assisted Factor Ideation
+
+When using an AI coding agent, the agent itself can act as a factor hypothesis generator. The protocol:
+
+1. **Agent proposes** a market inefficiency and a factor expression using the grammar above
+2. **Agent provides** a one-sentence behavioral or structural rationale (the ReAct reasoning trace — see SKILL.md Step 1)
+3. **Only then** does the agent write code to compute and test the factor
+4. If the factor fails the screening gate (see below), the agent logs the failure and proposes a *different* hypothesis — not a parameter tweak of the same one
+
+This prevents the agent from degenerating into a brute-force parameter optimizer.
+
+---
+
+## Factor Screening Gate
+
+**MANDATORY** — run after feature construction, before labeling (Step 4). Every candidate factor must pass this gate to enter the model. This prevents the "Factor Zoo" problem and limits the multiple-testing penalty at DSR time.
+
+### Hurdle: |t-statistic| > 3.0
+
+```python
+from scipy import stats
+
+def screen_factors(
+    factors: pd.DataFrame,
+    forward_returns: pd.Series,
+    t_threshold: float = 3.0,
+) -> dict:
+    """
+    Screen candidate factors via univariate t-test against forward returns.
+
+    Args:
+        factors: DataFrame where each column is a candidate factor
+        forward_returns: Next-period returns (point-in-time, no look-ahead)
+        t_threshold: Minimum |t-stat| to pass (default 3.0)
+
+    Returns:
+        Dict with 'passed' (list of names), 'failed' (list), and 'details' (DataFrame)
+    """
+    results = []
+    for col in factors.columns:
+        valid = factors[col].dropna()
+        aligned_returns = forward_returns.reindex(valid.index).dropna()
+        common = valid.index.intersection(aligned_returns.index)
+
+        if len(common) < 30:
+            results.append({'factor': col, 't_stat': 0, 'p_value': 1.0,
+                            'ic': 0, 'passed': False, 'reason': 'insufficient_data'})
+            continue
+
+        ic = valid.loc[common].corr(aligned_returns.loc[common])
+
+        # t-stat for information coefficient
+        n = len(common)
+        t_stat = ic * np.sqrt(n - 2) / np.sqrt(1 - ic**2) if abs(ic) < 1 else 0
+
+        results.append({
+            'factor': col,
+            't_stat': round(t_stat, 2),
+            'p_value': round(2 * (1 - stats.t.cdf(abs(t_stat), df=n-2)), 4),
+            'ic': round(ic, 4),
+            'passed': abs(t_stat) > t_threshold,
+            'reason': 'passed' if abs(t_stat) > t_threshold else 'below_hurdle',
+        })
+
+    details = pd.DataFrame(results)
+    passed = details[details['passed']]['factor'].tolist()
+    failed = details[~details['passed']]['factor'].tolist()
+
+    print(f"Factor Screening: {len(passed)}/{len(details)} passed (|t| > {t_threshold})")
+    for _, row in details.iterrows():
+        status = '✓' if row['passed'] else '✗'
+        print(f"  {status} {row['factor']}: t={row['t_stat']}, IC={row['ic']}")
+
+    return {'passed': passed, 'failed': failed, 'details': details}
+```
+
+### Temporal Isolation
+
+- **Screening** uses only in-sample data (the training set from Step 5)
+- **OOS validation** in Steps 6-7 must use data the factor has never seen during screening
+- Never screen on full data then validate on a subset — this leaks information
+
+### Integration with Discovery Memory
+
+Every screened factor — passed or failed — should be logged in the discovery memory (see `strategy-improvement.md` Section C). Failed factors with near-miss t-stats (2.0-3.0) are candidates for refinement in the next discovery cycle.
