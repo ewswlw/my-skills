@@ -95,6 +95,12 @@ Pipeline pauses until user types `done`.
 
 Periodically verify key pages load: Login, RESEARCH, Ranking Systems, Simulated Strategies. If expected elements missing, flag possible P123 UI change.
 
+## Known platform quirks (from vault iteration notes)
+
+- **Long backtest period reset:** Strategy wizard (`port_wiz.jsp`) may **revert** the simulation period to a **short default** (e.g. ~1 year) when **Run Simulation** is triggered, even after selecting a long start date. **Workaround:** set period to **MAX** (or desired range) again immediately before run; or verify metrics via **API** (`screen_backtest` / strategy endpoints) which does not hit this UI bug.
+- **Ranking wizard lag:** “Edit Details” / selection UI may **timeout**—use **simulation dialog** for naming, or **raw XML** for ranking edits (see GUI-First, XML Fallback).
+- **Selenium / browser automation:** Prefer **60s** timeouts, **explicit wait** after navigation (AJAX), and **raw XML** when “Add Node” spins indefinitely.
+
 ## Naming Convention
 
 All created items: `agent_[descriptive_name]` — ranking systems, strategies, universes, screens, AI factors.

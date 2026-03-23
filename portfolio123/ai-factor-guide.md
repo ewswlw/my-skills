@@ -1,6 +1,16 @@
 # Portfolio123 AI Factor Guide
 
-Full ML workflow, 16 hyperparameter presets, 4 validation methods, evaluation diagnostics. Source presets from vault: file dump/Portfolio123/Portfolio123 AI Factor Reference.md
+Full ML workflow, 16 hyperparameter presets, 4 validation methods, evaluation diagnostics.
+
+## Deep dive (vault — optional)
+
+This file is the **operational** guide. For **long-form** methodology—feature-scaling narrative, Z-Score variants, LineReg/PctDev intuition, extended hyperparameter “meeting types,” quantile diagnostics, and worked philosophy—open the Obsidian note:
+
+`file dump/Portfolio123/Portfolio123 AI Factor Reference.md`
+
+If the workspace has no vault, rely on **andreas-reference.md**, P123 help, and `doc_detail.jsp` factor validation. Do not assume the vault file is on disk.
+
+**Presets source:** vault `Portfolio123 AI Factor Reference.md` (also summarized below).
 
 ## Default Philosophy: Train Wide, Filter Smart
 

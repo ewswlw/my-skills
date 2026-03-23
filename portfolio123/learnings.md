@@ -31,7 +31,7 @@ promoted: false
 | browser_selector | browser-workflows.md |
 | api_behavior, credit_cost | api-reference.md |
 | xml_quirk | ranking-templates.md |
-| strategy_insight | strategy-templates.md |
+| strategy_insight | strategy-templates.md, case-studies.md, strategy-validation.md |
 | hyperparameter | ai-factor-guide.md |
 
 ## Strategy DNA Fingerprinting Schema
@@ -129,3 +129,51 @@ source: AI-Driven Quant Investment Strategies Substack #34
 **Context:** Choosing between ExtraTrees and LightGBM
 **Discovery:** Default to ExtraTrees for baseline/conservative use (stable, easy to explain). Upgrade to LightGBM only when features have genuine predictive power AND regularization is applied. For stock-ranking strategies (score 500 stocks, buy top N), evaluate by hit rate in top X% — not just regression error — to better expose overfitting risk.
 **Action:** Promoted to ai-factor-guide.md (ExtraTrees vs. LightGBM Decision Guideline)
+
+---
+id: LEARN-20260323-001
+type: api_behavior
+confidence: high
+confirmations: 1
+promoted: true
+source: Skill sync — Portfolio123 API Guide + vault Notes
+---
+**Context:** Comparing UI simulation to API backtest / live workflow
+**Discovery:** **UI rebalancing** behaves as **partial / if-needed** (lower turnover, positions persist). **API**-driven and many scripted flows imply **full refresh** to model ranks unless coded otherwise—**higher turnover**. Momentum strategies are especially sensitive; numbers are not interchangeable without checking semantics.
+**Action:** Promoted to api-reference.md (UI vs Platform — Rebalancing Semantics)
+
+---
+id: LEARN-20260323-002
+type: strategy_insight
+confidence: high
+confirmations: 1
+promoted: true
+source: Skill sync — Systvest / vault Resources synthesis
+---
+**Context:** Screen backtest vs portfolio simulation disagreement
+**Discovery:** Differences often come from **where slippage applies** (reconstitution vs ongoing weight maintenance) and **rebalance economics**, not necessarily a “bug.” Use simulation **turnover** as a sanity check on costs.
+**Action:** Promoted to strategy-validation.md
+
+---
+id: LEARN-20260323-003
+type: factor
+confidence: high
+confirmations: 1
+promoted: true
+source: Vault Portfolio123 Notes — formula trials
+---
+**Context:** Ranking / screen formulas
+**Discovery:** Names such as `Prc2FCFY`, `#PE`, `Prc2Earn`, `ROE`, `ROA` **failed** in some ranking contexts; verified alternatives include `EPSExclXorGr%TTM`, `SalesGr%TTM`, `Momentum(20)`, `Ret1Y%Chg`. Always validate with **doc_detail.jsp**—do not assume doc labels equal evaluable names.
+**Action:** Cross-ref api-reference.md Common Pitfalls; factor-quickref
+
+---
+id: LEARN-20260323-004
+type: browser_selector
+confidence: medium
+confirmations: 1
+promoted: true
+source: Vault Portfolio123 Notes
+---
+**Context:** Strategy wizard long backtest
+**Discovery:** UI may reset backtest window to a short default on Run Simulation; API bypasses.
+**Action:** Promoted to browser-workflows.md (Known platform quirks)

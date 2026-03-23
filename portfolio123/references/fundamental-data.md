@@ -1,5 +1,7 @@
 # P123 Fundamental Data Reference
 
+**Exhaustive catalog:** The Obsidian vault note `file dump/Portfolio123/Portfolio123 Syntax Dictionary.md` mirrors the full platform lookup (hundreds of entries by category). Use it—or `doc_detail.jsp?factor=NAME`—when a pre-built name is not in this file or [factor-quickref.md](../factor-quickref.md).
+
 All fundamental items follow the same pattern:
 
 ```

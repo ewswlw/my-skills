@@ -31,6 +31,10 @@ Automate every supported Portfolio123 workflow: API data collection, ranking sys
 | **Complete factor lookup** | full financial statement factor list, pre-built factor naming | [references/fundamental-data.md](references/fundamental-data.md) |
 | **Pipeline** | create-and-backtest, optimize-ranking, full-strategy-build | [strategy-templates.md](strategy-templates.md) |
 | **Learning review** | review discoveries, promote learnings, DNA fingerprint | [learnings.md](learnings.md) |
+| **UI vs API rebalance semantics** | UI partial vs API full refresh, momentum mismatch, compare CAGR | [api-reference.md](api-reference.md) — UI vs Platform — Rebalancing Semantics |
+| **Screen vs simulation** | conflicting CAGR, turnover sanity, slippage interpretation | [strategy-validation.md](strategy-validation.md) |
+| **Named exemplars (TAA, Core Combo, etc.)** | Ret1Y%Chg, vault strategy recipes | [case-studies.md](case-studies.md) |
+| **Exhaustive factor name lookup** | factor not in quickref, spelling of pre-built names | [references/fundamental-data.md](references/fundamental-data.md) + vault `Portfolio123 Syntax Dictionary.md` OR `doc_detail.jsp` |
 
 ### Formula Language Tasks
 | Task Type | Keywords | Read |
@@ -42,6 +46,7 @@ Automate every supported Portfolio123 workflow: API data collection, ranking sys
 | **Advanced formula logic** | FHistRank, FHistZScore, LoopSum, Group, AI Factor formula, consensus estimates, dividends, screen-only functions | [references/advanced-functions.md](references/advanced-functions.md) |
 | **FHist / historical lookback** | FHist, historical average, historical rank, how did X change over time | [references/formula-quick-reference.md](references/formula-quick-reference.md) — for syntax; [references/advanced-functions.md](references/advanced-functions.md) — for FHistRank/FHistZScore |
 | **Macros / constants / universes** | ##FEDFUNDS, ##UST10YR, ##CPI, ##UNRATE, FRED series, #Bench, $SPY, FX rates, #SPEPSTTM, universe ID strings | [references/macros-constants.md](references/macros-constants.md) |
+| **AI Factor — extended narrative** | feature philosophy, quantile diagnostics, long methodology | [ai-factor-guide.md](ai-factor-guide.md) + vault `Portfolio123 AI Factor Reference.md` (see guide’s Deep Dive pointer) |
 
 > **Multi-domain formula tasks** (e.g., Piotroski uses balance sheet + cash flow + formula syntax): read `formula-quick-reference.md` first, then the relevant domain file (`fundamental-data.md`, `technical-functions.md`, etc.).
 
@@ -62,6 +67,7 @@ Automate every supported Portfolio123 workflow: API data collection, ranking sys
 - **Browser:** [browser-workflows.md](browser-workflows.md) — login, strategy wizard, AI Factor config, snapshot-verify
 - **Rankings:** [ranking-templates.md](ranking-templates.md) — 5 XML templates, validation checklist
 - **Strategies:** [strategy-templates.md](strategy-templates.md) — TAA, Small Cap Alpha, Large Cap AI Factor, pipelines
+- **Validation:** [strategy-validation.md](strategy-validation.md) — screen vs simulation; [case-studies.md](case-studies.md) — vault exemplars + TAA pitfalls
 - **Factors:** [factor-quickref.md](factor-quickref.md) — ~50 validated factors by category
 - **AI Factor:** [ai-factor-guide.md](ai-factor-guide.md) — ML workflow, 16 presets, 4 validation methods
 - **Philosophy:** [andreas-reference.md](andreas-reference.md) — robustness-first, Train Wide Filter Smart
@@ -88,6 +94,8 @@ Automate every supported Portfolio123 workflow: API data collection, ranking sys
 | Technical function | Parameter order confirmed (e.g., `ATR(bars, offset, series)`), any gotchas | learnings.md → references/technical-functions.md |
 | Macro constant | Was the FRED series current? Any stale data lag observed | learnings.md → references/macros-constants.md |
 | Academic strategy replication | Which formula pattern worked, what the P123 equivalent of the paper's metric is | learnings.md → references/formula-quick-reference.md |
+| Screen vs simulation conflict | Different CAGR/slippage/turnover between modes | learnings.md → strategy-validation.md |
+| UI vs API turnover mismatch | UI shows lower turnover than API for “same” strategy | learnings.md → api-reference.md § UI vs Platform |
 
 ## Graceful Degradation
 
