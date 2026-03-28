@@ -4,7 +4,7 @@
 - **Trigger**: Activate when user mentions `xbbg`, `Bloomberg data`, `BDP`, `BDH`, `BDS`, `BEQS`,
   `Bloomberg terminal`, `Bloomberg API`, `blpapi`, or financial data pull via Python Bloomberg.
 - **Tested versions**: xbbg `1.0.0a1` (Rust-based, recommended) | xbbg `0.7.x` (pure-Python legacy)
-- **References**: See `references/field-reference.md`, `references/ticker-formats.md`, `references/override-cheatsheet.md`
+- **References**: See `references/field-reference.md`, `references/ticker-formats.md`, `references/override-cheatsheet.md`, `references/data-pipeline-validation.md`
 - **Tests**: See `tests/test_xbbg_skill.py`
 
 ---
@@ -1667,3 +1667,30 @@ blp.fieldSearch('free float')   # v1.x only
 # Check exchange timezone (v1.x only)
 tz = blp.exchange_tz('BHP AU Equity')  # → 'Australia/Sydney'  # v1.x only
 ```
+
+---
+
+## 22. Data Pipeline Validation
+
+**Mandate:** Any Bloomberg data pulled for **quant modeling, backtests, factors, or ML** must pass through `data_validation.validate()` after shape normalization. Do not feed raw `bdp`/`bdh`/`bdib` output into downstream models without this step.
+
+- **Bloomberg-specific playbook** (output mapping, presets, `validated_bbg`, anti-patterns): `references/data-pipeline-validation.md`
+- **Full validation spec** (domains, errors, `skip_validation`): `../ml-algo-trading/references/data-validation.md`
+
+**Quick start** (`validated_bbg` + `EQUITY_CONFIG` are defined in `references/data-pipeline-validation.md`; they wrap Section 16 `bbg()`):
+
+```python
+# EQUITY_CONFIG, validated_bbg, bbg — see references/data-pipeline-validation.md + Section 16
+validated = validated_bbg(tickers, "px_last", start_date="2020-01-01", adjust="all", config=EQUITY_CONFIG)
+clean_df = validated.df
+```
+
+| xbbg pattern | Typical `ValidationConfig` preset | Notes |
+|---|---|---|
+| `bdh` equities / ETFs daily | `EQUITY_CONFIG` (see reference) | Use `adjust='all'` for return-based work |
+| `bdh` rates / FI yields, spreads | `CREDIT_CONFIG` | Set `secondary_source_df` when reconciling vs another vendor |
+| Macro / slow-moving indices | `MACRO_CONFIG` | Wider gap tolerance for `macro` class |
+| `bdh` FX spot / forwards | `FX_CONFIG` | Align calendar with session if not XNYS |
+| `bdib` / `bdtick` intraday | Custom or `skip_validation=True` | Default gates are EOD-oriented; aggregate or tune config |
+| `bdp` snapshot only | One-row panel + validate or schema-only pre-check | `validate()` needs a `DatetimeIndex` — see reference |
+

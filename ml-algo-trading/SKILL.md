@@ -18,13 +18,13 @@ This skill provides a systematic, 9-step pipeline for developing and validating 
 
 ## Strategy Development Lifecycle
 
-Every strategy **MUST** follow this 9-step pipeline. Do not skip steps.
+Every strategy **MUST** follow this pipeline. Do not skip steps.
 
 ```
-0. Install Deps -> 1. Hypothesis + Reasoning Trace -> 2. Data + Predictability Gate
-                                                                    |
+0. Install Deps -> 1. Hypothesis -> 1.5. DATA VALIDATION -> 2. Data + Predictability Gate
+                                                                          |
     3. Features + Screening Gate (|t|>3) -> 4. Labels -> 5. Model + Purged CV
-                                                                    |
+                                                                          |
     8. Deploy/Reject <-- 7. PSR + DSR <-- 6. Walk-Forward
 ```
 
@@ -52,9 +52,16 @@ uv add pandas numpy statsmodels scikit-learn lightgbm xgboost vectorbt shap hmml
 
 If you cannot complete all four elements, your hypothesis is underspecified - refine it before proceeding.
 
+### Step 1.5: Data Validation (MANDATORY)
+-   **Before any data enters the pipeline**, run it through the validation layer. Read `references/data-validation.md` for the full specification and usage examples.
+-   `validate(df)` checks 7 domains: schema, calendar, alignment, bias, quality, reconciliation, provenance.
+-   **Bias checks are never skippable** — look-ahead, survivorship, backfill, and corporate action checks always run.
+-   Output is a `ValidatedDataset` object that carries the DataFrame plus validation metadata, fill masks, and a provenance hash chain.
+-   If validation fails, fix the data issues before proceeding. Do not bypass validation to "see what happens."
+
 ### Step 2: Data + Predictability Gate
 -   Select sources matching the signal type (price, fundamental, alternative).
--   Verify point-in-time correctness to avoid look-ahead bias.
+-   Use the `ValidatedDataset` from Step 1.5 as input — point-in-time correctness is already verified.
 -   **Run predictability gate** on a representative sample of the target series using `predictability_score()` from `references/predictability-analysis.md`:
     -   **Score < 20 = STOP** - no exploitable signal exists; change asset, timeframe, or hypothesis.
     -   **Score 20-40 = CAUTION** - weak signal only; proceed only with a regime-switching approach and apply stricter thresholds (DSR > 0.97, walk-forward > 70% profitable windows).
@@ -321,6 +328,7 @@ This emulates the memory-update mechanism from `references/strategy-improvement.
 
 | File | What's In It |
 |---|---|
+| `data-validation.md` | **Step 1.5 mandatory validation layer**; `validate()` API; `ValidatedDataset` wrapper; 7 validation domains (schema, calendar, alignment, bias, quality, reconciliation, provenance); `ValidationConfig` with 25+ fields; bias prevention (look-ahead shift-and-correlate + AST audit, survivorship, selection, backfill, corporate actions); asset-class-specific gap thresholds; provenance SHA-256 hash chain; edge case handling (12 cases); usage examples |
 | `regime-philosophy.md` | Core regime axiom; **What Shifts Across Regimes table** (means, variances, autocorrelations, factor loadings); tactical checklist; HMM + threshold detection; failure diagnostics; **Asset & Timeframe Adaptations table** (daily/weekly/monthly/intraday); live monitoring; intervention triggers |
 | `predictability-analysis.md` | **Agent Execution Spec** (annotated CONFIG template + 10-step execution order + **report output template**); entropy suite (5 methods); Hurst, BDS, Runs, Variance Ratio; Predictability Score 0-100; **expanded decision rules table** (10 conditions incl. score 20-40 no-regime case) |
 | `feature-engineering.md` | Fractional differentiation, alpha factors, information-driven bars; **Autonomous Factor Discovery** (factor grammar, interpretable primitives, symbolic regression via `gplearn`, LLM-assisted ideation); **Factor Screening Gate** (`screen_factors()`, |t-stat| > 3.0 hurdle, temporal isolation) |

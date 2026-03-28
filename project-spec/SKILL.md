@@ -53,11 +53,26 @@ Once risks are resolved, use the `message` tool to generate a high-level impleme
 
 After the roadmap is approved, answer the following question internally: "What is the single smartest, most radically innovative, and most compelling addition I could make to this project right now?"
 
-If the idea can be implemented without adding new external dependencies or extending the timeline by more than 10% (this is the definition of "actionable and within scope"), propose it to the user using the `message` tool. If they approve, update the spec. Otherwise, proceed to Phase 6.
+If the idea can be implemented without adding new external dependencies or extending the timeline by more than 10% (this is the definition of "actionable and within scope"), propose it to the user using the `message` tool. If they approve, update the spec. Otherwise, proceed to Phase 6 (Recursive Refinement).
 
-## Phase 6: Write the Final Specification
+## Phase 6: Recursive Refinement (via /recursive-refine)
 
-Use the `file` tool to write the detailed specification to two files in the project root:
+Before writing any files, draft both `project-constitution.md` and `project-spec.md` **in memory** using the templates from Phase 7. Then run the full `/recursive-refine` workflow (from `C:\Users\Eddy\.claude\skills\recursive-refine\SKILL.md`) on each draft:
+
+1. **Draft both documents** internally using all gathered requirements, the approved roadmap, and any innovation additions.
+2. **Run /recursive-refine on `project-spec.md` draft first.** Follow every step of the recursive-refine skill:
+   - Step 1: Generate a domain-specific rubric (the domain is "Project Specification / Software Architecture"; the audience is "a developer or AI agent who must implement this spec without further clarification").
+   - Steps 2–6: Evaluate → Diagnose → Adversarial Stress Test → Improve → Loop until all criteria pass, max iterations reached, or score plateaus.
+   - Step 7: Capture the final refined content and scorecard.
+3. **Run /recursive-refine on `project-constitution.md` draft.** Same process — the audience is "a developer who needs unambiguous hard constraints at a glance."
+4. **Present the final scorecards** for both documents to the user. Show initial vs. final scores and total improvement per criterion.
+5. Proceed to Phase 7 to write the refined versions to disk.
+
+**Exit Condition:** Both documents must have all rubric criteria at PASS before proceeding to Phase 7. If max iterations are reached with failures remaining, present the remaining issues to the user and ask whether to proceed anyway or manually address them.
+
+## Phase 7: Write the Final Specification
+
+Use the `file` tool to write the **refined** specification to two files in the project root:
 
 **File 1: `project-constitution.md`** — The immutable core. Must be formatted exactly like this:
 ```markdown
@@ -101,7 +116,7 @@ Use the `file` tool to write the detailed specification to two files in the proj
 </project_specification>
 ```
 
-**Exit Condition:** After writing both files, use the `shell` tool to run `ls -la` to verify they exist. Then use the `message` tool to tell the user the spec is complete. **STOP HERE.** Do not offer or execute Phase 7. The workflow ends with the delivered specification.
+**Exit Condition:** After writing both files, use the `shell` tool to run `ls -la` to verify they exist. Then use the `message` tool to tell the user the spec is complete. **STOP HERE.** Do not offer or execute Phase 8. The workflow ends with the delivered specification.
 
 ---
 

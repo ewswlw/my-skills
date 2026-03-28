@@ -114,8 +114,9 @@ For every ML trading strategy, compute and report these performance metrics:
 
 ### Phase 1: Pre-Development
 
+- [ ] **Data validation passed** (see `data-validation.md`): `validate(df)` returns ValidatedDataset
 - [ ] Data quality verified and documented
-- [ ] Point-in-time data sources confirmed (no future leaks)
+- [ ] Point-in-time data sources confirmed (no future leaks — bias suite in data-validation catches this)
 - [ ] Economic rationale for strategy clearly stated (one sentence minimum)
 - [ ] Null hypothesis defined and documented
 - [ ] Predictability score run on target series (see `predictability-analysis.md`)
