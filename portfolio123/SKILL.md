@@ -27,9 +27,10 @@ Automate every supported Portfolio123 workflow: API data collection, ranking sys
 | **Strategy creation** | create strategy, Stock strategy, ETF strategy, TAA, wizard | [browser-workflows.md](browser-workflows.md) + [strategy-templates.md](strategy-templates.md) |
 | **Strategy buy/sell rules** | NoBars, EntryPrice, MaxPosRet%, trailing stop, time exit, rank sell | [references/technical-functions.md](references/technical-functions.md) |
 | **AI Factor** | configure, train, validate, evaluate, predictor, LightGBM, ExtraTrees | [ai-factor-guide.md](ai-factor-guide.md) + [browser-workflows.md](browser-workflows.md) |
+| **Strategy Book** | book, multi-strategy, combine strategies, portfolio combination, allocation | [strategy-templates.md](strategy-templates.md) (Pipeline 4) + [browser-workflows.md](browser-workflows.md) (Strategy Book Validation) |
 | **Quick factor lookup** | ~50 validated factors by category, common pitfalls | [factor-quickref.md](factor-quickref.md) |
 | **Complete factor lookup** | full financial statement factor list, pre-built factor naming | [references/fundamental-data.md](references/fundamental-data.md) |
-| **Pipeline** | create-and-backtest, optimize-ranking, full-strategy-build | [strategy-templates.md](strategy-templates.md) |
+| **Pipeline** | create-and-backtest, optimize-ranking, full-strategy-build, Strategy Book build & validate | [strategy-templates.md](strategy-templates.md) |
 | **Learning review** | review discoveries, promote learnings, DNA fingerprint | [learnings.md](learnings.md) |
 | **UI vs API rebalance semantics** | UI partial vs API full refresh, momentum mismatch, compare CAGR | [api-reference.md](api-reference.md) — UI vs Platform — Rebalancing Semantics |
 | **Screen vs simulation** | conflicting CAGR, turnover sanity, slippage interpretation | [strategy-validation.md](strategy-validation.md) |
@@ -59,6 +60,25 @@ Automate every supported Portfolio123 workflow: API data collection, ranking sys
 5. **Credits:** Check quotaRemaining before expensive ops. Warn at 80% and 95% consumption.
 6. **GUI vs XML:** Try GUI first for ranking systems; fall back to raw XML editor after 2 failures.
 7. **Factor discovery:** Always use `doc_detail.jsp?factor=[NAME]` to validate factor names — never guess.
+8. **Screen backtest is Tier 3 only:** `screen_backtest` is buy-side-only — overstates CAGR by 30–40%, Sharpe by 50%+. See `api-reference.md` for details.
+9. **No local substitute backtesting:** NEVER use a custom Python backtester as a substitute for P123's native engine. See `strategy-templates.md` Validation Hierarchy blockquote.
+10. **Mandatory native validation:** Before reporting ANY performance numbers to the user, validate via native P123 simulation. Present Tier 3/4 results only with explicit disclaimer: "ESTIMATED (Tier 3) — screen backtests typically overstate CAGR by 30–40% and Sharpe by 50%+."
+11. **Portfolio math:** NEVER use weighted-average CAGR or max drawdown. Compute weighted return series first. Label all local estimates as "ESTIMATED (Tier 3/4)" in both experiment log AND user-facing messages.
+
+## Validation Hierarchy
+
+| Tier | Source | Reliability | Use For |
+|------|--------|-------------|---------|
+| 1 (Gold) | Native P123 Strategy Book simulation | Highest | Final validation, declaring targets met |
+| 2 (Silver) | Native P123 Simulated Strategy | High | Individual strategy evaluation |
+| 3 (Bronze) | API `screen_backtest` | Medium | Rapid screening, candidate ranking |
+| 4 (Unreliable) | Local Python backtester | Low | Never use as final validation |
+
+**Rules:**
+
+- Never declare targets met based on Tier 3 or Tier 4 alone. Escalate to Tier 1 before reporting.
+- If Tier 1 is unavailable (browser fails), use Tier 2 with explicit disclaimer to user.
+- When user explicitly requests Tier 3 results, comply but ALWAYS append: "ESTIMATED (Tier 3) — screen backtests typically overstate CAGR by 30–40% and Sharpe by 50%+."
 
 ## Quick Reference Links
 
@@ -124,6 +144,7 @@ Apply the fix documented in `ranking-templates.md` validation checklist. If the 
 - **Factor** (not "variable") — Financial metric or formula used in ranking
 - **Screen** — Rule-based filter, backtestable
 - **Strategy** — Portfolio construction with rebalance rules
+- **Strategy Book** — Multi-strategy portfolio with allocation weights
 
 ## Constitution
 

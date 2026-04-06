@@ -8,6 +8,7 @@
 - CSV/JSON for data persistence
 
 ## Project Structure
+- `.env` / `.env.example` — Local API credentials (`.env` gitignored; never commit)
 - `SKILL.md` — Core skill instructions, decision tree, workflow entry points (~200 lines)
 - `api-reference.md` — Complete p123api endpoint reference, auth, credits, error handling
 - `browser-workflows.md` — Login, strategy creation, AI Factor training, snapshot-verify pattern
@@ -27,9 +28,20 @@
 - Install client: `uv add p123api`
 - Credit check: `uv run python -c "import p123api, os; c = p123api.Client(api_id=os.environ['P123_API_ID'], api_key=os.environ['P123_API_KEY']); r = c.data_prices('SPY', start='2024-01-01', end='2024-01-01'); print(f'Credits remaining: {r.get(\"quotaRemaining\", \"unknown\")}')"` 
 
+## API credentials (local only)
+
+- **Location:** This skill directory may contain a **gitignored** `.env` with **`P123_API_ID` and `P123_API_KEY` only** (DataMiner & API). Copy from `.env.example`; never commit `.env`.
+- **Loading:** From a project using `uv`, either export `P123_API_ID` / `P123_API_KEY` in the shell, or use `python-dotenv` with `load_dotenv()` pointed at **this skill folder’s** `.env` file, then run `p123api.Client(api_id=..., api_key=...)`.
+- **Never** paste keys into `SKILL.md`, `api-reference.md`, or any tracked markdown.
+
+## Web login (dashboard — not in files)
+
+- **Portfolio123 web UI** (e.g. [dashboard](https://www.portfolio123.com/app/dashboard), strategy wizard, Books) uses **username + password** — **do not** put these in `.env`, markdown, or any file under this skill. Use the **browser’s password manager**, **Windows Credential Manager**, or **prompt the user** during browser automation.
+- **Why:** Passwords in repos, Obsidian sync, or chat logs create breach risk; API keys in gitignored `.env` are revocable and scoped differently than account login.
+
 ## Hard Boundaries
 - Never commit live strategy rebalances — research only
-- Never store API keys or login credentials in skill files
+- Never store API keys or login credentials in skill **markdown** files; gitignored `.env` may hold **API ID/key only** — never web username/password
 - Never create P123 resources without the "agent" name prefix
 - Never auto-update reference files without 3+ confirmations (or 1 high-confidence discovery)
 - Never remove entries from reference files without user confirmation

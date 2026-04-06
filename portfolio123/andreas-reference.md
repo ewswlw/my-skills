@@ -84,12 +84,11 @@ High-IQ bias ("Complexity Aversion"): intelligent people build elaborate models,
 
 ## Live Deployment Checklist
 
-1. Train 2003-2020.06
-2. Test across 15+ hyperparameter sets — all must perform
-3. Retrain with the exact same setup
-4. Validate pseudo-OOS with realistic slippage (5-year window)
-5. If equity curve breaks → kill and restart
-6. If OOS Live ≠ OOS Pseudo fingerprint → kill immediately
-7. Use homogeneous universes
-8. Basic Holdout, no walk-forward
-9. Enable Save Predictions for AIFactorValidation
+1. Train 2003–2020.06
+2. Validate pseudo-OOS with realistic slippage (0.5 cents/share) in Portfolio Strategy
+3. If OOS Live ≠ OOS Pseudo → do not go live
+4. Use homogeneous universes
+5. Basic Holdout, no walk-forward
+6. Enable Save Predictions for AIFactorValidation
+
+*For hyperparameter robustness (15+ presets, all must perform), retrain discipline, 5-year pseudo-OOS windows, equity-curve kill rules, and the full Probe → Sense → Respond sequence, see **Full 6-Phase Workflow** and **OOS Validation Rigor** above.*

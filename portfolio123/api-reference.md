@@ -234,6 +234,8 @@ client.screen_run({'screen': 12345}, True)
 
 ### screen_backtest() — Backtest a screen (5 credits)
 
+> **CRITICAL WARNING:** `screen_backtest` is a **BUY-SIDE-ONLY** backtest. It does NOT include sell rules, position-level execution, cash drag, or realistic slippage modeling. In validated testing (2026-04-05), it overstated CAGR by **30–40%** and Sharpe by **50%+** compared to the same configuration run as a native P123 Simulated Strategy. Max drawdown was understated by 25 percentage points. **NEVER treat screen_backtest results as equivalent to a full strategy simulation.** Use ONLY for rapid candidate screening. See SKILL.md Validation Hierarchy.
+
 ```python
 client.screen_backtest({
     'screen': {
@@ -260,6 +262,21 @@ client.screen_backtest({
     'carryCost': 0,
     'rebalFreq': 'Every 4 Weeks',
     'riskStatsPeriod': 'Monthly'  # Monthly | Weekly | Daily
+}, True)
+```
+
+```python
+# Option 2: Existing screen by ID (preferred for user-created screens)
+backtest = client.screen_backtest({
+    'screen': 315954,           # integer screen ID from P123 platform
+    'startDt': '2006-01-01',    # membership tier limits earliest date
+    'endDt': '2026-03-31',
+    'rebalFreq': 'Every 4 Weeks',
+    'slippage': 0.5,            # percentage, not decimal
+    'transPrice': 1,
+    'precision': 2,
+    'pitMethod': 'Prelim',
+    'riskStatsPeriod': 'Monthly'
 }, True)
 ```
 
@@ -551,6 +568,7 @@ def check_credits(client):
 - **Naming convention:** All agent-created resources MUST start with `agent` (strategies, screens, ranking systems)
 - **Response keys:** API returns snake_case: `annualized_return`, `sharpe_ratio`, `max_drawdown`, `quotaRemaining`
 - **Weekend dates:** Use Saturday/Sunday dates for `asOfDts` in `data_universe()` calls
+- **screen_backtest startDt:** Standard membership restricts `startDt` to ~2006-01-01. Earlier dates are silently clamped. Check your subscription tier before setting dates before 2006.
 
 ---
 

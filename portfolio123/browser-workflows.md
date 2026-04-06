@@ -24,10 +24,10 @@ Login, strategy creation, AI Factor configuration, snapshot-verify pattern, and 
 
 ## Login Workflow
 
-1. Navigate to https://www.portfolio123.com
+1. Navigate to https://www.portfolio123.com (after login, dashboard is at https://www.portfolio123.com/app/dashboard)
 2. Wait for page load
 3. Locate and click "Sign In" (by text)
-4. Enter credentials (prompt user — never store)
+4. Enter credentials (**prompt user** or use browser-saved password — **never** store username/password in this skill’s `.env` or markdown; see `project-constitution.md` § Web login)
 5. Submit login
 6. Verify: user account indicator, nav menu (MANAGE, RESEARCH, CHARTS, MODELS, RESOURCES)
 
@@ -75,6 +75,33 @@ Every action: **snapshot → act → wait → snapshot → verify**. If verify f
 4. Read Compare All table (quantile returns, H-L spread, turnover)
 5. Extract: monotonicity, edge sharpness, time resilience (First Half vs Second Half)
 
+## Strategy Book Validation Workflow
+
+All Strategy Book performance claims MUST be validated on the native P123 platform. This is the Tier 1 (Gold) validation gate — see SKILL.md Validation Hierarchy.
+
+**Path:** RESEARCH → Books → Simulated Books → New → Simulated
+
+**Steps:**
+
+1. **Create each component strategy** as a native P123 Simulated Strategy first (not just a screen)
+2. **Run each component's simulation** individually and record native CAGR, Sharpe, Max DD
+3. **Create the Strategy Book** via RESEARCH → Books → New → Simulated
+4. **Add Assets:** Click "Add Existing Model" → select each component strategy
+5. **Set Rebalance:** Configure weights (Fixed Weight or Relative Weight) and rebalance frequency
+6. **Set Period:** Use MAX or specify start/end dates
+7. **Run Simulation:** Click "Run Simulation" (may take several minutes for weekly strategies)
+8. **Record results:** Capture CAGR, Sharpe, Max DD, Correlation from the native book summary
+9. **Compare to estimates:** If native results differ from API/local estimates by >10%, report discrepancy to user with both sets of numbers. Native results are authoritative.
+
+**Known discrepancy sources (validated 2026-04-05):**
+
+| Source of Error | Typical Impact |
+|---|---|
+| Screen backtest vs. simulated strategy | CAGR overstated 30–40%, Sharpe overstated 50%+ |
+| Local Python ETF model vs. P123 native ETF sim | CAGR overstated 100–200% |
+| Weighted-average portfolio math vs. native book | Sharpe overstated 50–90% |
+| Cross-engine correlation artifacts | Diversification bonus inflated |
+
 ## GUI-First, XML Fallback
 
 For ranking systems: Try GUI first. After **2 failures** (timeout, Add Node spinner), switch to raw XML editor.
@@ -93,7 +120,7 @@ Pipeline pauses until user types `done`.
 
 ## DOM Health Check
 
-Periodically verify key pages load: Login, RESEARCH, Ranking Systems, Simulated Strategies. If expected elements missing, flag possible P123 UI change.
+Periodically verify key pages load: Login, RESEARCH, Ranking Systems, Simulated Strategies, Books. If expected elements missing, flag possible P123 UI change.
 
 ## Known platform quirks (from vault iteration notes)
 
@@ -103,4 +130,4 @@ Periodically verify key pages load: Login, RESEARCH, Ranking Systems, Simulated 
 
 ## Naming Convention
 
-All created items: `agent_[descriptive_name]` — ranking systems, strategies, universes, screens, AI factors.
+All created items: `agent_[descriptive_name]` — ranking systems, strategies, universes, screens, AI factors, books.

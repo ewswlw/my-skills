@@ -2,6 +2,13 @@
 
 3 proven configs, buy/sell rule library, pipeline definitions, parameter sweep dimensions.
 
+> **All performance reporting is governed by the Validation Hierarchy in SKILL.md.** Key rules:
+> - Screen backtests (API) are Tier 3 — overstate CAGR by 30–40%, Sharpe by 50%+
+> - Local Python models are Tier 4 — implicit look-ahead bias, zero transaction costs
+> - Weighted-average CAGR/max drawdown are mathematically incorrect — compute weighted return series first
+> - Cross-engine correlation (e.g., screen returns vs. local ETF returns) produces artifacts
+> - See SKILL.md Core Rules 8–11 and Validation Hierarchy table for full details
+
 ## Template 1: TAA (ETF Momentum Rotation)
 
 | Setting | Value |
@@ -61,7 +68,7 @@
 
 1. Create/select universe
 2. Create ranking system (API or browser)
-3. Run screen_backtest
+3. Run screen_backtest — **Results are Tier 3 (ESTIMATED). Append disclaimer when presenting to user.**
 4. Export results to ./p123-output/
 
 **Preflight:** Show steps + estimated credits. Confirm before execute.
@@ -80,9 +87,23 @@
 
 1. Universe → Ranking system
 2. Strategy creation via browser (Strategy Wizard)
-3. Run simulation
+3. Run simulation — **Results are Tier 2 (Silver)**
 4. Evaluate results
 5. Export + DNA fingerprint
+
+**Preflight:** Show full plan. Confirm. If browser fails 3x, output manual instructions; pause until user types "done".
+
+## Pipeline 4: Strategy Book Build & Validate
+
+1. Identify candidate strategies (API screen_backtest for rapid screening — Tier 3)
+2. Create each component as a native P123 Simulated Strategy (browser wizard — Tier 2)
+3. Verify each component's native simulation results individually
+4. Create Strategy Book via browser (RESEARCH → Books → New → Simulated)
+5. Add component strategies as Assets, set allocation weights
+6. Run native Book simulation (Tier 1 — Gold)
+7. Compare native results to any prior API/local estimates
+8. ONLY declare targets met based on Tier 1 native Book results
+9. Export + DNA fingerprint
 
 **Preflight:** Show full plan. Confirm. If browser fails 3x, output manual instructions; pause until user types "done".
 
