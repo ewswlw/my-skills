@@ -42,7 +42,7 @@
 ## Hard Boundaries
 - Never commit live strategy rebalances — research only
 - Never store API keys or login credentials in skill **markdown** files; gitignored `.env` may hold **API ID/key only** — never web username/password
-- Never create P123 resources without the "agent" name prefix
+- Never create P123 resources without the `agent_` name prefix (e.g. `agent_value`, `agent_screen_momo`) — includes simulated strategies, screens, strategies, universes, rankings, AI factors
 - Never auto-update reference files without 3+ confirmations (or 1 high-confidence discovery)
 - Never remove entries from reference files without user confirmation
 - Never exceed 20 parameter combinations per optimization batch without explicit user override

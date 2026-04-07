@@ -81,6 +81,31 @@ LightGBM can learn past noise as real "laws." When conditions don't repeat in th
 | `feature_fraction` / `bagging_fraction` | Apply sampling | Reduce dependence on features that happened to work |
 | Validation | Time-series walk-forward + early stopping | Random splits hide future performance collapse |
 
+### ExtraTrees Learning Logic: How It Works
+
+ExtraTrees builds many trees where **both feature selection and split thresholds are chosen randomly** — neither is optimized.
+
+**Tree structure:**
+- Each tree starts from the same universe (e.g., S&P 500) but selects a different first feature to split on.
+  - Tree 1 may open on `ROE > *` → then `ΔSales` at the next level
+  - Tree 2 may open on `OpMgn > *` → then `ΔEPS`
+  - Tree 3 may open on `RSI > *` → then another random split
+- At each branch, the `> *` threshold is also randomly set — not chosen to minimize loss.
+- At every **leaf**, the model returns the **average 3MRel of all stocks in that leaf** as the prediction.
+
+**Single-stock routing (why averaging matters):**
+StockA follows a different path in every tree because features and thresholds differ — it lands in different leaves and picks up different leaf-average 3MRel values. ExtraTrees **deliberately produces noisy, varying per-tree predictions** and then averages them. The averaging is the design; individual tree roughness is expected and absorbed.
+
+**It is not "pure luck":**
+Even with random candidates, splits that separate groups with meaningfully different 3MRel behavior tend to survive the random selection process. Purely uninformative splits get averaged away across enough trees.
+
+**Contrast with LightGBM:**
+- LightGBM: searches for the split that reduces loss the most — **"make each tree smart"**
+- ExtraTrees: generates split candidates randomly and builds many different trees — **"one tree can be rough; win by quantity"**
+
+**Practical consequence for P123:**
+ExtraTrees is harder to overfit because no tree is optimizing to past data. High `n_estimators` (e.g., 600) matters — more trees = more diversity in the average = more stable out-of-sample prediction.
+
 ### ExtraTrees vs. LightGBM Decision Guideline
 
 | Scenario | Choice |

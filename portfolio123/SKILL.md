@@ -53,7 +53,7 @@ Automate every supported Portfolio123 workflow: API data collection, ranking sys
 
 ## Core Rules
 
-1. **Naming:** All P123 resources MUST start with `agent` (ranking systems, universes, strategies, screens, AI factors).
+1. **Naming (`agent_` prefix):** Every object created on the Portfolio123 platform MUST be named with the prefix `agent_` plus a short descriptive slug in snake_case so you can filter or search for agent-created work. Examples: `agent_value`, `agent_momentum_screen`, `agent_sp500_quality`. Applies to: **simulated strategies**, **screens**, **stock/ETF strategies**, **Strategy Book** entries, **ranking systems**, **universes**, **AI factors**, and any other user-named resource. Do not use bare `agent` without the underscore and suffix; do not omit the prefix for “quick tests.”
 2. **API first:** Use p123api for data, rankings, universes, screens, backtests. Use browser only when API cannot do it (strategy creation, AI Factor training).
 3. **Preflight:** Before major operations, show summary + estimated credit cost + ask for confirmation.
 4. **Output:** Save CSV/JSON to `./p123-output/` with pattern `{operation}_{timestamp}.{csv|json}`.
