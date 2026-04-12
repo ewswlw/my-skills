@@ -1,0 +1,38 @@
+{
+  "eval_id": 2,
+  "eval_name": "gtm-strategy",
+  "configuration": "without_skill",
+  "expectations": [
+    {
+      "text": "Agent classifies this as Complex and runs full RPIRT rather than immediately writing a GTM plan",
+      "passed": false,
+      "evidence": "summary.md: 'Produced a full 6-month go-to-market plan from scratch using direct reasoning, no specialized skill invocation.' No phased methodology used."
+    },
+    {
+      "text": "Research phase covers domain-relevant topics: legal tech market, B2B SaaS GTM, law firm buyer behavior",
+      "passed": false,
+      "evidence": "No research phase. The plan uses direct reasoning but no dedicated research artifact or external source citations."
+    },
+    {
+      "text": "Review rubric criteria are business-oriented (Market Sizing, Channel Fit, Budget Realism, Measurability) not coding-oriented",
+      "passed": false,
+      "evidence": "No review phase. No rubric generated. Plan delivered directly without quality gate."
+    },
+    {
+      "text": "Final GTM plan includes specific budget allocations (numbers) and measurable monthly milestones -- not just generic advice",
+      "passed": true,
+      "evidence": "summary.md: 'Pricing recommendations, MRR targets, CAC targets, CPL thresholds, and conversion rate benchmarks are all specified.' Plan is 20095 bytes with concrete numbers. High quality despite lacking RPIRT."
+    },
+    {
+      "text": "Skill uses business vocabulary throughout (strategy, channels, milestones) rather than coding vocabulary (implement, deploy)",
+      "passed": true,
+      "evidence": "summary.md uses entirely business vocabulary: channels, pipeline, conversion, ICP, outreach. No coding terms found."
+    }
+  ],
+  "summary": {
+    "passed": 2,
+    "failed": 3,
+    "total": 5,
+    "pass_rate": 0.4
+  }
+}

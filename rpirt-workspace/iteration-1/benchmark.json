@@ -1,0 +1,313 @@
+{
+  "metadata": {
+    "skill_name": "rpirt",
+    "skill_path": "<path/to/skill>",
+    "executor_model": "<model-name>",
+    "analyzer_model": "<model-name>",
+    "timestamp": "2026-04-12T17:22:25Z",
+    "evals_run": [
+      1,
+      2,
+      3
+    ],
+    "runs_per_configuration": 3
+  },
+  "runs": [
+    {
+      "eval_id": 1,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 6,
+        "failed": 0,
+        "total": 6,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Agent classifies this as Complex and explicitly runs full 5-phase RPIRT rather than doing it directly",
+          "passed": true,
+          "evidence": "summary.md states: 'Complexity classification: Complex (multi-component, production-ready requirement, explicit methodology invocation)'. All 5 phases documented."
+        },
+        {
+          "text": "A research artifact (rpirt/01-research.md or equivalent) is created with findings about relevant libraries and edge cases",
+          "passed": true,
+          "evidence": "rpirt/01-research.md exists at 5119 bytes. summary.md: 'Confirmed live environment (pandas 2.3.0, openpyxl 3.1.5), tested the openpyxl BarChart API interactively, validated CSV edge cases (BOM, empty, NaN, mixed types), discovered Excel sheet name constraints.'"
+        },
+        {
+          "text": "A plan artifact (rpirt/02-plan.md or equivalent) is created with durable decisions and task breakdown",
+          "passed": true,
+          "evidence": "rpirt/02-plan.md exists at 6503 bytes. summary.md: '8 concrete, sequenced tasks (T1-T8) with explicit Definitions of Done and risk mitigations. Established durable decisions (pandas for parsing, openpyxl for rendering, single-file delivery, Summary at position 0).'"
+        },
+        {
+          "text": "Step 4 review generates a domain-specific rubric with coded criteria (Correctness, Error Handling, UX, etc.) and scores them",
+          "passed": true,
+          "evidence": "rpirt/04-review.md has 6438 bytes with 8-criterion rubric. review caught a critical off-by-one bug in chart references, logging.basicConfig idempotency issue, missing type annotations, and NaN values written as strings. 2 review rounds documented."
+        },
+        {
+          "text": "The final Python CLI code is complete and not pseudocode (has actual import statements, argument parsing, and logic)",
+          "passed": true,
+          "evidence": "cli_tool.py is 18622 bytes / 560 lines. summary.md confirms: 'Implemented all 8 tasks in cli_tool.py (560 lines): CLI parsing, CSV discovery/loading with encoding fallback, sheet name sanitisation/deduplication, data sheet writing with styled headers, Summary sheet, bar chart, and workbook save.'"
+        },
+        {
+          "text": "Edge cases are explicitly addressed: empty CSVs, missing --output flag, CSVs with different schemas",
+          "passed": true,
+          "evidence": "summary.md: 'Created 8 test CSVs covering: normal data, heterogeneous schemas, NaN values, BOM encoding, 0-data-row files, 0-byte files, invalid sheet name chars, reserved name collision. Ran 19 test scenarios \u00e2\u20ac\u201d all PASS.'"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 2,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 5,
+        "failed": 0,
+        "total": 5,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Agent classifies this as Complex and runs full RPIRT rather than immediately writing a GTM plan",
+          "passed": true,
+          "evidence": "All 5 rpirt/ artifact files created. summary.md confirms full 5-phase execution. gtm-plan.md is 32087 bytes (vs 20095 for baseline)."
+        },
+        {
+          "text": "Research phase covers domain-relevant topics: legal tech market, B2B SaaS GTM, law firm buyer behavior",
+          "passed": true,
+          "evidence": "rpirt/01-research.md exists at 9094 bytes. The scope of the GTM plan and the rubric criteria (ICP Specificity, Message and Channel Fit with 'Legal professional culture respected') confirm legal tech domain research was conducted."
+        },
+        {
+          "text": "Review rubric criteria are business-oriented (Market Sizing, Channel Fit, Budget Realism, Measurability) not coding-oriented",
+          "passed": true,
+          "evidence": "rpirt/04-review.md rubric: ICP Specificity, Budget Realism, Timeline Realism, Pilot Conversion Rigor, Message and Channel Fit, Competitive Differentiation, Measurement and Accountability, Contingency Planning, Actionability, Market Sizing and Revenue Math. Zero coding criteria."
+        },
+        {
+          "text": "Final GTM plan includes specific budget allocations (numbers) and measurable monthly milestones -- not just generic advice",
+          "passed": true,
+          "evidence": "04-review.md confirms: '$750 CAC ceiling, MRR at target', '$7.4k reserve', 'line-item budget with notes on timing and conditionality', 'Weekly dashboard with 6 tracked metrics', 'Monthly OKRs per month'. Plan at 32KB is highly detailed."
+        },
+        {
+          "text": "Skill uses business vocabulary throughout (strategy, channels, milestones) rather than coding vocabulary (implement, deploy)",
+          "passed": true,
+          "evidence": "04-review.md entirely in business language: channels, outreach, pipeline, CAC, ICP, conversion rates. summary.md also business-focused throughout."
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 3,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 3,
+        "failed": 0,
+        "total": 3,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Agent explicitly classifies this as Simple and does NOT run full RPIRT (complexity gate works correctly)",
+          "passed": true,
+          "evidence": "summary.md: 'No. The complexity gate in Step 0 of the RPIRT skill says: Simple \u00e2\u20ac\u201d Single deliverable, no ambiguity, no research needed, \u00e2\u2030\u00a42 files \u00e2\u2020\u2019 Skip RPIRT. Just do it. This task hit every Simple signal... Running the full 5-phase pipeline here would have been complexity inflation.'"
+        },
+        {
+          "text": "Agent does NOT create rpirt/ artifact files for this trivial task",
+          "passed": true,
+          "evidence": "Directory listing confirms only outputs/changes.py and outputs/summary.md were created. No rpirt/ subdirectory."
+        },
+        {
+          "text": "Agent completes the task directly with code showing the --verbose flag implementation",
+          "passed": true,
+          "evidence": "changes.py (726 bytes) created. summary.md confirms: 'parser.add_argument(--verbose, action=store_true), log_debug helper, writes to sys.stderr.'"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 1,
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.333,
+        "passed": 2,
+        "failed": 4,
+        "total": 6,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Agent classifies this as Complex and explicitly runs full 5-phase RPIRT rather than doing it directly",
+          "passed": false,
+          "evidence": "No RPIRT methodology used. Agent went directly to implementation. No phase classification mentioned."
+        },
+        {
+          "text": "A research artifact (rpirt/01-research.md or equivalent) is created with findings about relevant libraries and edge cases",
+          "passed": false,
+          "evidence": "No rpirt/ directory created. No research artifact exists in outputs."
+        },
+        {
+          "text": "A plan artifact (rpirt/02-plan.md or equivalent) is created with durable decisions and task breakdown",
+          "passed": false,
+          "evidence": "No plan artifact created. The summary.md describes the architecture inline but no separate plan document was written."
+        },
+        {
+          "text": "Step 4 review generates a domain-specific rubric with coded criteria (Correctness, Error Handling, UX, etc.) and scores them",
+          "passed": false,
+          "evidence": "No review phase. No rubric generated. The agent went directly from implementation to delivery."
+        },
+        {
+          "text": "The final Python CLI code is complete and not pseudocode (has actual import statements, argument parsing, and logic)",
+          "passed": true,
+          "evidence": "cli_tool.py is 13450 bytes. summary.md confirms layered architecture (CLI layer, orchestrator, sheet writers). Code appears complete."
+        },
+        {
+          "text": "Edge cases are explicitly addressed: empty CSVs, missing --output flag, CSVs with different schemas",
+          "passed": true,
+          "evidence": "summary.md mentions: encoding fallback (latin-1, errors='replace'), sheet name collision handling, empty CSV handling. 3-file smoke test run. However only 3 test files vs 8 test files in with-skill version."
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 2,
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.4,
+        "passed": 2,
+        "failed": 3,
+        "total": 5,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Agent classifies this as Complex and runs full RPIRT rather than immediately writing a GTM plan",
+          "passed": false,
+          "evidence": "summary.md: 'Produced a full 6-month go-to-market plan from scratch using direct reasoning, no specialized skill invocation.' No phased methodology used."
+        },
+        {
+          "text": "Research phase covers domain-relevant topics: legal tech market, B2B SaaS GTM, law firm buyer behavior",
+          "passed": false,
+          "evidence": "No research phase. The plan uses direct reasoning but no dedicated research artifact or external source citations."
+        },
+        {
+          "text": "Review rubric criteria are business-oriented (Market Sizing, Channel Fit, Budget Realism, Measurability) not coding-oriented",
+          "passed": false,
+          "evidence": "No review phase. No rubric generated. Plan delivered directly without quality gate."
+        },
+        {
+          "text": "Final GTM plan includes specific budget allocations (numbers) and measurable monthly milestones -- not just generic advice",
+          "passed": true,
+          "evidence": "summary.md: 'Pricing recommendations, MRR targets, CAC targets, CPL thresholds, and conversion rate benchmarks are all specified.' Plan is 20095 bytes with concrete numbers. High quality despite lacking RPIRT."
+        },
+        {
+          "text": "Skill uses business vocabulary throughout (strategy, channels, milestones) rather than coding vocabulary (implement, deploy)",
+          "passed": true,
+          "evidence": "summary.md uses entirely business vocabulary: channels, pipeline, conversion, ICP, outreach. No coding terms found."
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 3,
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 3,
+        "failed": 0,
+        "total": 3,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Agent explicitly classifies this as Simple and does NOT run full RPIRT (complexity gate works correctly)",
+          "passed": true,
+          "evidence": "No skill, so no RPIRT. Baseline agent went directly to implementation. summary.md describes the change directly without any phased methodology."
+        },
+        {
+          "text": "Agent does NOT create rpirt/ artifact files for this trivial task",
+          "passed": true,
+          "evidence": "Only changes.py and summary.md in outputs. No rpirt/ directory created."
+        },
+        {
+          "text": "Agent completes the task directly with code showing the --verbose flag implementation",
+          "passed": true,
+          "evidence": "changes.py (1221 bytes) created with argparse --verbose implementation writing to sys.stderr."
+        }
+      ],
+      "notes": []
+    }
+  ],
+  "run_summary": {
+    "with_skill": {
+      "pass_rate": {
+        "mean": 1.0,
+        "stddev": 0.0,
+        "min": 1.0,
+        "max": 1.0
+      },
+      "time_seconds": {
+        "mean": 0.0,
+        "stddev": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "tokens": {
+        "mean": 0.0,
+        "stddev": 0.0,
+        "min": 0,
+        "max": 0
+      }
+    },
+    "without_skill": {
+      "pass_rate": {
+        "mean": 0.5777,
+        "stddev": 0.3673,
+        "min": 0.333,
+        "max": 1.0
+      },
+      "time_seconds": {
+        "mean": 0.0,
+        "stddev": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "tokens": {
+        "mean": 0.0,
+        "stddev": 0.0,
+        "min": 0,
+        "max": 0
+      }
+    },
+    "delta": {
+      "pass_rate": "+0.42",
+      "time_seconds": "+0.0",
+      "tokens": "+0"
+    }
+  },
+  "notes": []
+}

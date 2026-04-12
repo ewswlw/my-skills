@@ -43,12 +43,24 @@ If the workspace has no vault, rely on **andreas-reference.md**, P123 help, and 
 
 ## Validation Methods
 
-| Method | When to Use |
-|--------|-------------|
-| **Basic Holdout** | Default. Single train/validation split. Avoids walk-forward overfitting. |
-| **Time Series CV** | Multiple validation periods, expanding training. More robust. |
-| **Rolling Time Series CV** | Fixed training window, sliding. |
-| **K-Fold Blocked** | Maximizes data use. Temporal order not respected. |
+| Method | When to Use | Prediction Window | Max Backtest Depth |
+|--------|-------------|-------------------|--------------------|
+| **Basic Holdout** | Default. Single train/validation split. Avoids walk-forward overfitting. | Holdout period only (last N months) | ~1–2 years |
+| **Time Series CV** | Multiple validation periods, expanding training. More robust. | Multiple expanding windows | ~3–5 years |
+| **Rolling Time Series CV** | Fixed training window, sliding. Best for long backtests. | All fold holdout windows combined | ~5–10 years |
+| **K-Fold Blocked** | Maximizes data use. Temporal order not respected. | No temporal guarantee | Not recommended for backtests |
+
+**Critical:** The validation method determines how many years of predictions are saved, which in turn limits how far back the ranking system Performance tab can backtest using `AIFactorValidation()`. Choose before training — changing later requires deleting all models.
+
+### Changing Validation Method (after models exist)
+
+The Method tab fields are **read-only while any trained model exists**. To change:
+1. Go to Validation → **Models** tab
+2. Check the checkbox next to every model row
+3. Click **Delete** → **Confirm** (repeat for all models)
+4. Return to Validation → **Method** tab (now editable)
+5. Select new method → adjust Folds / Training Period / Holdout Period
+6. Go back to Models → **Add Model(s)** → select model → **Start**
 
 ## Algorithms
 
@@ -131,10 +143,29 @@ ExtraTrees is harder to overfit because no tree is optimizing to past data. High
 
 ## AIFactorValidation vs AIFactor
 
-- **AIFactorValidation()** — Backtesting. Uses saved validation predictions. No backtest limit.
-- **AIFactor()** — Live only. Backtest max 5 years. Real-time prediction server.
+| | `AIFactor()` | `AIFactorValidation()` |
+|---|---|---|
+| **Purpose** | Live scoring, real-time prediction | Backtesting with saved predictions |
+| **Backtest limit** | **5 years max** — hard P123 limit | **None** — limited only by prediction window |
+| **Data source** | Live predictor server | Saved validation predictions from training run |
+| **Formula string** | `AIFactor("ai_factor_name", "predictor_slug")` | `AIFactorValidation("ai_factor_name", "model_display_name")` |
+| **Model name arg** | Predictor name from Predictors tab | Model display name from Validation → Models tab |
 
-**Always** enable "Save Validation Predictions" during validation. Backtest start > training end + gap.
+**Formula exact syntax (in ranking system XML):**
+```xml
+<Formula>AIFactorValidation(&amp;quot;agent_ml_v3_lgbm&amp;quot;, &amp;quot;lightgbm slow 2&amp;quot;)</Formula>
+```
+Quotes are HTML-entity-encoded in raw XML (`&amp;quot;`). Both name strings are **case-sensitive** — copy from the UI.
+
+**MANDATORY:** Enable **"Save Validation Predictions = Yes"** in the training dialog. The dialog defaults to neither Yes nor No selected. Without this, `AIFactorValidation()` has nothing to query and every backtest date will fail with "No predictions are available."
+
+### Training Dialog — Save Validation Predictions
+
+When clicking **Start** on a validation model, a "Validate Model — Choose Worker(s)" dialog appears:
+- **Worker types:** Basic (cheapest), Premium, Extra30 (30 CPU), HighMem (170GB) — auto-selects least expensive available
+- **Save Validation Predictions:** defaults to NOTHING selected — **always click Yes explicitly**
+- HighMem shown in red = at capacity (choose another worker or wait)
+- Training time: Basic Holdout ~5 min, Rolling Time Series CV ~10–20 min
 
 ## Evaluation Diagnostics Checklist
 
@@ -150,7 +181,54 @@ ExtraTrees is harder to overfit because no tree is optimizing to past data. High
 ## Ranking System with AI Factor
 
 ```xml
-<Formula>FRank(AIFactorValidation("Exact AI Factor Name", "Exact Model Name"))</Formula>
+<Formula>AIFactorValidation(&amp;quot;Exact AI Factor Name&amp;quot;, &amp;quot;Exact Model Display Name&amp;quot;)</Formula>
 ```
 
-Case-sensitive. Get exact names from Predictors page fx button after training.
+- **Case-sensitive** — copy both strings from the P123 UI.
+- AI Factor Name: from the Overview tab (the factor's display name, e.g., `agent_ml_v3_lgbm`)
+- Model Display Name: from Validation → Models tab (e.g., `lightgbm slow 2`) — NOT the predictor slug
+- Use `AIFactorValidation()` (not `AIFactor()`) for any backtest deeper than 5 years
+- The p123api client has no `rank_system_download()` method — use the raw XML editor at `/app/ranking-system/{id}/editor-raw` for direct XML updates
+
+## Full Pipeline: AI Factor → Ranking System Backtest
+
+Complete validated sequence (confirmed 2026-04-07, agent_lgbm_v3_ranking ID 541832):
+
+### 1. Choose Validation Method for Required Backtest Depth
+- Basic Holdout → ~1 year of predictions (last holdout period only)
+- Rolling Time Series CV, 4 folds, 5-year train, 27-month holdout → ~9 years of predictions
+
+For Rolling CV, predictions start ~= `dataset_start + training_period + gap`. Example:
+- Dataset: 2010–2025 (15 years), Training: 5 years, Gap: 52 weeks
+- First fold holdout starts: 2010 + 5yr + 1yr gap = ~2016/Q4
+- Backtest can start from: **~01/07/2017**
+
+### 2. Delete Existing Models if Changing Method
+Method tab is read-only while models exist. Delete all → Method tab unlocks → select new method.
+
+### 3. Train Model with Save Validation Predictions = Yes
+In the "Validate Model" dialog: click **Yes** explicitly. Without this, all backtest dates will fail.
+
+### 4. Update Ranking System XML Formula
+Change from `AIFactor()` to `AIFactorValidation()` with the model's display name:
+```xml
+<Formula>AIFactorValidation(&amp;quot;agent_ml_v3_lgbm&amp;quot;, &amp;quot;lightgbm slow 2&amp;quot;)</Formula>
+```
+
+### 5. Set Performance Tab Date Range to Match Prediction Window
+- Navigate to `rank_perf.jsp?rankid={id}` (the old JSP URL still works and routes correctly)
+- The **Run** button is `<input type="submit" value="Run">` (not a `<button>`)
+- Click the calendar icon radio (value=`-1`) to enable custom dates
+- Set range to cover prediction window: e.g., `01/07/2017 - 12/27/2025`
+- Do NOT use preset periods (1Y, 2Y, MAX) — they extend to today, past the prediction end date
+- Error you'll see if dates are wrong: *"No predictions are available on [date]. Saved predictions cover [start] to [end] every week."* — use those exact dates from the error message.
+
+### Result Reference (2026-04-07 run)
+| Metric | Value |
+|---|---|
+| Period | 1/7/2017 → 12/27/2025 (9 years) |
+| Bucket 20 CAGR | 12.10% |
+| Benchmark (SPY) CAGR | 15.02% |
+| Spearman Rank Correlation | 0.88 |
+| First Half B20 (2017–2021) | 21.83% |
+| Second Half B20 (2021–2025) | 2.99% |

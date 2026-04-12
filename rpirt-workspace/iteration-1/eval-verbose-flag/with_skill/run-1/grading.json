@@ -1,0 +1,28 @@
+{
+  "eval_id": 3,
+  "eval_name": "verbose-flag",
+  "configuration": "with_skill",
+  "expectations": [
+    {
+      "text": "Agent explicitly classifies this as Simple and does NOT run full RPIRT (complexity gate works correctly)",
+      "passed": true,
+      "evidence": "summary.md: 'No. The complexity gate in Step 0 of the RPIRT skill says: Simple — Single deliverable, no ambiguity, no research needed, ≤2 files → Skip RPIRT. Just do it. This task hit every Simple signal... Running the full 5-phase pipeline here would have been complexity inflation.'"
+    },
+    {
+      "text": "Agent does NOT create rpirt/ artifact files for this trivial task",
+      "passed": true,
+      "evidence": "Directory listing confirms only outputs/changes.py and outputs/summary.md were created. No rpirt/ subdirectory."
+    },
+    {
+      "text": "Agent completes the task directly with code showing the --verbose flag implementation",
+      "passed": true,
+      "evidence": "changes.py (726 bytes) created. summary.md confirms: 'parser.add_argument(--verbose, action=store_true), log_debug helper, writes to sys.stderr.'"
+    }
+  ],
+  "summary": {
+    "passed": 3,
+    "failed": 0,
+    "total": 3,
+    "pass_rate": 1.0
+  }
+}

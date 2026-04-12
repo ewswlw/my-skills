@@ -1,0 +1,3 @@
+product,price,in_stock,category
+Widget,9.99,True,A
+Gadget,24.99,False,B

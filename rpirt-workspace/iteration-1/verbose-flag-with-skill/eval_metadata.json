@@ -1,0 +1,22 @@
+{
+  "eval_id": 3,
+  "eval_name": "verbose-flag",
+  "prompt": "Add a --verbose flag to my existing argparse CLI. When set, it should print debug info to stderr.",
+  "assertions": [
+    {
+      "text": "Agent explicitly classifies this as Simple and does NOT run full RPIRT (complexity gate works correctly)",
+      "passed": null,
+      "evidence": null
+    },
+    {
+      "text": "Agent does NOT create rpirt/ artifact files for this trivial task",
+      "passed": null,
+      "evidence": null
+    },
+    {
+      "text": "Agent completes the task directly with code showing the --verbose flag implementation",
+      "passed": null,
+      "evidence": null
+    }
+  ]
+}

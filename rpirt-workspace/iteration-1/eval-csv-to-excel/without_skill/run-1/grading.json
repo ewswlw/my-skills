@@ -1,0 +1,43 @@
+{
+  "eval_id": 1,
+  "eval_name": "csv-to-excel",
+  "configuration": "without_skill",
+  "expectations": [
+    {
+      "text": "Agent classifies this as Complex and explicitly runs full 5-phase RPIRT rather than doing it directly",
+      "passed": false,
+      "evidence": "No RPIRT methodology used. Agent went directly to implementation. No phase classification mentioned."
+    },
+    {
+      "text": "A research artifact (rpirt/01-research.md or equivalent) is created with findings about relevant libraries and edge cases",
+      "passed": false,
+      "evidence": "No rpirt/ directory created. No research artifact exists in outputs."
+    },
+    {
+      "text": "A plan artifact (rpirt/02-plan.md or equivalent) is created with durable decisions and task breakdown",
+      "passed": false,
+      "evidence": "No plan artifact created. The summary.md describes the architecture inline but no separate plan document was written."
+    },
+    {
+      "text": "Step 4 review generates a domain-specific rubric with coded criteria (Correctness, Error Handling, UX, etc.) and scores them",
+      "passed": false,
+      "evidence": "No review phase. No rubric generated. The agent went directly from implementation to delivery."
+    },
+    {
+      "text": "The final Python CLI code is complete and not pseudocode (has actual import statements, argument parsing, and logic)",
+      "passed": true,
+      "evidence": "cli_tool.py is 13450 bytes. summary.md confirms layered architecture (CLI layer, orchestrator, sheet writers). Code appears complete."
+    },
+    {
+      "text": "Edge cases are explicitly addressed: empty CSVs, missing --output flag, CSVs with different schemas",
+      "passed": true,
+      "evidence": "summary.md mentions: encoding fallback (latin-1, errors='replace'), sheet name collision handling, empty CSV handling. 3-file smoke test run. However only 3 test files vs 8 test files in with-skill version."
+    }
+  ],
+  "summary": {
+    "passed": 2,
+    "failed": 4,
+    "total": 6,
+    "pass_rate": 0.333
+  }
+}

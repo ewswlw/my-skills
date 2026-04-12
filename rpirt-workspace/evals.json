@@ -1,0 +1,82 @@
+{
+  "skill_name": "rpirt",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I need to build a Python CLI tool that takes a folder of CSV files and converts them into a single, well-formatted Excel workbook with one sheet per CSV, a summary sheet with row counts and column names, and a bar chart on the summary sheet showing row counts per file. I'm using Python 3.12 and have pandas and openpyxl available. The CSVs can have different schemas. Output to a path the user specifies with --output. Make this production-ready.",
+      "expected_output": "The skill should trigger full RPIRT, produce rpirt/ artifact files, enforce a rubric in the review step (correctness, error handling, UX, etc.), and deliver working Python code with tests or validation.",
+      "assertions": [
+        {
+          "name": "complexity_gate_fires",
+          "description": "Agent classifies this as Complex and runs full 5-phase RPIRT rather than doing it directly"
+        },
+        {
+          "name": "research_artifact_created",
+          "description": "A rpirt/01-research.md (or equivalent) is created with findings about pandas, openpyxl, constraints, and edge cases"
+        },
+        {
+          "name": "plan_artifact_created",
+          "description": "A rpirt/02-plan.md (or equivalent) with durable decisions, task breakdown, and definition of done"
+        },
+        {
+          "name": "review_rubric_generated",
+          "description": "Step 4 produces a domain-specific rubric (not generic) with scored criteria like Correctness, Error Handling, UX, etc."
+        },
+        {
+          "name": "deliverable_is_runnable",
+          "description": "The final Python code is complete, not pseudocode, and would plausibly run without major errors"
+        },
+        {
+          "name": "edge_cases_addressed",
+          "description": "The implementation handles edge cases: empty CSVs, missing --output, files with different schemas"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "I'm launching a B2B SaaS product for small law firms that automates client intake forms and document collection. I need a go-to-market strategy for the first 6 months post-launch. Budget is around $15k for marketing. We have 3 pilot customers but no paying customers yet. Target is 20 paying customers by month 6. Help me build this out properly.",
+      "expected_output": "The skill should trigger full RPIRT for this business task. Research phase should examine B2B SaaS GTM for professional services. Review rubric should reflect business criteria (market sizing, channel fit, measurability, timeline realism). Deliverable should be a concrete, actionable GTM plan with phases, budget allocation, and metrics.",
+      "assertions": [
+        {
+          "name": "complexity_gate_fires",
+          "description": "Agent classifies as Complex and runs full RPIRT rather than writing a plan directly"
+        },
+        {
+          "name": "research_covers_domain",
+          "description": "Research phase covers relevant domain: legal tech market, B2B SaaS GTM playbooks, law firm buyer behavior"
+        },
+        {
+          "name": "review_rubric_is_business_domain",
+          "description": "Review rubric criteria are business-oriented (Market Sizing, Channel Fit, Budget Realism, Measurability) not coding-oriented"
+        },
+        {
+          "name": "plan_is_concrete_with_numbers",
+          "description": "The GTM plan includes specific budget allocations, target channels, and measurable milestones -- not generic advice"
+        },
+        {
+          "name": "adapts_language_for_domain",
+          "description": "Skill uses business vocabulary throughout (strategy, channels, milestones) not coding vocabulary (implement, deploy)"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Add a --verbose flag to my existing argparse CLI. When set, it should print debug info to stderr.",
+      "expected_output": "The skill should recognize this as Simple, explicitly NOT run full RPIRT, and just make the change directly. This tests the complexity gate -- running 5 phases here would be overkill and the skill should know it.",
+      "assertions": [
+        {
+          "name": "complexity_gate_skips_rpirt",
+          "description": "Agent explicitly classifies this as Simple and skips the full RPIRT methodology"
+        },
+        {
+          "name": "no_unnecessary_artifacts",
+          "description": "Agent does NOT create rpirt/ artifact files for this trivial task"
+        },
+        {
+          "name": "task_completed_directly",
+          "description": "Agent just makes the change directly without research/plan/review overhead"
+        }
+      ]
+    }
+  ]
+}

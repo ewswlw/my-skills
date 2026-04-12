@@ -249,3 +249,206 @@ source: Strategy Book experiment loop — 2026-04-05
 **Context:** Full Strategy Book experiment loop (14 experiments)
 **Discovery:** The entire experiment loop optimized against a synthetic composite metric combining incompatible data sources. The loop declared victory (CAGR 26.26%, Sharpe 2.00) but the native P123 book showed 18.68% CAGR and 1.05 Sharpe — neither target was met. MANDATORY RULE: Any Strategy Book configuration MUST be validated via native P123 Strategy Book simulation (browser automation) before being declared as meeting targets. API screen backtests and local models are acceptable for rapid iteration/screening only, never for final validation.
 **Action:** Added Pipeline 4 to strategy-templates.md. Added Strategy Book Validation Workflow to browser-workflows.md. Added Core Rule 10 to SKILL.md.
+
+---
+id: LEARN-20260407-001
+type: browser_selector
+confidence: high
+confirmations: 1
+promoted: true
+source: AI Factor → Ranking System pipeline — 2026-04-07
+---
+**Context:** Connecting a trained AI Factor model to a ranking system for backtesting
+**Discovery:** `AIFactor()` and `AIFactorValidation()` are NOT interchangeable in ranking system formulas:
+- `AIFactor("ai_factor_name", "predictor_name")` → live scoring only. **Hard 5-year backtest limit.** Will fail with "AIFactor() can only be used up to 5 years in the past" for any deeper backtest.
+- `AIFactorValidation("ai_factor_name", "model_name")` → uses saved validation predictions. **No backtest depth limit.** Required for any Performance tab backtest beyond 5 years.
+- The model name string in `AIFactorValidation()` is the **model display name** (e.g., `"lightgbm slow 2"`), NOT the predictor slug. Get the exact string from the Validation → Models tab.
+- Both strings are **case-sensitive**. Copy from the platform UI — do not type from memory.
+**Action:** Promoted to ai-factor-guide.md (AIFactorValidation vs AIFactor section — expanded)
+
+---
+id: LEARN-20260407-002
+type: browser_selector
+confidence: high
+confirmations: 1
+promoted: true
+source: AI Factor → Ranking System pipeline — 2026-04-07
+---
+**Context:** Validation method selection and prediction date coverage
+**Discovery:** The validation method chosen for the AI Factor model directly controls how much historical backtest you can run on the ranking system:
+
+| Validation Method | Prediction Window | Max Backtest Depth |
+|---|---|---|
+| Basic Holdout | Last N months only (holdout period only) | ~1–2 years |
+| Time Series CV | Multiple expanding windows | ~3–5 years |
+| Rolling Time Series CV | All fold holdout windows combined | ~5–10 years |
+| K-Fold Blocked | No temporal structure | Not recommended for backtests |
+
+- With **Basic Holdout** (default): 13-year training + 12-month holdout → predictions only cover the final 12 months (e.g., 12/28/2024–12/27/2025). Running a 2Y or longer backtest will fail with: *"No predictions are available on [date]. Saved predictions cover [start] to [end] every week."*
+- With **Rolling Time Series CV** (4 folds, 5-year train, 27-month holdout): generates ~9 years of predictions (approximately 2016–2025 for a dataset ending 2025-12-27).
+- **Critical:** Choose your validation method BEFORE training if you need long backtests. Changing it after requires deleting all models and retraining.
+**Action:** Promoted to ai-factor-guide.md (Validation Methods section — expanded with backtest depth column)
+
+---
+id: LEARN-20260407-003
+type: browser_selector
+confidence: high
+confirmations: 1
+promoted: true
+source: AI Factor → Ranking System pipeline — 2026-04-07
+---
+**Context:** Validation method settings are locked when models exist
+**Discovery:** On the AI Factor Validation → Method tab, the validation method radio buttons (Basic Holdout / Rolling Time Series CV / etc.) become **read-only** as soon as any trained model exists. To change the method:
+1. Go to Validation → Models tab
+2. Check the checkbox next to each model row
+3. Click **Delete** → Confirm
+4. All models must be deleted before the Method tab becomes editable again
+5. Then select the new method → navigate to Models → Add Model(s) → select the model → Start
+**Action:** Promoted to ai-factor-guide.md (new section: Changing Validation Method)
+
+---
+id: LEARN-20260407-004
+type: browser_selector
+confidence: high
+confirmations: 1
+promoted: true
+source: AI Factor → Ranking System pipeline — 2026-04-07
+---
+**Context:** "Save Validation Predictions" must be Yes
+**Discovery:** When clicking **Start** to run validation training, a "Validate Model — Choose Worker(s)" dialog appears. It includes a **"Save Validation Predictions: Yes / No"** radio. This defaults to **neither selected** (no default). You MUST explicitly click **Yes** or `AIFactorValidation()` will have no saved predictions to use and the ranking system backtest will fail. The dialog also shows worker types (Basic, Premium, Extra30, HighMem) — the least-expensive available is auto-selected but the user can change it. HighMem shown in red = at capacity.
+**Action:** Promoted to ai-factor-guide.md (new step: Save Validation Predictions = Yes)
+
+---
+id: LEARN-20260407-005
+type: browser_selector
+confidence: high
+confirmations: 1
+promoted: true
+source: AI Factor → Ranking System pipeline — 2026-04-07
+---
+**Context:** Adding models in the "Add Model(s)" dialog — checkbox index shifts
+**Discovery:** The "Add Model(s)" dialog lists all available models with checkboxes. **The checkbox DOM index shifts by 1 when a "N selected:" selection banner appears at the top.** This causes off-by-one errors when clicking by index. Safe approach:
+```javascript
+// Safe: select by row text content, not by index
+var allCbs = Array.from(document.querySelectorAll('input[type=checkbox]'))
+  .filter(c => c.getBoundingClientRect().x < 200);
+allCbs.forEach(c => { if (c.checked) c.click(); }); // uncheck all first
+var target = allCbs.find(c => {
+  var row = c.closest('tr,[role=row]');
+  return row && row.textContent.includes('lightgbm slow 2');
+});
+if (target) target.click();
+```
+Also: always click the "Add (N)" button by finding its text content, not by hardcoded coordinates — the button label changes as selections change.
+**Action:** Promoted to browser-workflows.md (AI Factor — Add Model(s) dialog section)
+
+---
+id: LEARN-20260407-006
+type: browser_selector
+confidence: high
+confirmations: 1
+promoted: true
+source: AI Factor → Ranking System pipeline — 2026-04-07
+---
+**Context:** Updating ranking system XML to use AIFactorValidation()
+**Discovery:** The ranking system XML formula must use the exact format:
+```xml
+<Formula>AIFactorValidation(&amp;quot;agent_ml_v3_lgbm&amp;quot;, &amp;quot;lightgbm slow 2&amp;quot;)</Formula>
+```
+Note: in the raw XML editor, quotes are HTML-entity-encoded as `&amp;quot;`. When reading back via the UI or API, they render as `"`. The p123api client does NOT have a `rank_system_download()` method — use the browser's raw XML editor (`/app/ranking-system/{id}/editor-raw`) for direct XML manipulation.
+
+To update via CDP browser automation:
+```javascript
+var ta = document.querySelector('textarea');
+var nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value').set;
+nativeSetter.call(ta, newXML);
+ta.dispatchEvent(new Event('input', {bubbles: true}));
+```
+**Action:** Promoted to ranking-templates.md (AI Factor XML formula section)
+
+---
+id: LEARN-20260407-007
+type: browser_selector
+confidence: high
+confirmations: 1
+promoted: true
+source: AI Factor → Ranking System pipeline — 2026-04-07
+---
+**Context:** Performance tab (rank_perf.jsp) — period alignment
+**Discovery:** The ranking system Performance tab period presets (1M, 6M, 1Y, 2Y, 5Y, 10Y, MAX) refer to trailing periods ending **today**. With `AIFactorValidation()`:
+- If predictions end at 12/27/2025 and today is 04/07/2026, then **any preset period that extends into 2026 will fail** (including 1Y = Apr 2025 → Apr 2026).
+- The correct approach is to use the **custom date picker** (calendar icon, radio value `-1`) and set the date range to match the prediction window exactly.
+- Use the JS native setter trick to set the text input: `nativeSetter.call(inp, '01/07/2017 - 12/27/2025')` — the input accepts `MM/DD/YYYY - MM/DD/YYYY` format.
+- The Run button on this page is a `<input type="submit" value="Run">` (not a `<button>`), found via `document.querySelectorAll('input[type=submit]')`.
+- Start date should be set to the first date of the first Rolling CV holdout window. For a 15-year dataset (2010–2025), 52-week gap, 5-year train, 27-month holdout, 4 folds: first predictions start ~01/2017.
+**Action:** Promoted to ai-factor-guide.md (Ranking System Backtest Date Alignment section)
+
+---
+id: LEARN-20260407-008
+type: browser_selector
+confidence: high
+confirmations: 1
+promoted: true
+source: AI Factor → Ranking System pipeline — 2026-04-07
+---
+**Context:** P123 URL routing — old JSP vs new Svelte SPA
+**Discovery:** Portfolio123 has migrated most pages from legacy JSP URLs to a modern Svelte SPA. URL mapping discovered in practice:
+
+| Old URL | New/Working URL |
+|---|---|
+| `/app/opener/AIFACTOR/-2` | Use `/sv/opener/AIFACTOR/-2` or navigate via `/sv/aiFactor/{id}/validation` |
+| `/rank_perf.jsp?rankid={id}` | Works — redirects to the new Performance tab UI |
+| `/app/ranking-system/{id}/performance` | Blocked ("not available at your current membership level") |
+| `/app/ranking-system/{id}/editor-raw` | Works for XML editing |
+| `/sv/aiFactor/{id}/validation` | Works for validation tab directly |
+
+- The Run button on the rank_perf page is a legacy form submit (`input[type=submit]`), which is why DOM queries for `<button>` with text "Run" return nothing.
+- AI Factor IDs can be found in the URL when navigating to the factor's page (e.g., `aiFactor/26889/validation` → ID is 26889).
+**Action:** Promoted to browser-workflows.md (URL Routing section)
+
+---
+id: LEARN-20260407-009
+type: strategy_insight
+confidence: high
+confirmations: 1
+promoted: true
+source: AI Factor → Ranking System pipeline — 2026-04-07
+---
+**Context:** Full end-to-end pipeline: AI Factor model → Ranking System → Performance backtest
+**Discovery:** Complete working sequence (validated 2026-04-07):
+
+**Step 1 — Choose validation method for backtest depth needed:**
+- Basic Holdout = ~1 year of predictions (holdout period only)
+- Rolling Time Series CV = multi-year (folds × holdout months). For 9-year backtest: 4 folds, 5-year train, 27-month holdout on a 15-year dataset.
+
+**Step 2 — Delete any existing models if changing method** (method settings lock when models exist)
+
+**Step 3 — Select Rolling Time Series CV on Method tab** (after deleting models, method tab becomes editable)
+
+**Step 4 — Models tab: Add Model(s) → select model by row text → click Add (N)**
+
+**Step 5 — Click Start → "Validate Model" dialog:**
+- Set "Save Validation Predictions" = **Yes** (critical — defaults to nothing)
+- Click Start
+
+**Step 6 — Wait for SUCCESS** (Basic Holdout ~5 min, Rolling CV ~10–20 min depending on folds)
+
+**Step 7 — Update ranking system formula to `AIFactorValidation()`:**
+```xml
+<Formula>AIFactorValidation(&amp;quot;AI_FACTOR_NAME&amp;quot;, &amp;quot;MODEL_DISPLAY_NAME&amp;quot;)</Formula>
+```
+Where MODEL_DISPLAY_NAME = the name shown in the Validation → Models tab (not the predictor slug).
+
+**Step 8 — Performance tab: Use custom date range** aligned to prediction window:
+- Navigate to `rank_perf.jsp?rankid={id}` (old URL still works)
+- Click the calendar radio (value="-1")
+- Set date range to cover prediction window: e.g., `01/07/2017 - 12/27/2025`
+- Click Run (`input[type=submit][value="Run"]`)
+
+**Result from 2026-04-07 run (agent_lgbm_v3_ranking, ID 541832):**
+- Period: 1/7/2017 → 12/27/2025 (9 years)
+- Bucket 20 CAGR: 12.10% | Benchmark: 15.02%
+- Spearman rank correlation: 0.88 (strong monotonic ordering)
+- First Half (2017–2021): Bucket 20 = 21.83%
+- Second Half (2021–2025): Bucket 20 = 2.99%
+**Action:** Promoted to ai-factor-guide.md as new section "Full Pipeline: AI Factor to Ranking System Backtest"

@@ -1,0 +1,32 @@
+{
+  "eval_id": 2,
+  "eval_name": "gtm-strategy",
+  "prompt": "I'm launching a B2B SaaS product for small law firms that automates client intake forms and document collection. I need a go-to-market strategy for the first 6 months post-launch. Budget is around $15k for marketing. We have 3 pilot customers but no paying customers yet. Target is 20 paying customers by month 6. Help me build this out properly.",
+  "assertions": [
+    {
+      "text": "Agent classifies this as Complex and runs full RPIRT rather than immediately writing a GTM plan",
+      "passed": null,
+      "evidence": null
+    },
+    {
+      "text": "Research phase covers domain-relevant topics: legal tech market, B2B SaaS GTM, law firm buyer behavior",
+      "passed": null,
+      "evidence": null
+    },
+    {
+      "text": "Review rubric criteria are business-oriented (Market Sizing, Channel Fit, Budget Realism, Measurability) not coding-oriented",
+      "passed": null,
+      "evidence": null
+    },
+    {
+      "text": "Final GTM plan includes specific budget allocations (numbers) and measurable monthly milestones -- not just generic advice",
+      "passed": null,
+      "evidence": null
+    },
+    {
+      "text": "Skill uses business vocabulary throughout (strategy, channels, milestones) rather than coding vocabulary (implement, deploy)",
+      "passed": null,
+      "evidence": null
+    }
+  ]
+}

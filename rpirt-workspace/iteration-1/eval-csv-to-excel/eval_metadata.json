@@ -1,0 +1,37 @@
+{
+  "eval_id": 1,
+  "eval_name": "csv-to-excel",
+  "prompt": "I need to build a Python CLI tool that takes a folder of CSV files and converts them into a single, well-formatted Excel workbook with one sheet per CSV, a summary sheet with row counts and column names, and a bar chart on the summary sheet showing row counts per file. I'm using Python 3.12 and have pandas and openpyxl available. The CSVs can have different schemas. Output to a path the user specifies with --output. Make this production-ready.",
+  "assertions": [
+    {
+      "text": "Agent classifies this as Complex and explicitly runs full 5-phase RPIRT rather than doing it directly",
+      "passed": null,
+      "evidence": null
+    },
+    {
+      "text": "A research artifact (rpirt/01-research.md or equivalent) is created with findings about relevant libraries and edge cases",
+      "passed": null,
+      "evidence": null
+    },
+    {
+      "text": "A plan artifact (rpirt/02-plan.md or equivalent) is created with durable decisions and task breakdown",
+      "passed": null,
+      "evidence": null
+    },
+    {
+      "text": "Step 4 review generates a domain-specific rubric with coded criteria (Correctness, Error Handling, UX, etc.) and scores them",
+      "passed": null,
+      "evidence": null
+    },
+    {
+      "text": "The final Python CLI code is complete and not pseudocode (has actual import statements, argument parsing, and logic)",
+      "passed": null,
+      "evidence": null
+    },
+    {
+      "text": "Edge cases are explicitly addressed: empty CSVs, missing --output flag, CSVs with different schemas",
+      "passed": null,
+      "evidence": null
+    }
+  ]
+}
