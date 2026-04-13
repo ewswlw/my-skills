@@ -1,268 +1,200 @@
 ---
 name: shinka-evolve
-description: "Run LLM-driven evolutionary code optimization using ShinkaEvolve. Covers full lifecycle: scaffold new tasks (shinka-setup), convert existing code (shinka-convert), run evolution batches (shinka-run), and inspect top results (shinka-inspect). Trigger on: shinka, ShinkaEvolve, evolve code, optimize algorithm, evolutionary search, LLM mutation, program evolution, code evolution."
+description: >-
+  Scaffold and run SakanaAI ShinkaEvolve (shinka-evolve) to evolve algorithmic
+  trading strategies via LLM + evolutionary search. Creates evaluate.py with
+  run_shinka_eval and initial.py with EVOLVE-BLOCK, configures Gemini API key,
+  sets combined_score fitness (Sharpe, drawdown, turnover penalties), and runs
+  shinka_run. Use when the user mentions ShinkaEvolve, shinka-evolve, shinka_run,
+  evolving a trading strategy, LLM program evolution for alpha, open-ended
+  optimization of signal logic, mutating backtest code, or evolutionary
+  algorithm design for systematic trading. Also use when user asks to optimize
+  a signal function, evolve position sizing, or auto-improve a backtest.
 ---
 
-# ShinkaEvolve — Unified Agent Skill
+# ShinkaEvolve for Algorithmic Trading
 
-Combine LLMs with evolutionary algorithms to optimize code. This skill covers the full lifecycle: setup, convert, run, and inspect.
+Evolve trading signal code using LLM mutations + evolutionary search.
+Upstream: https://github.com/SakanaAI/ShinkaEvolve
 
-## Workflow Router
+## Prerequisites
 
-Determine which workflow applies:
+1. **Python >=3.10** with `uv` package manager
+2. **Gemini API key** in environment (see [API Key Setup](#api-key-setup))
+3. A Python project with a venv or uv-managed environment
 
-| Situation | Workflow | Jump to |
-|-----------|----------|---------|
-| New task from a description, no existing code | **Setup** | [Setup Workflow](#setup-workflow) |
-| Existing codebase to optimize | **Convert** | [Convert Workflow](#convert-workflow) |
-| `evaluate.py` + `initial.py` already exist | **Run** | [Run Workflow](#run-workflow) |
-| Evolution completed, need results | **Inspect** | [Inspect Workflow](#inspect-workflow) |
+## API Key Setup
 
-## Pre-flight (Required Before Any Run)
-
-Before launching evolution, **always** execute these checks:
+The Gemini API key **must** be an environment variable. **NEVER** store it in
+files, print it, log it, or echo it in terminal output.
 
 ```powershell
-# 1. Set API key (load from skill .env)
-$skillEnv = "$env:USERPROFILE\.claude\skills\shinka-evolve\.env"
-$env:GOOGLE_API_KEY = (Get-Content $skillEnv | Select-String "GOOGLE_API_KEY=(.+)" | ForEach-Object { $_.Matches.Groups[1].Value })
+# Windows PowerShell (session)
+$env:GEMINI_API_KEY = "your-key-here"
 
-# 2. Verify shinka is installed
-uv run python -c "import shinka; print(shinka.__version__)"
-# If missing: uv pip install shinka-evolve
-
-# 3. Verify models are available
-shinka_models --verbose
-# Confirm gemini-2.5-flash-preview and gemini-2.5-pro-preview appear in llm list
-
-# 4. Smoke test the task
-uv run python "$env:USERPROFILE\.claude\skills\shinka-evolve\scripts\smoke_test.py" --task-dir .
+# Windows permanent (user scope)
+[System.Environment]::SetEnvironmentVariable("GEMINI_API_KEY", "your-key-here", "User")
 ```
 
-If any check fails, fix it before proceeding. Do NOT launch evolution with a failing smoke test.
+```bash
+# Linux/macOS
+export GEMINI_API_KEY="your-key-here"
+```
 
----
+Or use a `.env` file in the project root (never commit it):
 
-## Setup Workflow
+```
+GEMINI_API_KEY=your-key-here
+```
 
-Create a new ShinkaEvolve task from a natural-language description.
+See `.env.example` in this skill folder for the template.
 
-### Inputs needed
-- Task description + success criteria
-- What to optimize (the "evolve region")
-- Evaluation metric(s) and scoring direction (higher = better)
-- Number of eval runs / seeds
+## Agent Workflow
 
-### Steps
+When the user triggers this skill, follow these steps **in order**:
 
-1. **Choose a template** from `scripts/templates/`:
-   - `algorithm_optimization/` — pure algorithm improvement
-   - `data_processing/` — pipeline throughput + quality
-   - `ml_tuning/` — model training/inference accuracy
-   - `creative_generation/` — novelty + quality scoring
+### Step 1: Check environment
 
-2. **Copy template** to the task directory:
-   ```powershell
-   $skillDir = "$env:USERPROFILE\.claude\skills\shinka-evolve"
-   Copy-Item -Recurse "$skillDir\scripts\templates\algorithm_optimization\*" .\my_task\
-   ```
-
-3. **Edit `initial.py`**: Replace the code inside `EVOLVE-BLOCK-START` / `EVOLVE-BLOCK-END` with your algorithm. Keep evolve markers tight — only code the LLM should mutate.
-
-4. **Edit `evaluate.py`**: Customize `get_kwargs`, `aggregate_fn`, and `validate_fn` for your task. Ensure `combined_score` is numeric and higher = better.
-
-5. **Copy config and .env** to task directory:
-   ```powershell
-   Copy-Item "$skillDir\scripts\shinka.yaml" .\my_task\
-   Copy-Item "$skillDir\.env" .\my_task\
-   ```
-
-6. **Run smoke test**:
-   ```powershell
-   uv run python "$skillDir\scripts\smoke_test.py" --task-dir .\my_task
-   ```
-   Pass criteria: `metrics.json` has numeric `combined_score`, `correct.json` has `correct: true`.
-
-7. **Ask user**: Run evolution manually, or proceed to [Run Workflow](#run-workflow)?
-
-### Template: initial.py (Python)
 ```python
-import random
+# Verify shinka is installed
+import importlib.util
+if not importlib.util.find_spec("shinka"):
+    # Install it
+    # uv add shinka-evolve numpy pandas yfinance
+    pass
 
-# EVOLVE-BLOCK-START
-def advanced_algo():
-    # LLMs will mutate this region
-    return 0.0, ""
-# EVOLVE-BLOCK-END
-
-def run_experiment(random_seed: int | None = None, **kwargs):
-    """Entry point called by evaluator."""
-    if random_seed is not None:
-        random.seed(random_seed)
-    return advanced_algo()
+# Verify API key
+import os
+assert os.environ.get("GEMINI_API_KEY"), "Set GEMINI_API_KEY env var first"
 ```
 
-### Template: evaluate.py
+If `shinka` is missing, install via `uv add shinka-evolve numpy pandas yfinance`.
+If `GEMINI_API_KEY` is not set, stop and tell the user how to set it (see above).
+
+### Step 2: Create task directory
+
+Create a folder in the user's project (e.g. `shinka_trading_task/`) containing:
+
+| File | Source |
+|------|--------|
+| `evaluate.py` | Adapt from template in [reference.md](reference.md) § evaluate.py |
+| `initial.py` | Adapt from template in [reference.md](reference.md) § initial.py |
+
+Read `reference.md` in this skill folder for the **full templates** with inline
+comments. Adapt to the user's data (ticker, date range, features).
+
+### Step 3: Configure evolution
+
+Default config (override per user request):
+
+| Parameter | Default | Notes |
+|-----------|---------|-------|
+| `num_generations` | 50 | Quick test: 20; thorough: 100+ |
+| `max_evaluation_jobs` | 2 | Parallel local evaluations |
+| `max_proposal_jobs` | 2 | Parallel LLM proposals |
+| `max_api_costs` | 5.0 | USD budget cap; **warn if user removes** |
+| `llm_models` | `["gemini-2.0-flash"]` | Adjust to user's available models |
+| `fee_bps` | 1.0 | Transaction cost in basis points |
+| `train_split` | 0.7 | 70% train / 30% test chronological |
+
+### Step 4: Run evolution
+
+```bash
+shinka_run \
+    --task-dir shinka_trading_task \
+    --results_dir results/trading_evo \
+    --num_generations 50 \
+    --max-evaluation-jobs 2
+```
+
+Or use the Python API:
+
 ```python
-from shinka.core import run_shinka_eval
+from shinka.core import ShinkaEvolveRunner, EvolutionConfig
+from shinka.database import DatabaseConfig
+from shinka.launch import LocalJobConfig
 
-def main(program_path: str, results_dir: str):
-    metrics, correct, err = run_shinka_eval(
-        program_path=program_path,
-        results_dir=results_dir,
-        experiment_fn_name="run_experiment",
-        num_runs=3,
-        get_experiment_kwargs=get_kwargs,
-        aggregate_metrics_fn=aggregate_fn,
-        validate_fn=validate_fn,
-    )
+job = LocalJobConfig(
+    eval_program_path="evaluate.py",
+    activate_script=".venv/Scripts/activate",  # Windows
+)
+runner = ShinkaEvolveRunner(
+    evo_config=EvolutionConfig(
+        init_program_path="initial.py",
+        llm_models=["gemini-2.0-flash"],
+        max_api_costs=5.0,
+    ),
+    job_config=job,
+    db_config=DatabaseConfig(),
+    max_evaluation_jobs=2,
+    max_proposal_jobs=2,
+    max_db_workers=2,
+)
+runner.run()
 ```
 
----
+On Linux/macOS change `activate_script` to `.venv/bin/activate`.
 
-## Convert Workflow
+### Step 5: Inspect results
 
-Turn existing code into a Shinka-ready task directory.
+After evolution completes, run the bundled inspection script:
 
-### Steps
-
-1. **Inspect the codebase**: Identify language, entrypoints, and the function/region to optimize.
-
-2. **Create sidecar directory**: `.\shinka_task\` — copy only the minimal runnable snapshot.
-   ```powershell
-   New-Item -ItemType Directory -Force .\shinka_task
-   ```
-
-3. **Create `initial.py`** in the sidecar: Extract the target code, wrap it with `EVOLVE-BLOCK-START` / `EVOLVE-BLOCK-END` markers, and expose a `run_experiment(**kwargs)` entry point.
-
-4. **Create `evaluate.py`**: Use the Python module path (preferred) or subprocess path for non-Python code.
-
-5. **Copy config files**:
-   ```powershell
-   $skillDir = "$env:USERPROFILE\.claude\skills\shinka-evolve"
-   Copy-Item "$skillDir\scripts\shinka.yaml" .\shinka_task\
-   Copy-Item "$skillDir\.env" .\shinka_task\
-   ```
-
-6. **Smoke test**:
-   ```powershell
-   uv run python "$skillDir\scripts\smoke_test.py" --task-dir .\shinka_task
-   ```
-
-7. **Ask user**: Proceed to [Run Workflow](#run-workflow)?
-
-### Conversion rules
-- Keep evolve region tight — don't make the whole project mutable
-- Preserve correctness checks outside the evolve region
-- Python: prefer `run_shinka_eval` path over subprocess
-- Non-Python: use subprocess in `evaluate.py`, write `metrics.json` + `correct.json`
-
----
-
-## Run Workflow
-
-Launch async evolution batches with human-in-the-loop control.
-
-### Before first batch
-1. Confirm task directory has `evaluate.py` + `initial.py`
-2. Run [Pre-flight](#pre-flight-required-before-any-run) checks
-3. Confirm run config with user:
-   - Generation count (default: 50)
-   - Budget cap (default: $5)
-   - Models (default: gemini-2.5-flash-preview + gemini-2.5-pro-preview)
-   - Concurrency (default: 2 eval / 2 proposal)
-
-### Launch
-
-```powershell
-shinka_run `
-  --task-dir .\my_task `
-  --results_dir .\my_task\results `
-  --num_generations 50 `
-  --set "evo.llm_models=[""gemini-2.5-flash-preview"",""gemini-2.5-pro-preview""]" `
-  --set "evo.embedding_model=null" `
-  --set "evo.max_api_costs=5.0" `
-  --set "db.num_islands=2" `
-  --max-evaluation-jobs 2 `
-  --max-proposal-jobs 2 `
-  --max-db-workers 4
+```bash
+uv run python path/to/this/skill/scripts/inspect_best.py \
+    --results_dir results/trading_evo
 ```
 
-For long/multiline system prompts, use a config file instead of shell escaping:
-```powershell
-shinka_run `
-  --task-dir .\my_task `
-  --config-fname shinka.yaml `
-  --results_dir .\my_task\results `
-  --num_generations 50
+Or just read the best program from `results/trading_evo/` and re-run it on the
+test set to print a tearsheet.
+
+## Fitness Design
+
+`combined_score` in `aggregate_metrics_fn` (higher = better):
+
+```
+combined_score = train_sharpe
+               + 0.15 * test_sharpe
+               - 0.05 * mean_turnover * 100
+               - 0.25 * max(0, -train_max_dd)
+               - 0.50 * max(0, train_sharpe - test_sharpe - 1.0)
 ```
 
-### Between batches (required)
-1. Summarize results from the finished batch (scores, improvements, failures)
-2. Ask user: "What new directions should we push next batch? Include algorithm ideas, constraints, and failure modes to avoid."
-3. Turn feedback into a revised `evo.task_sys_msg` for the next batch
-4. Keep the same `--results_dir` for continuation batches
-5. Do NOT start the next batch until user confirms
+The last term is a **train-test gap penalty**: if train Sharpe exceeds test
+Sharpe by more than 1.0, the score is penalized, discouraging overfitting.
 
-### After final batch
-Proceed to [Inspect Workflow](#inspect-workflow).
+## Validation Rules
 
-### Optional: WebUI monitoring
-```powershell
-shinka_visualize --port 8888 --open
-```
+`validate_fn` rejects candidates that:
+- Return NaN or non-finite Sharpe
+- Have fewer than 20 train data points
+- Crash or raise exceptions during evaluation
 
----
+## Data Fallback Order
 
-## Inspect Workflow
+1. **User-provided CSV** (preferred)
+2. **yfinance** download for a given ticker + date range
+3. **Synthetic random walk** (deterministic seed, works offline)
 
-Extract top programs from a completed run.
+## Key Constraints
 
-### Steps
+- **NEVER** store, print, log, or echo API keys
+- **NEVER** remove `max_api_costs` without explicit user confirmation
+- **NEVER** use test data inside `combined_score` as the primary metric
+- **ALWAYS** apply `shift(1)` to positions before computing returns (no lookahead)
+- **ALWAYS** include transaction costs in simulated PnL
+- Pin `shinka-evolve>=0.0.4` in requirements
 
-1. Confirm results exist:
-   ```powershell
-   Get-ChildItem .\my_task\results
-   ```
+## Upgrade Paths (document for user, don't implement by default)
 
-2. Generate context bundle:
-   ```powershell
-   $skillDir = "$env:USERPROFILE\.claude\skills\shinka-evolve"
-   uv run python "$skillDir\scripts\inspect_best.py" `
-     --results-dir .\my_task\results `
-     --k 5
-   ```
+- Walk-forward or purged k-fold CV instead of simple 70/30
+- Slippage model (spread + market impact) instead of flat bps
+- Multi-asset / portfolio-level evolution
+- Ensemble of multiple LLM providers (Gemini + OpenAI)
 
-3. Read and present the output:
-   ```powershell
-   Get-Content .\my_task\results\shinka_inspect_context.md
-   ```
+## References
 
-4. Summarize top programs for the user with scores, key code changes, and text feedback.
-
-### Tuning knobs
-- `--k 8` — more programs
-- `--max-code-chars 5000` — longer code snippets
-- `--min-generation 10` — skip early generations
-- `--no-include-feedback` — omit text feedback
-
----
-
-## Quick Install
-
-```powershell
-uv pip install shinka-evolve
-uv run python -c "import shinka; print(shinka.__version__)"
-```
-
-## Additional resources
-- Full config parameter tables: [reference.md](reference.md)
-- Repo and docs: https://github.com/SakanaAI/ShinkaEvolve
-- Getting started guide: https://sakanaai.github.io/ShinkaEvolve/getting_started/
-
-## Notes
-- Higher `combined_score` = better performance (maximization)
-- Model names are subject to Google renaming — always verify via `shinka_models`
-- Budget cap (`max_api_costs`) stops new proposals at the cap; in-flight jobs finish
-- Evolve markers: `# EVOLVE-BLOCK-START` / `# EVOLVE-BLOCK-END` (Python)
-- `.env` propagation: shinka reads CWD/.env, NOT the skill folder — always copy or set env var
+- Full code templates: [reference.md](reference.md)
+- Post-evolution script: [scripts/inspect_best.py](scripts/inspect_best.py)
+- API key template: [.env.example](.env.example)
+- Upstream docs: https://sakanaai.github.io/ShinkaEvolve/getting_started/
+- Upstream repo: https://github.com/SakanaAI/ShinkaEvolve
