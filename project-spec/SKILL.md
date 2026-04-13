@@ -1,6 +1,6 @@
 ---
 name: project-spec
-description: "Interview the user in-depth about their project, asking detailed questions to create a comprehensive project specification and implementation roadmap. Spec-only — stops after writing project-spec.md and project-constitution.md; does not execute implementation. Only use when explicitly called with /project-spec."
+description: "Interview the user in-depth about their project, asking detailed questions to create a comprehensive project specification and implementation roadmap. Runs /recursive-refine as the final quality gate, then requires explicit user permission before any implementation begins. Only use when explicitly called with /project-spec."
 ---
 
 # Create Project Specification
@@ -116,7 +116,32 @@ Use the `file` tool to write the **refined** specification to two files in the p
 </project_specification>
 ```
 
-**Exit Condition:** After writing both files, use the `shell` tool to run `ls -la` to verify they exist. Then use the `message` tool to tell the user the spec is complete. **STOP HERE.** Do not offer or execute Phase 8. The workflow ends with the delivered specification.
+**Exit Condition:** After writing both files, use the `shell` tool to run `ls -la` to verify they exist. Then proceed to Phase 8.
+
+## Phase 8: Implementation Permission Gate (MANDATORY)
+
+**This phase is a hard gate. Implementation MUST NOT begin without explicit user approval.**
+
+After the specification files are written, present the user with a summary:
+
+1. Confirm both `project-spec.md` and `project-constitution.md` have been written and passed `/recursive-refine`.
+2. Display the final scorecards from Phase 6 (if not already shown).
+3. Summarize the approved roadmap phases in a numbered list.
+
+Then ask the user explicitly:
+
+> **The specification is complete and has passed all quality gates via /recursive-refine.**
+>
+> **Before I begin implementation, I need your explicit permission.**
+> Reply **"proceed"** to start implementation, **"revise"** to make changes to the spec first, or **"stop"** to end here without implementing.
+
+**Rules:**
+- **NEVER** begin writing implementation code, creating source files, installing dependencies, or scaffolding the project until the user replies "proceed" (or an unambiguous equivalent).
+- If the user says "revise", ask what they want changed, update the spec files, re-run `/recursive-refine` on the changed document(s), and return to this gate.
+- If the user says "stop", confirm the spec is saved and end the workflow.
+- If the user's reply is ambiguous, ask for clarification — do not assume permission.
+
+**Exit Condition:** The workflow ends here unless the user explicitly grants implementation permission. This is the final step of `/project-spec`.
 
 ---
 
