@@ -70,6 +70,8 @@ The Method tab fields are **read-only while any trained model exists**. To chang
 
 **Ensemble (Small Cap Alpha):** LightGBM (ranking) + ExtraTrees (buy filter). LightGBM finds patterns; ExtraTrees gates quality.
 
+**Model ensembling (prediction averaging):** Distinct from the buy-filter ensemble above — this pattern averages the raw prediction scores of LightGBM and ExtraTrees into a single composite. LightGBM fixes residuals (sharp, carries overfitting risk); ExtraTrees averages random trees (rounder, often more stable). Averaging their predictions combines strengths: reduce blow-ups while still aiming for upside.
+
 ### LightGBM Learning Logic: How It Works
 
 LightGBM uses **histogram binning**: instead of searching infinite real-valued split thresholds, it rounds continuous features (e.g., ROE) into ~255 bins. Each stock's feature value becomes a bin index. Split search becomes finite: "which bin boundary reduces loss most?" using precomputed bin-level gradient aggregates.
@@ -114,6 +116,24 @@ Even with random candidates, splits that separate groups with meaningfully diffe
 **Contrast with LightGBM:**
 - LightGBM: searches for the split that reduces loss the most — **"make each tree smart"**
 - ExtraTrees: generates split candidates randomly and builds many different trees — **"one tree can be rough; win by quantity"**
+
+**Why averaging cancels blow-ups (the core strength):**
+Tree 1 might slightly overshoot upward because of one boundary, Tree 2 downward because of another, Tree 3 drifts in yet another direction. When the deviation directions differ across trees, the final average makes them cancel out. This dilutes any single tree's roughness → predictions become more stable (variance goes down). More trees = more directional diversity = more cancellation.
+
+**Why ExtraTrees can outperform LightGBM in stock markets:**
+LightGBM's sharpness (see Overfitting Risk above) means it can produce "confident misses" in crash months — picking up past noise as signal. ExtraTrees does not try to nail the target with a single tree; it stabilizes by averaging → "less sharpness, but fewer blow-ups." In stock markets, the operational value of "milder ways of missing" can exceed "strong ability to force a hit" — that is where ExtraTrees looks stronger.
+
+**RMSE interpretation warning (critical for ranking-based strategies):**
+RMSE measures how far predictions deviate from realized values and penalizes big misses (quadratic penalty). Good RMSE = "good at hitting the numeric value (3MRel%)." But in operation, we buy the top-ranked names — what we need is **ranking ability**, not regression accuracy. Even with good RMSE, if the Top 10% is weak, the strategy won't win. Even with somewhat worse RMSE, if the Top 10% is strong and stable, the strategy has high operational value. ExtraTrees often shows value here: a more stable Top 10% even when its RMSE is not the best. (See also Evaluation Diagnostics Checklist item 8 below.)
+
+**Practical evaluation metric set for ExtraTrees:**
+| Metric | What It Measures |
+|--------|------------------|
+| RMSE | Regression accuracy — ability to hit the numeric value |
+| Top 10% average 3MRel / hit rate | Operational "hits" — ranking performance where it matters |
+| Decile performance | Whether the ranking works cleanly (higher deciles should outperform lower) |
+
+Use all three together; no single metric tells the full story.
 
 **Practical consequence for P123:**
 ExtraTrees is harder to overfit because no tree is optimizing to past data. High `n_estimators` (e.g., 600) matters — more trees = more diversity in the average = more stable out-of-sample prediction.

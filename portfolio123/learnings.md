@@ -452,3 +452,198 @@ Where MODEL_DISPLAY_NAME = the name shown in the Validation → Models tab (not 
 - First Half (2017–2021): Bucket 20 = 21.83%
 - Second Half (2021–2025): Bucket 20 = 2.99%
 **Action:** Promoted to ai-factor-guide.md as new section "Full Pipeline: AI Factor to Ranking System Backtest"
+
+---
+id: LEARN-20260413-001
+type: browser_selector
+confidence: high
+confirmations: 1
+promoted: true
+source: P123 TAA ETF strategy search — 2026-04-13
+---
+**Context:** Editing buy rules in a P123 simulated strategy wizard (edit mode)
+**Discovery:** `port_simul3.jsp` AJAX calls via `jsPort.loadPortTab()` do **NOT** persist buy rule changes to the database. The server re-renders the tab using submitted form data but the underlying saved strategy remains unchanged. Verified by: navigating away and back — the old values reappear. The only mechanism that actually saves buy rule changes is submitting the form to `port_sim_go.jsp` via `jsPort.run()`.
+**Action:** Promoted to browser-workflows.md (P123 Wizard Save Mechanism section)
+
+---
+id: LEARN-20260413-002
+type: browser_selector
+confidence: high
+confirmations: 1
+promoted: true
+source: P123 TAA ETF strategy search — 2026-04-13
+---
+**Context:** Inserting double-quoted strings into P123 formula textareas via CDP
+**Discovery:** The `type` command in `cdp.mjs` (and `Input.insertText` via CDP) strips double-quote characters when passed through PowerShell string arguments. Workaround: construct the string in JavaScript using `String.fromCharCode(34)` for each double-quote character, then call `document.execCommand('insertText', false, formula)`. This is the ONLY reliable way to insert quoted strings into P123's formula textareas.
+
+```javascript
+var q = String.fromCharCode(34);
+var formula = 'Ticker(' + q + 'SPY,IWM,...,USMV' + q + ')';
+document.execCommand('insertText', false, formula);
+```
+**Action:** Promoted to browser-workflows.md (CDP Double-Quote Workaround section)
+
+---
+id: LEARN-20260413-003
+type: browser_selector
+confidence: high
+confirmations: 1
+promoted: true
+source: P123 TAA ETF strategy search — 2026-04-13
+---
+**Context:** Editing buy rule textareas in P123 wizard (controlled by JavaScript framework)
+**Discovery:** P123's formula textareas are controlled by a JavaScript framework (React/jQuery). Direct DOM manipulation (`ta.value = x`, native setter + `dispatchEvent`) does NOT reliably persist. `document.execCommand('insertText', false, text)` DOES work when the textarea is focused via a real click (`cdp.mjs clickxy`) immediately before — it triggers the framework's input event handlers. Critical sequence:
+1. `node cdp.mjs clickxy <tab> <cx> <cy>` — physically focus the textarea
+2. `node cdp.mjs eval <tab> "ta.focus(); ta.select();"` — select all
+3. `node cdp.mjs eval <tab> "document.execCommand('insertText', false, text);"` — insert
+
+Do NOT use `cdp.mjs type` for strings containing double quotes — they get stripped.
+**Action:** Promoted to browser-workflows.md (CDP Formula Textarea Editing section)
+
+---
+id: LEARN-20260413-004
+type: browser_selector
+confidence: high
+confirmations: 1
+promoted: true
+source: P123 TAA ETF strategy search — 2026-04-13
+---
+**Context:** P123 wizard save + run mechanism (strategy edit mode)
+**Discovery:** `jsPort.run(Date.now(), true)` is the correct call to save AND run a P123 simulation. It:
+1. Skips the component properties naming modal (skip=true)
+2. Changes form action to `port_sim_go.jsp?{timestamp}`
+3. Calls `verifyInputs()` to check for formula errors
+4. Submits the full form — this is the only actual database save in the wizard
+
+Workflow for editing and saving a strategy via CDP:
+```javascript
+// 1. Fix formula via execCommand (see LEARN-20260413-003)
+// 2. Verify the value is correct
+var ta = document.querySelector('textarea[name=buyruleformula_0]');
+console.log(ta.value); // Must show the correct formula
+
+// 3. Save + run
+jsPort.run(Date.now(), true);
+```
+Then wait ~10s and screenshot — the page will navigate to `port_summary.jsp?portid=XXX` on success, or show an error inline.
+**Action:** Promoted to browser-workflows.md (P123 Wizard Save Mechanism section)
+
+---
+id: LEARN-20260413-005
+type: browser_selector
+confidence: high
+confirmations: 1
+promoted: true
+source: P123 TAA ETF strategy search — 2026-04-13
+---
+**Context:** Chrome CDP connection blocked by P123 delete confirm dialog
+**Discovery:** Clicking the X (cut/delete) icon on P123 buy/sell rules triggers a native JavaScript `confirm()` dialog ("Are you sure?"). This dialog BLOCKS the Chrome DevTools Protocol thread, causing ALL subsequent CDP commands (`shot`, `eval`, `list`) to hang indefinitely. The hang persists even after killing Node.js processes. The Chrome debugging port becomes unresponsive.
+
+Fix: manually click OK/Cancel in the Chrome browser window to dismiss the dialog, then CDP reconnects.
+
+Prevention: avoid clicking delete icons on P123 formula rows via CDP. Use `jsPort.filterDeleteElem(index)` programmatically instead of triggering the UI delete:
+```javascript
+// Safe: delete rule at index 0 without triggering confirm dialog
+jsPort.filterDeleteElem(0); // Returns the old index; does not show confirm
+```
+**Action:** Promoted to browser-workflows.md (Known platform quirks section)
+
+---
+id: LEARN-20260413-006
+type: browser_selector
+confidence: high
+confirmations: 1
+promoted: true
+source: P123 TAA ETF strategy search — 2026-04-13
+---
+**Context:** P123 wizard JavaScript API methods discovered via introspection
+**Discovery:** The P123 strategy wizard exposes a `jsPort` global object with the following key methods (complete list via `Object.getOwnPropertyNames(jsPort).filter(k=>typeof jsPort[k]==='function')`):
+
+| Method | Purpose |
+|--------|---------|
+| `jsPort.run(msec, skip)` | Save + run simulation. `skip=true` skips naming modal |
+| `jsPort.loadPortTab()` | AJAX reload current tab (does NOT save to DB) |
+| `jsPort.saveChanges()` | Attempts to save — causes Internal Server Error, do NOT use |
+| `jsPort.filterInsert(type, name, formula)` | Add a new rule (type 0=buy, 1=sell) |
+| `jsPort.filterDeleteElem(index)` | Delete rule at index WITHOUT a confirm dialog |
+| `jsPort.showTextEditor(...)` | Open text editor view |
+| `jsPort.verifyInputs()` | Validate all formulas — returns false if any error |
+| `jsPort.switchTab(tabId)` | Switch wizard tab (does not save) |
+| `jsPort.goToTab(tabId)` | Navigate to a tab |
+| `jsPort.selectedTab` | Current tab number (3=Buy, 4=Sell, etc.) |
+| `jsPort.TAB_BUY`, `jsPort.TAB_SELL` | Tab constants (3, 4, ...) |
+
+**Action:** Promoted to browser-workflows.md (jsPort API Reference section)
+
+---
+id: LEARN-20260413-007
+type: strategy_insight
+confidence: high
+confirmations: 1
+promoted: true
+source: P123 TAA ETF strategy search — 2026-04-13
+---
+**Context:** ETF-only TAA strategy performance over 2006–2026
+**Discovery:** For ETF-only TAA strategies over the 2006–2026 period (covering 2008 GFC and 2020 COVID crash), the realistic performance frontier is:
+- **CAGR:** 8–12% (best momentum-based rotation)
+- **Max Drawdown:** -40% to -55% (equity ETF exposure)
+- **Calmar Ratio:** 0.15–0.30
+- **Sharpe:** 0.5–0.8
+
+Targets of CAGR >15% AND Calmar >1 simultaneously are **structurally infeasible** for ETF-only TAA from 2006 (requires MaxDD < 15% at 15% CAGR — impossible while holding equity ETFs through 2008). If both targets must be met: (a) restrict to post-GFC period (2010+), (b) allow individual stocks, or (c) relax to 12% CAGR + Calmar >0.5.
+**Action:** Promoted to case-studies.md (ETF TAA Feasibility Benchmarks section)
+
+---
+id: LEARN-20260413-008
+type: strategy_insight
+confidence: high
+confirmations: 1
+promoted: true
+source: P123 TAA ETF strategy search — 2026-04-13
+---
+**Context:** screen_backtest (Tier 3) vs native simulation (Tier 2) discrepancy for ETF strategies
+**Discovery:** For ETF momentum TAA strategies, `screen_backtest` showed ~3.25% CAGR (Tier 3), but the same strategy in P123 native simulation showed **10.36% CAGR** (Tier 2) — a **3x underestimation** by screen_backtest. This is opposite to the typical stock strategy pattern where screen_backtest *overstates* CAGR.
+
+Explanation: `screen_backtest` for ETF TAA only backtests the "screen" (buy-side filter), typically returning the single best-ranked ETF per period — it is not running a portfolio simulation. The native simulation holds N positions simultaneously, rebalances via ranking, and compounds correctly. The Tier 3 haircut of 30-40% is calibrated for *stock* strategies and should NOT be applied mechanically to ETF TAA.
+
+**Rule:** For ETF rotation strategies, use Tier 2 (native simulation) directly. Do not use Tier 3 screen_backtest results as estimates for ETF TAA performance — they will dramatically underestimate (not overestimate) the strategy.
+**Action:** Promoted to strategy-validation.md (ETF TAA Exception section) and api-reference.md warning
+
+---
+id: LEARN-20260413-009
+type: strategy_insight
+confidence: high
+confirmations: 1
+promoted: true
+source: P123 TAA ETF strategy search — 2026-04-13
+---
+**Context:** P123 wizard ranking system selection for ETF strategies
+**Discovery:** P123's strategy creation wizard does NOT support custom formula ranking for ETF simulated strategies. The "Universe & Ranking" tab only shows built-in ranking systems from the dropdown. You cannot use `Ret%Chg(63)/ATR(63)` (risk-adjusted momentum) as a ranking formula inline.
+
+Workarounds (in order of complexity):
+1. **Create a custom Ranking System** separately (RESEARCH → Ranking Systems → New), encode the formula there, then select it in the wizard's ranking dropdown
+2. **Use the closest built-in:** "Price Uptrend - Basic" for short-term momentum, "ETF Rotation - Basic" for 12-month momentum
+3. **Encode via Buy Rules** — use a buy rule like `Rank > 80` with a pre-created ranking system to approximate the formula
+
+Note: "Price Uptrend - Basic" uses 60-day price change + EMA/SMA ratio — it lacks ATR normalization. This increases allocation to high-volatility ETFs during stress periods, worsening drawdowns.
+**Action:** Promoted to browser-workflows.md (ETF Ranking System Limitation section) and strategy-templates.md
+
+---
+id: LEARN-20260414-001
+type: hyperparameter
+confidence: high
+confirmations: 1
+promoted: true
+source: AI-Driven Quant Investment Strategies Substack #37 — "Visualizing the Learning Logic #7: Extra Trees (3/3)"
+---
+**Context:** ExtraTrees learning logic — why averaging works, when it beats LightGBM, and how to evaluate it correctly
+**Discovery:** Three key insights from the final ExtraTrees learning logic post:
+
+1. **Averaging cancels directional blow-ups:** Each tree overshoots in a different direction due to random feature selection and random thresholds. When deviation directions differ across trees, the average cancels them out — roughness of any single tree is absorbed. More trees = more directional diversity = more cancellation = lower variance.
+
+2. **ExtraTrees can outperform LightGBM in noisy markets:** LightGBM "smartly" picks up past noise → "confident misses" in crash months. ExtraTrees doesn't try to nail the target with one tree; it stabilizes by averaging → "less sharpness, but fewer blow-ups." In stock markets, operational value of "milder ways of missing" can exceed "strong ability to force a hit."
+
+3. **RMSE alone is misleading for ranking-based strategies:** Good RMSE = good at hitting the numeric value (3MRel%), but in operation we buy top-ranked names — what matters is ranking ability. Even with good RMSE, if Top 10% is weak, strategy won't win. Even with worse RMSE, if Top 10% is strong and stable, high operational value. Evaluate ExtraTrees with a metric set: RMSE (regression accuracy) + Top 10% average 3MRel / hit rate (ranking performance) + Decile performance (whether ranking works cleanly).
+
+**Complementarity note:** LightGBM fixes residuals (sharp, overfitting risk); ExtraTrees averages random trees (rounder, more stable). Common real-world workflow: average predictions of both models (model ensembling) to reduce blow-ups while still aiming for upside.
+**Action:** Promoted to ai-factor-guide.md (ExtraTrees Learning Logic — 3 new subsections + ensemble note)

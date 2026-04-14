@@ -60,9 +60,9 @@ Automate every supported Portfolio123 workflow: API data collection, ranking sys
 5. **Credits:** Check quotaRemaining before expensive ops. Warn at 80% and 95% consumption.
 6. **GUI vs XML:** Try GUI first for ranking systems; fall back to raw XML editor after 2 failures.
 7. **Factor discovery:** Always use `doc_detail.jsp?factor=[NAME]` to validate factor names — never guess.
-8. **Screen backtest is Tier 3 only:** `screen_backtest` is buy-side-only — overstates CAGR by 30–40%, Sharpe by 50%+. See `api-reference.md` for details.
+8. **Screen backtest is Tier 3 only:** `screen_backtest` is buy-side-only — does not include sell rules, position-level execution, or cash drag. See `api-reference.md` for details.
 9. **No local substitute backtesting:** NEVER use a custom Python backtester as a substitute for P123's native engine. See `strategy-templates.md` Validation Hierarchy blockquote.
-10. **Mandatory native validation:** Before reporting ANY performance numbers to the user, validate via native P123 simulation. Present Tier 3/4 results only with explicit disclaimer: "ESTIMATED (Tier 3) — screen backtests typically overstate CAGR by 30–40% and Sharpe by 50%+."
+10. **Mandatory native validation:** Before reporting ANY performance numbers to the user, validate via native P123 simulation. Label Tier 3/4 results as "ESTIMATED (Tier 3)" or "ESTIMATED (Tier 4)" in both experiment log AND user-facing messages.
 11. **Portfolio math:** NEVER use weighted-average CAGR or max drawdown. Compute weighted return series first. Label all local estimates as "ESTIMATED (Tier 3/4)" in both experiment log AND user-facing messages.
 
 ## Validation Hierarchy
@@ -78,7 +78,7 @@ Automate every supported Portfolio123 workflow: API data collection, ranking sys
 
 - Never declare targets met based on Tier 3 or Tier 4 alone. Escalate to Tier 1 before reporting.
 - If Tier 1 is unavailable (browser fails), use Tier 2 with explicit disclaimer to user.
-- When user explicitly requests Tier 3 results, comply but ALWAYS append: "ESTIMATED (Tier 3) — screen backtests typically overstate CAGR by 30–40% and Sharpe by 50%+."
+- When user explicitly requests Tier 3 results, comply but ALWAYS label as "ESTIMATED (Tier 3)".
 
 ## Quick Reference Links
 

@@ -97,9 +97,9 @@ All Strategy Book performance claims MUST be validated on the native P123 platfo
 
 | Source of Error | Typical Impact |
 |---|---|
-| Screen backtest vs. simulated strategy | CAGR overstated 30–40%, Sharpe overstated 50%+ |
-| Local Python ETF model vs. P123 native ETF sim | CAGR overstated 100–200% |
-| Weighted-average portfolio math vs. native book | Sharpe overstated 50–90% |
+| Screen backtest vs. simulated strategy | Results differ — screen is buy-side-only |
+| Local Python ETF model vs. P123 native ETF sim | Look-ahead bias, zero transaction costs |
+| Weighted-average portfolio math vs. native book | Mathematically incorrect — use weighted return series |
 | Cross-engine correlation artifacts | Diversification bonus inflated |
 
 ## GUI-First, XML Fallback
@@ -122,11 +122,84 @@ Pipeline pauses until user types `done`.
 
 Periodically verify key pages load: Login, RESEARCH, Ranking Systems, Simulated Strategies, Books. If expected elements missing, flag possible P123 UI change.
 
+
+## P123 Wizard Save Mechanism (Critical)
+
+**CRITICAL:** `jsPort.loadPortTab()` and AJAX calls to `port_simul3.jsp` do **NOT** persist changes to the database. They only re-render the current tab. Navigating away discards all changes.
+
+The **only** reliable save in the strategy wizard is submitting the full form to `port_sim_go.jsp` via `jsPort.run()`:
+
+```javascript
+// After setting formulas via execCommand (see CDP Formula Editing below):
+jsPort.run(Date.now(), true); // true = skip naming modal
+// Page navigates to port_summary.jsp on success, or shows inline error
+```
+
+After calling `jsPort.run()`, wait 8-12 seconds before checking results. A successful save+run redirects to the strategy summary page. An inline error means a formula was rejected.
+
+## jsPort API Reference (Strategy Wizard)
+
+The P123 wizard exposes a `jsPort` global with these key methods (validated 2026-04-13):
+
+| Method | Purpose |
+|--------|---------|
+| `jsPort.run(msec, skip)` | Save + run simulation. `skip=true` skips naming modal. **This is the only real save.** |
+| `jsPort.loadPortTab()` | AJAX reload current tab (re-renders only, does NOT save to DB) |
+| `jsPort.filterInsert(type, name, formula)` | Add a new rule (type 0=buy, 1=sell) |
+| `jsPort.filterDeleteElem(index)` | Delete rule at index WITHOUT triggering a confirm dialog |
+| `jsPort.showTextEditor(...)` | Open text editor view |
+| `jsPort.verifyInputs()` | Validate all formulas - returns false if any error |
+| `jsPort.switchTab(tabId)` | Switch wizard tab |
+
+Get full list: `Object.getOwnPropertyNames(jsPort).filter(k=>typeof jsPort[k]==='function')`
+
+## CDP Formula Textarea Editing
+
+P123 formula textareas are controlled by a JavaScript framework. Direct `.value` setters do NOT persist reliably. Use `execCommand('insertText')` instead:
+
+```javascript
+// 1. Physically focus the textarea first (cdp.mjs clickxy on the field)
+// 2. Select all and insert new formula
+var ta = document.querySelector('textarea[name=buyruleformula_0]');
+ta.focus();
+ta.select();
+// 3. Build quoted strings using String.fromCharCode(34) - never rely on shell quoting
+var q = String.fromCharCode(34);
+var formula = 'Ticker(' + q + 'SPY,IWM,EFA,EEM,TLT,IEF' + q + ')';
+document.execCommand('insertText', false, formula);
+// 4. Verify before running
+console.log(ta.value);
+```
+
+**Never use `cdp.mjs type` for strings with double quotes** - PowerShell strips them. Always construct quoted strings via `String.fromCharCode(34)`.
+
+## jsPort.filterDeleteElem vs UI Delete Button
+
+**Never click the X/delete icon on buy/sell rules via CDP.** It triggers a native `confirm()` dialog that **blocks the CDP thread** indefinitely. To safely delete a rule:
+
+```javascript
+jsPort.filterDeleteElem(0); // Delete buy rule at index 0 - no dialog
+```
+
+If a CDP session becomes blocked (all commands hang): manually click OK in Chrome's confirm dialog to unblock, then kill the Node.js process and restart `cdp.mjs list`.
+
+## ETF Ranking System Limitation
+
+P123's strategy wizard does **not** support inline custom ranking formulas for ETF strategies. The wizard only shows built-in ranking system options.
+
+**Workaround options:**
+1. Create a **custom Ranking System** separately (RESEARCH -> Ranking Systems -> New), then select it in the wizard dropdown
+2. Best built-in proxies: **"Price Uptrend - Basic"** = short-term momentum (no ATR normalization); **"ETF Rotation - Basic"** = 12-month momentum
+3. "Price Uptrend - Basic" **lacks ATR normalization** - concentrates in high-volatility ETFs during stress, worsening max drawdown vs risk-adjusted momentum
+
 ## Known platform quirks (from vault iteration notes)
 
 - **Long backtest period reset:** Strategy wizard (`port_wiz.jsp`) may **revert** the simulation period to a **short default** (e.g. ~1 year) when **Run Simulation** is triggered, even after selecting a long start date. **Workaround:** set period to **MAX** (or desired range) again immediately before run; or verify metrics via **API** (`screen_backtest` / strategy endpoints) which does not hit this UI bug.
 - **Ranking wizard lag:** “Edit Details” / selection UI may **timeout**—use **simulation dialog** for naming, or **raw XML** for ranking edits (see GUI-First, XML Fallback).
 - **Selenium / browser automation:** Prefer **60s** timeouts, **explicit wait** after navigation (AJAX), and **raw XML** when “Add Node” spins indefinitely.
+- **confirm() dialog blocks CDP:** Native `confirm()` dialogs (triggered by delete icons) block CDP thread completely. All commands hang until dismissed manually in Chrome. Use `jsPort.filterDeleteElem(index)` to avoid triggering them.
+- **`jsPort.saveChanges()` is broken:** Throws Internal Server Error. Use `jsPort.run(Date.now(), true)` instead.
+- **`loadPortTab()` is not a save:** Re-renders the tab but does NOT write to the database. Only `jsPort.run()` saves.
 
 ## Naming Convention
 

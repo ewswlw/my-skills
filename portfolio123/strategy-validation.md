@@ -20,6 +20,33 @@ When two Portfolio123 outputs disagree, assume **different economic assumptions*
 2. **Turnover** from simulation is a **sanity** statistic—extreme turnover + high slippage assumptions = stress-test execution, not “alpha.”
 3. If the user’s vault has practitioner notes, cross-check: `file dump/Portfolio123/Portfolio123 Resources.md` (e.g. Layers of Return, turnover posts).
 
+## ETF TAA Exception — screen_backtest Underestimates (not Overstates)
+
+For **ETF rotation / TAA strategies**, `screen_backtest` behaves opposite to stock strategies:
+
+| Source | Typical stock strategy | ETF TAA strategy |
+|--------|----------------------|------------------|
+| screen_backtest vs native simulation | Overstates CAGR 30-40% | **Understates CAGR ~3x** |
+
+**Reason:** `screen_backtest` applied to an ETF TAA screen returns the single best-ranked ETF per period (the "screen" filter). A proper TAA simulation holds N positions simultaneously and compounds correctly across all holdings. The 30-40% haircut calibrated for stock screens is **wrong** for ETF rotation — it will make strategies look worse than they are.
+
+**Rule:** For ETF rotation strategies, go directly to Tier 2 (native P123 Simulated Strategy). Skip Tier 3 screening entirely, or use it only for relative ranking between candidates — never for absolute CAGR estimates.
+
+**Validated 2026-04-13:** `screen_backtest` returned 3.25% CAGR; native simulation returned 10.36% CAGR for the same 18-ETF momentum strategy.
+
+## ETF TAA Performance Benchmarks (2006-2026)
+
+For ETF-only TAA strategies over 2006–2026 (covering 2008 GFC and 2020 COVID):
+
+| Metric | Realistic range | Notes |
+|--------|----------------|-------|
+| CAGR | 8-12% | Best momentum rotation |
+| Max Drawdown | -40% to -55% | Equity ETF exposure in 2008 |
+| Calmar Ratio | 0.15-0.30 | Structurally constrained |
+| Sharpe | 0.5-0.8 | Net of realistic costs |
+
+**Structural infeasibility alert:** Targets of CAGR >15% AND Calmar >1 simultaneously are **not achievable** for ETF-only TAA over 2006-2026. Achieving Calmar >1 at 15% CAGR requires MaxDD < 15%, which is approximately what a US Treasury-only portfolio achieves — incompatible with 15%+ equity-driven CAGR. If both targets are hard requirements: restrict to post-2010 period, allow individual stocks, or relax targets (e.g., 12% CAGR + Calmar >0.5).
+
 ## Related
 
 - [api-reference.md](api-reference.md) — [UI vs Platform — Rebalancing Semantics](api-reference.md#ui-vs-platform-rebalancing)

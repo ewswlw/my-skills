@@ -3,7 +3,7 @@
 3 proven configs, buy/sell rule library, pipeline definitions, parameter sweep dimensions.
 
 > **All performance reporting is governed by the Validation Hierarchy in SKILL.md.** Key rules:
-> - Screen backtests (API) are Tier 3 — overstate CAGR by 30–40%, Sharpe by 50%+
+> - Screen backtests (API) are Tier 3 — buy-side-only, not equivalent to a full simulation
 > - Local Python models are Tier 4 — implicit look-ahead bias, zero transaction costs
 > - Weighted-average CAGR/max drawdown are mathematically incorrect — compute weighted return series first
 > - Cross-engine correlation (e.g., screen returns vs. local ETF returns) produces artifacts

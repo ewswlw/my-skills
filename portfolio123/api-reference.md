@@ -234,7 +234,7 @@ client.screen_run({'screen': 12345}, True)
 
 ### screen_backtest() — Backtest a screen (5 credits)
 
-> **CRITICAL WARNING:** `screen_backtest` is a **BUY-SIDE-ONLY** backtest. It does NOT include sell rules, position-level execution, cash drag, or realistic slippage modeling. In validated testing (2026-04-05), it overstated CAGR by **30–40%** and Sharpe by **50%+** compared to the same configuration run as a native P123 Simulated Strategy. Max drawdown was understated by 25 percentage points. **NEVER treat screen_backtest results as equivalent to a full strategy simulation.** Use ONLY for rapid candidate screening. See SKILL.md Validation Hierarchy.
+> **NOTE:** `screen_backtest` is a **BUY-SIDE-ONLY** backtest. It does NOT include sell rules, position-level execution, cash drag, or realistic slippage modeling. **Do not treat screen_backtest results as equivalent to a full strategy simulation.** Use for rapid candidate screening; validate with native P123 simulation. See SKILL.md Validation Hierarchy.
 
 ```python
 client.screen_backtest({
