@@ -47,6 +47,34 @@ For ETF-only TAA strategies over 2006–2026 (covering 2008 GFC and 2020 COVID):
 
 **Structural infeasibility alert:** Targets of CAGR >15% AND Calmar >1 simultaneously are **not achievable** for ETF-only TAA over 2006-2026. Achieving Calmar >1 at 15% CAGR requires MaxDD < 15%, which is approximately what a US Treasury-only portfolio achieves — incompatible with 15%+ equity-driven CAGR. If both targets are hard requirements: restrict to post-2010 period, allow individual stocks, or relax targets (e.g., 12% CAGR + Calmar >0.5).
 
+## Sector Attribution Diagnostic
+
+When a strategy has unexpectedly weak sectors or you want to validate whether sector weights are driving returns, use this 4-step workflow.
+
+**Step 1 — Run simulation with save transactions enabled**
+Run or re-run the Simulated Strategy with the "save transactions" option on.
+
+**Step 2 — Navigate to sector realized P&L**
+`Transactions → Realized → Aggregate → By Sector`
+
+**Step 3 — Flag problem sectors**
+Look for sectors where:
+- Average realized return per trade is **below 20%** (weak picks relative to the strategy average), AND
+- Trade count is **high** (the sector is churning without adding value)
+
+Example pattern to flag: Financials with sub-10% average realized return but high trade count = churn trap.
+
+**Step 4 — Cross-check with isolated sector universe test**
+For each flagged sector, build an isolated test:
+- Universe: restrict to **one sector only**
+- Positions: **10 stocks** (lower breadth requires wider tolerance)
+- Rank tolerance: **50%** (wider to accommodate smaller cross-section)
+- Ranking: same system as the main strategy
+
+Compare the isolated Sharpe to the realized-trade attribution. **If they invert** (isolated Sharpe is higher than attributed P&L suggests), the signal comes from **cross-sector rotation**, not single-sector stock picking. Excluding the sector may destroy that rotation benefit.
+
+**Caveat:** Single-path realized attribution can mislead due to regime, timing, and interactions with other sectors. Always cross-check against the isolated universe test before excluding a sector from the universe.
+
 ## Related
 
 - [api-reference.md](api-reference.md) — [UI vs Platform — Rebalancing Semantics](api-reference.md#ui-vs-platform-rebalancing)

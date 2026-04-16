@@ -432,3 +432,50 @@ ConsRec(#Mean) - ConsRec(#Mean, 4) < 0  // lower = more bullish
 | `InstOwnChg%QoQ` | Institutional ownership change QoQ |
 | `ShortInt%` | Short interest as % of float |
 | `ShortIntRatio` | Short interest ratio (days to cover) |
+
+---
+
+## Unverified — Practitioner-Reported Functions
+
+> **Warning:** The functions below were observed in practitioner formulas (Systematic Investing, Substack — Layers of Return series). Their exact syntax has **not** been independently validated against the P123 documentation. Before using in any production ranking system or screen, verify each via `https://www.portfolio123.com/doc/doc_detail.jsp?factor=[NAME]` and test in a screen before relying on the result.
+
+### GetSeries — External Ticker Series
+
+Fetches a time series for an external ticker (e.g., an ETF trading on a US exchange).
+
+```
+GetSeries(`TICKER:EXCHANGE`)
+```
+
+- Used inside other functions to reference market-wide series (e.g., global drawdown via an ETF)
+- Example: `GetSeries(\`VEA:USA\`)` — returns the price series for VEA (Vanguard FTSE Developed Markets ETF)
+- Typically combined with `HighPct_W()` and `FHistMin()` for drawdown-based regime gates
+
+```
+// Global drawdown condition (52-week high drawdown of VEA)
+FHistMin("HighPct_W(52, GetSeries(`VEA:USA`))", 52) < -30
+```
+
+### HighPct_W — Weekly High Percentage
+
+Returns the percentage of the current price relative to the N-week high (i.e., how far from peak).
+
+```
+HighPct_W(bars, series)
+```
+
+- `bars`: lookback in weekly bars (e.g., 52 = 1 year)
+- `series`: price series reference (e.g., result of `GetSeries()`)
+- Returns a negative value when price is below the peak (e.g., -30 means 30% below 52-week high)
+
+### FHistMin — Historical Minimum
+
+Returns the **minimum** value of a formula across sampled historical dates (counterpart to `FHist()` which returns the average).
+
+```
+FHistMin("formula", samples [, weeks_increment])
+```
+
+- **samples**: number of historical observations
+- **weeks_increment**: spacing in weeks (default 13 = quarterly; use 1 for weekly)
+- Example: `FHistMin("HighPct_W(52, GetSeries(\`VEA:USA\`))", 52)` — minimum of the 52-week high drawdown reading over the past 52 weekly samples (i.e., worst drawdown in the past year)

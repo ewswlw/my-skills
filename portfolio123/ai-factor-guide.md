@@ -30,7 +30,7 @@ If the workspace has no vault, rely on **andreas-reference.md**, P123 help, and 
 ## Dataset Preparation
 
 - **Features:** 130-180 sweet spot. Import from ranking systems, Factor Lists, or other AI Factors.
-- **Target:** 3M or 12M total/relative return
+- **Target:** 3M or 12M total/relative return. For **combined multi-month targets**: sum of 1-month + 2-month + 3-month forward returns ("1+2+3MTR" style) — overweight the front month if picks should work immediately and still persist. Match horizon to trading cadence: ~200-400% annual turnover suggests 3-month target is reasonable.
 - **Period:** 2003-2020.06 recommended (avoid 2020-2021 for training — not representative)
 - **Gap:** 52-week gap between training and validation
 
@@ -40,6 +40,8 @@ If the workspace has no vault, rely on **andreas-reference.md**, P123 help, and 
 - **NA handling:** Replace with median
 - **Trim:** 7.5% each side (15% total omitted for distribution stats)
 - **Outlier limit:** **5 sigma default** (not 2.5 sigma). Test up to 10 sigma to confirm optimality. Clipping at 2.5 sigma collapses the signal gradient — the model can no longer distinguish "strong" from "extreme." Fat tails carry signal, not noise.
+
+**Practitioner divergence note:** The settings above are derived from Andreas Himmelreich ("Recipe A: broad/robust"). An alternative practitioner recipe (Systematic Investing, "Recipe B: regional/specialized") uses **2.5% tail trim + 3-sigma outlier cap** with Z-score normalization. Both are valid and reflect different philosophy — Recipe A preserves fat-tail signal; Recipe B reduces outlier influence. Neither is objectively correct; choose based on your universe characteristics and validate in your own backtests.
 
 ## Validation Methods
 
@@ -51,6 +53,27 @@ If the workspace has no vault, rely on **andreas-reference.md**, P123 help, and 
 | **K-Fold Blocked** | Maximizes data use. Temporal order not respected. | No temporal guarantee | Not recommended for backtests |
 
 **Critical:** The validation method determines how many years of predictions are saved, which in turn limits how far back the ranking system Performance tab can backtest using `AIFactorValidation()`. Choose before training — changing later requires deleting all models.
+
+### Practitioner Recipe B: Regional ML (Systematic Investing)
+
+A concrete alternative to the Andreas-derived defaults above, optimized for **regional specialization** (train separate models per US / Ex-US universe).
+
+| Setting | Value |
+|---------|-------|
+| Models | 3× LightGBM duplicates per region (US, Ex-US) for stability testing |
+| Features | ~100 features from factor literature |
+| Dataset | 2004–present, **weekly** bars |
+| Target | Sum of 1m + 2m + 3m forward returns, cross-sectional normalization per date |
+| Feature scaling | Z-score, 2.5% tail trim, 3-sigma outlier cap |
+| CV method | Time-series CV |
+| Train/val gap | 26 weeks |
+| Folds | 19 |
+| Holdout per fold | 12 months |
+| Duplicate models | Train duplicates with same spec to test stability (if results diverge, signal is fragile) |
+
+**Validation Sharpe ranges (author-reported, not targets):** Global 2.65–2.81, USA 1.64–1.90, Ex-US 1.98–2.11.
+
+**Framing:** This is Recipe B (regional/specialized), complementing Recipe A (broad/robust from Andreas). Neither overrides the other. The key differences: Recipe B trains on region-homogeneous universes for cleaner ML signal; Recipe A trains wide to capture dominant cross-regime patterns.
 
 ### Changing Validation Method (after models exist)
 
@@ -209,6 +232,37 @@ When clicking **Start** on a validation model, a "Validate Model — Choose Work
 - Model Display Name: from Validation → Models tab (e.g., `lightgbm slow 2`) — NOT the predictor slug
 - Use `AIFactorValidation()` (not `AIFactor()`) for any backtest deeper than 5 years
 - The p123api client has no `rank_system_download()` method — use the raw XML editor at `/app/ranking-system/{id}/editor-raw` for direct XML updates
+
+## Classic vs ML Blend Weights
+
+When combining a classic multifactor ranking with an AI Factor in the same ranking system, the weight split matters. A 5-point grid tested in practice (source: Systematic Investing, Layers of Return Part VI):
+
+| Classic weight | ML weight | Character |
+|---------------|-----------|-----------|
+| 100% | 0% | Pure classic multifactor |
+| 95% | 5% | ML kicker |
+| 50% | 50% | Equal blend |
+| 5% | 95% | Classic kicker (**operational recommendation**) |
+| 0% | 100% | Pure ML |
+
+**Recommendation:** Use **5% classic / 95% ML** ("classic kicker") as the default operational setup. The small classic weight moderates junk-stock exposure, reduces turnover slightly, and anchors buys without negating ML edge.
+
+**How to implement in ranking XML** — two sibling composites with explicit weights:
+
+```xml
+<RankingSystem RankType="Higher">
+  <Composite Name="agent_classic" Weight="5" Label="Classic Kicker" RankType="Higher">
+    <!-- your classic multifactor nodes here (Template 6 structure) -->
+  </Composite>
+  <Composite Name="agent_ml" Weight="95" Label="ML Factor" RankType="Higher">
+    <StockFormula Name="ai_validation" RankType="Higher" Scope="Universe" Weight="100">
+      <Formula>AIFactorValidation("agent_your_factor", "your_model_name")</Formula>
+    </StockFormula>
+  </Composite>
+</RankingSystem>
+```
+
+**Short side:** Use approximately **50% ML weight** for short strategies (shorter horizon target variable than long book).
 
 ## Full Pipeline: AI Factor → Ranking System Backtest
 

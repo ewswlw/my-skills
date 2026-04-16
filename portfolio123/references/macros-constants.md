@@ -86,6 +86,19 @@
 | `ALLFUND` | All stocks with fundamentals |
 | `ApiUniverse` | Custom universe created via API |
 
+### Regional Universe Filters
+
+Use `Country()` in **universe rules** (not in ranking or buy rules) to restrict to a geographic region.
+
+```text
+Country("USA")       // US stocks only
+!Country("USA")      // All non-US stocks (Ex-US)
+Country("Canada")    // Canada only
+Country("UK")        // UK only
+```
+
+**Regional split rationale:** Splitting a global universe into US and Ex-US sub-universes allows training **region-specialized ML models**. This typically **hurts** simple multifactor metrics (fewer names = more idiosyncratic noise in a 10-stock sleeve) but enables cleaner ML signal per region. A unified 30-stock global strategy generally outperforms three 10-stock regional strategies on headline CAGR/Sharpe in classic multifactor, but regional models can capture region-specific factor "dialects" in ML training.
+
 ---
 
 ## Macro Constants (FRED Data) <a name="macros"></a>

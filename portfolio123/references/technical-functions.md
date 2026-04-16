@@ -144,6 +144,7 @@ ADX(14, 0) > 25 AND PlusDI(14, 0) > MinusDI(14, 0)
 | `RS12WeekAvg` | Relative strength 12-week average |
 | `RS26WeekAvg` | Relative strength 26-week average |
 | `RS52WeekAvg` | Relative strength 52-week average |
+| `TRSD1YD` | 1-year total return standard deviation — **practitioner-reported name, validate via doc_detail.jsp before use** |
 
 ```
 // Compare with benchmark

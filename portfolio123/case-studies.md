@@ -1,4 +1,4 @@
-# Portfolio123 Case Studies (Vault Exemplars)
+﻿# Portfolio123 Case Studies (Vault Exemplars)
 
 Condensed **worked examples** and **failure modes**. Full factor tables and long narratives stay in the Obsidian vault—do not duplicate them here.
 
@@ -49,6 +49,36 @@ Representative settings appear in [strategy-templates.md](strategy-templates.md)
 ## Core Combo Canada (hierarchical multi-factor)
 
 **Vault-only detail:** Six dimensions (Growth, Sales, Op Income, Sentiment, Momentum, Value) with **nested weights**. Too large for this skill file—agents should open **`Portfolio123 Strategies.md` → Core Combo Canada** when the user names that model.
+
+---
+
+
+## Layers of Return (Global Multifactor -> Regional ML -> L/S Book)
+
+**Vault file:** `file dump/Portfolio123/Layers of Return -- Systematic Investing (Portfolio123).md`
+
+An 8-part Systematic Investing / Portfolio123 series that builds a global stock strategy incrementally:
+
+| Part | Topic |
+|------|-------|
+| I | Universe, single-metric FCF yield, value composite, multifactor |
+| II | Screen vs simulation mechanics, concentration grid, frequency x tolerance |
+| III | Liquidity floor, size filter, liquidity composite in ranking |
+| IV | Sector P&L attribution, isolated sector tests, sector exclusions |
+| V | Regional universes (US / Ex-US splits), why splits hurt simple metrics |
+| VI | AI Factor setup (dataset, CV, models), classic/ML blend grid |
+| VII | Regional ML models, Strategy Book combination (3x10 regional) |
+| VIII | Short-side ranking, L/S Book allocation, timing overlay |
+
+**Sector exclusion heuristics (Part IV, literature-supported):**
+
+| Sector | Action | Rationale |
+|--------|--------|-----------|
+| **Financials** | Exclude | Accounting distortions (leverage, special items); multiples not comparable; supported by academic literature |
+| **Utilities + Consumer Non-Cyclicals** | Exclude | Defensive momentum trap -- these sectors rotate into the strategy during drawdowns at exactly the wrong time, disrupting cyclical rotation |
+| **Cyclicals / Materials** | Do NOT exclude | Common retail bias; excluding these is costly for value/momentum multifactor styles |
+
+**Key finding:** Realized sector P&L attribution can mislead -- cross-check with isolated sector universe tests before excluding (see strategy-validation.md Sector Attribution Diagnostic section).
 
 ---
 
