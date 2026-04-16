@@ -629,6 +629,91 @@ Note: "Price Uptrend - Basic" uses 60-day price change + EMA/SMA ratio — it la
 **Action:** Promoted to browser-workflows.md (ETF Ranking System Limitation section) and strategy-templates.md
 
 ---
+id: LEARN-20260416-001
+type: browser_selector
+confidence: high
+confirmations: 1
+promoted: true
+source: Cursor IDE browser automation — P123 simulated strategy creation — 2026-04-16
+---
+**Context:** Creating a simulated strategy and ranking system entirely via Cursor IDE browser MCP tools
+**Discovery:** P123's DOM re-renders aggressively, causing persistent "stale element reference" errors with standard `browser_click` and `browser_fill`. The most reliable interaction pattern is JavaScript injection via `browser_navigate` with `javascript:void(...)` URLs. This bypasses all ref staleness. Key patterns validated:
+- Set textarea values: `javascript:void(document.querySelector('textarea').value='...')`
+- Click hidden menu items: iterate `querySelectorAll('li')`, match by `textContent.trim()`, call `.click()`
+- Click dialog buttons: `javascript:void(document.querySelector('button.btn-primary').click())`
+- Extract element attributes: set `document.title` to the attribute string for inspection
+**Action:** Promoted to browser-workflows.md (Cursor IDE Browser MCP Automation section)
+
+---
+id: LEARN-20260416-002
+type: browser_selector
+confidence: high
+confirmations: 1
+promoted: true
+source: Cursor IDE browser automation — P123 strategy opener navigation — 2026-04-16
+---
+**Context:** Opening a simulated strategy from the P123 strategy opener sidebar (`/app/opener/ptf`)
+**Discovery:** Strategy links in the sidebar use `href="#"` with JavaScript onclick handlers. Neither `browser_click` (single) nor `browser_mouse_click_xy` (double-click) reliably opens the strategy page. The `data-id` attribute on each link contains the navigation key in format `item_SIM_{externalId}_{categoryId}_{portId}`. The **portId** (last number) is the correct ID for `port_summary.jsp?portid={portId}`. Using the first number (externalId) results in "Access Restricted". Best approach: extract portId via JS injection, then navigate directly.
+**Action:** Promoted to browser-workflows.md (Strategy Summary Page & Navigation section)
+
+---
+id: LEARN-20260416-003
+type: browser_selector
+confidence: high
+confirmations: 1
+promoted: true
+source: Cursor IDE browser automation — P123 universe selection modal — 2026-04-16
+---
+**Context:** Selecting universe in the strategy wizard's "Choose Universe" dialog
+**Discovery:** The universe selection modal intercepts all clicks to underlying page elements ("Click target intercepted" error). Inside the modal, dropdown and button elements frequently go stale. Solutions: use `browser_mouse_click_xy` (coordinate-based) for the dropdown, and JS injection (`document.querySelector('button.btn-primary').click()`) for the OK button.
+**Action:** Promoted to browser-workflows.md (Universe Selection Dialog section)
+
+---
+id: LEARN-20260416-004
+type: browser_selector
+confidence: high
+confirmations: 1
+promoted: true
+source: Cursor IDE browser automation — AI Factor simulation period error — 2026-04-16
+---
+**Context:** Running a simulation using `agent_lgbm_v3_classic_kicker_rank` (5% quality / 95% AI)
+**Discovery:** AI Factor `AIFactorValidation()` predictions have a fixed date range (e.g., 12/31/2016 to 10/27/2025 for Rolling TS-CV with 4 folds). If the simulation period extends beyond this range, the simulation fails with: *"Ranking failed on [date]: Error relating to predictor '[model]' in AI Factor '[name]': No predictions are available on [date]. Saved predictions cover [start] to [end] every week."* Fix: set simulation period to fall entirely within the prediction window. The Period & Restrictions tab (`st=7`) date textbox accepts `MM/DD/YYYY - MM/DD/YYYY` format and works reliably with `browser_fill`.
+**Action:** Promoted to browser-workflows.md (Period & Restrictions Date Range section)
+
+---
+id: LEARN-20260416-005
+type: browser_selector
+confidence: high
+confirmations: 1
+promoted: true
+source: Cursor IDE browser automation — Ranking System Save As workflow — 2026-04-16
+---
+**Context:** Creating a new ranking system by duplicating an existing one via "Save As" in the raw XML editor
+**Discovery:** The "Save As" option is a hidden `<li>` inside a dropdown menu. `browser_click` fails with "zero dimensions" because the element is not visible. JS injection is required to trigger the click. After the "New Ranking System" dialog appears, `browser_fill` works for the name textbox, and `browser_click` works for the Save button (though a fresh snapshot may be needed to get the updated ref).
+**Action:** Promoted to browser-workflows.md (Save As for new ranking section)
+
+---
+id: LEARN-20260416-006
+type: strategy_insight
+confidence: high
+confirmations: 1
+promoted: false
+source: Cursor IDE browser automation — agent_lgbm_v3_sp500_kicker backtest — 2026-04-16
+---
+**Context:** Full 9-year backtest of hybrid 5% quality / 95% AI ranking on SP500
+**Discovery:** Strategy `agent_lgbm_v3_sp500_kicker` (ranking ID 542502, portId 1933205) using `agent_lgbm_v3_classic_kicker_rank` on S&P500 LargeCap (IVV), 20 positions, 4-week rebalance, 01/01/2017 – 10/27/2025:
+- Total Return: 254.85% (Benchmark: 253.05%)
+- Active Return: +1.80%
+- Annualized Return: 15.42%
+- Max Drawdown: -35.55% (Benchmark: -31.72%)
+- Sharpe Ratio: 0.69
+- Win Rate: 64.05% (41/84)
+- Annual Turnover: 23.30%
+- Correlation with S&P 500: 0.92
+The AI factor model marginally outperformed but with deeper drawdown, suggesting the quality kicker alone is insufficient for significant alpha on a large-cap SP500 universe.
+**Action:** Append to learnings as DNA fingerprint
+
+---
 id: LEARN-20260414-001
 type: hyperparameter
 confidence: high
@@ -647,3 +732,24 @@ source: AI-Driven Quant Investment Strategies Substack #37 — "Visualizing the 
 
 **Complementarity note:** LightGBM fixes residuals (sharp, overfitting risk); ExtraTrees averages random trees (rounder, more stable). Common real-world workflow: average predictions of both models (model ensembling) to reduce blow-ups while still aiming for upside.
 **Action:** Promoted to ai-factor-guide.md (ExtraTrees Learning Logic — 3 new subsections + ensemble note)
+
+## Strategy DNA Fingerprints (append below)
+
+---
+dna_id: DNA-20260416-001
+ranking_config: agent_lgbm_v3_classic_kicker_rank — 5% quality composite (ROE/ROA/FCFYield 33/33/34) + 95% AIFactorValidation("agent_ml_v3_lgbm", "lightgbm slow 2")
+universe: SP500 LargeCap (IVV)
+rebal_freq: Every 4 Weeks
+positions: 20
+total_return: 254.85%
+annualized_return: 15.42%
+benchmark_annualized: ~15.3% (S&P 500)
+max_drawdown: -35.55%
+sharpe: 0.69
+win_rate: 64.05% (41/84 periods)
+annual_turnover: 23.30%
+correlation_to_benchmark: 0.92
+costs: $0.005/share commission, 0.5% variable slippage
+period: 01/01/2017 – 10/27/2025
+regime_notes: Marginal alpha (+1.80% total active return) over 9 years on SP500. Deeper drawdown than benchmark (-3.83pp). Quality kicker at 5% is negligible. SP500 LargeCap universe may be too efficient for AI factor edge. Consider broader universe (Russell 3000, Easy to Trade US) or higher quality weight.
+---

@@ -39,16 +39,18 @@ Every action: **snapshot → act → wait → snapshot → verify**. If verify f
 
 ## Strategy Creation Wizard (Stock or ETF)
 
+> **Using Cursor IDE browser tools?** See [Simulated Strategy Creation (Full Browser Workflow)](#cursor-ide-browser-mcp-automation--p123-specific-patterns) for MCP-specific patterns, stale-ref workarounds, and JS injection recipes.
+
 **Path:** RESEARCH → Simulated Strategies → New → Stock (or ETF)
 
 **Tabs in order:**
-1. **General** — Name (agent_*), Type (Stock/ETF), Rebalance (Every 4 Weeks)
-2. **Rebalance** — Position sizing, number of positions
-3. **Universe & Ranking** — Universe, Ranking system
-4. **Buy Rules** — Formula rules (e.g., Rank > 85, Close(0) > 1.2)
-5. **Sell Rules** — Formula rules (e.g., RankPos > 50, gainpct - benchpct < -20)
-6. **Period & Restrictions** — Start/End or MAX, transaction cost 0.005
-7. **Review** — Run Simulation
+1. **General** (`st=0`) — Name (agent_*), Type (Stock/ETF), Rebalance (Every 4 Weeks)
+2. **Rebalance** (`st=1`) — Position sizing, number of positions
+3. **Universe & Ranking** (`st=2`) — Universe, Ranking system
+4. **Buy Rules** (`st=3`) — Formula rules (e.g., Rank > 85, Close(0) > 1.2)
+5. **Sell Rules** (`st=4`) — Formula rules (e.g., RankPos > 50, gainpct - benchpct < -20)
+6. **Period & Restrictions** (`st=7`) — Start/End or MAX, transaction cost 0.005
+7. **Review** (`st=8`) — Run Simulation
 
 **ETF (TAA):** Use Ticker("SPY,EFA,AGG") for universe, "Trend Measurement" ranking, Buy Rule: Ret1Y%Chg > 0.
 
@@ -200,6 +202,187 @@ P123's strategy wizard does **not** support inline custom ranking formulas for E
 - **confirm() dialog blocks CDP:** Native `confirm()` dialogs (triggered by delete icons) block CDP thread completely. All commands hang until dismissed manually in Chrome. Use `jsPort.filterDeleteElem(index)` to avoid triggering them.
 - **`jsPort.saveChanges()` is broken:** Throws Internal Server Error. Use `jsPort.run(Date.now(), true)` instead.
 - **`loadPortTab()` is not a save:** Re-renders the tab but does NOT write to the database. Only `jsPort.run()` saves.
+
+## Cursor IDE Browser (MCP) Automation — P123-Specific Patterns
+
+The Cursor IDE browser tools (`browser_navigate`, `browser_click`, `browser_fill`, `browser_snapshot`, `browser_take_screenshot`, `browser_mouse_click_xy`, `browser_wait_for`, `browser_press_key`, `browser_scroll`, `browser_hover`) interact with P123 differently than CDP/Selenium. P123's dynamic DOM and custom UI components cause persistent stale element references and click interceptions. The patterns below are battle-tested solutions.
+
+### The Core Problem: Stale Element References
+
+P123 re-renders DOM elements aggressively. Any `browser_click` or `browser_fill` using a ref from `browser_snapshot` may fail with "Stale element reference" because the page re-rendered between the snapshot and the action. This is the **single most common failure mode** on P123.
+
+**Mitigation hierarchy (try in order):**
+
+1. **Immediate action after snapshot** — Take snapshot, then immediately use the ref in the next tool call. Do not insert other browser operations between snapshot and action.
+2. **Coordinate-based clicks** — Use `browser_take_screenshot` followed immediately by `browser_mouse_click_xy` with coordinates read from the screenshot. Useful for stable, visible elements.
+3. **JavaScript injection** — The nuclear option that always works. Use `browser_navigate` with a `javascript:void(...)` URL to directly manipulate the DOM. This bypasses all ref staleness issues.
+
+### JavaScript Injection Pattern (Most Reliable)
+
+When `browser_click` or `browser_fill` fail repeatedly, inject JavaScript via `browser_navigate` with `javascript:void(...)`. This bypasses all ref staleness.
+
+**Core patterns:**
+
+```javascript
+// Pattern 1: Click hidden/stale element by text content
+javascript:void((function(){
+  var els=document.querySelectorAll('li,a,button');
+  for(var i=0;i<els.length;i++){
+    if(els[i].textContent.trim()==='TARGET_TEXT'){els[i].click();break;}
+  }
+})())
+
+// Pattern 2: Set textarea/input value
+javascript:void(document.querySelector('textarea').value='NEW_CONTENT')
+
+// Pattern 3: Click dialog primary button
+javascript:void(document.querySelector('button.btn-primary').click())
+
+// Pattern 4: Extract element attribute for debugging (writes to document.title)
+javascript:void(document.title=document.querySelector('a[data-id]').getAttribute('data-id'))
+```
+
+See subsections below for P123-specific applications of each pattern (Save As, portId extraction, universe OK, etc.).
+
+### Ranking System: Raw XML Editor via Browser
+
+**Path:** Navigate to ranking system → Settings → Raw XML editor
+
+**Finding the ranking system ID:** Navigate to any ranking system page — the ID is in the URL (e.g., `/app/ranking-system/541832/editor` → ID is `541832`). Alternatively, list rankings via the RESEARCH → Ranking Systems opener and extract `data-id` attributes.
+
+**Steps:**
+1. Navigate to `https://www.portfolio123.com/app/ranking-system/{id}/editor-raw`
+2. `browser_snapshot` to get textarea ref
+3. **Do NOT use `browser_fill` or `browser_type`** on the textarea — it triggers stale element errors due to P123's DOM re-rendering
+4. Use JavaScript injection to set the value: `javascript:void(document.querySelector('textarea').value='NEW_XML')`
+5. Save via the Save menu — if "Save" link is visible, first try `browser_click`. If it fails, use JS injection
+
+**"Save As" for new ranking from existing:**
+The "Save As" option is hidden inside a dropdown menu. Direct `browser_click` on the `<li>` fails because it has zero dimensions.
+
+```javascript
+// Trigger Save As menu item (hidden in dropdown)
+javascript:void((function(){
+  var items=document.querySelectorAll('li');
+  for(var i=0;i<items.length;i++){
+    if(items[i].textContent.trim()==='Save As'){
+      items[i].click();
+      break;
+    }
+  }
+})())
+```
+
+After "Save As" triggers a dialog, fill the name field with `browser_fill` and click OK/Save.
+
+### Simulated Strategy Creation (Full Browser Workflow)
+
+**Entry point:** `https://www.portfolio123.com/port_wiz.jsp` (wizard) or RESEARCH → Simulated Strategies → New → Stock
+
+**Wizard tabs (in order, `st=` parameter):**
+| Tab | st= | Key Fields |
+|-----|-----|------------|
+| General | 0 | Name, Currency, Starting Capital, Commission, Slippage, Transaction Type |
+| Rebalance | 1 | Sizing Method, Ideal Positions, Rebalance Frequency |
+| Universe & Ranking | 2 | Universe dropdown, Benchmark, Ranking System |
+| Buy | 3 | Buy rule formulas |
+| Sell | 4 | Sell rule formulas |
+| Stop Loss | 5 | Strategy |
+| Hedge | 6 | Market timing |
+| Period & Restrictions | 7 | Date range textbox, Exposure List, Restrictions |
+| Review | 8 | Full config summary + Run Simulation button |
+
+**Direct tab navigation:** `https://www.portfolio123.com/port_wiz.jsp?st=N`
+
+#### Universe Selection Dialog
+
+Clicking the Universe field opens a "Choose Universe" modal dialog. This modal **intercepts** all clicks to underlying page elements. Inside the modal:
+
+1. The universe dropdown may need `browser_mouse_click_xy` (coordinate-based) if `browser_click` returns stale refs
+2. After selecting a universe, the "OK" button frequently goes stale — use JS injection:
+```javascript
+javascript:void(document.querySelector('button.btn-primary,button[class*=primary]').click())
+```
+
+#### Period & Restrictions Date Range
+
+The date range field (`st=7`) is a single textbox accepting `MM/DD/YYYY - MM/DD/YYYY` format. Use `browser_fill` — this field works reliably with standard fill.
+
+**Critical for AI Factor strategies:** The simulation period MUST fall within the AI Factor prediction window. Check the prediction coverage dates before setting the period. Error message if exceeded: *"No predictions are available on [date]. Saved predictions cover [start] to [end] every week."*
+
+#### Running the Simulation
+
+From the Review tab (`st=8`):
+1. Click "Run Simulation" (or "Re-Run Simulation" for existing strategies)
+2. If creating a new strategy, a "New Simulated Strategy Properties" dialog appears — fill the Name field, then click Save
+3. The Save button shows "Please wait..." while processing — wait 10-15 seconds
+4. The page redirects to `port_summary.jsp?portid=ID` on success
+
+**If "Run Simulation" button goes stale:**
+```javascript
+javascript:void(document.querySelector('a[href*=run],a.btn-primary,#SimulButton').click())
+```
+
+### Strategy Summary Page & Navigation
+
+**Direct URL:** `https://www.portfolio123.com/port_summary.jsp?portid={PORTID}`
+
+**Finding the PORTID:** The strategy opener sidebar (`/app/opener/ptf`) lists strategies as `<a>` elements with `data-id` attributes in format `item_SIM_{EXTERNAL_ID}_{CATEGORY_ID}_{PORTID}`. The PORTID is the **last number** in the data-id string.
+
+```javascript
+// Extract data-id and all attributes from a strategy link
+javascript:void((function(){
+  var links=document.querySelectorAll('a');
+  for(var i=0;i<links.length;i++){
+    if(links[i].textContent.trim()==='STRATEGY_NAME'){
+      document.title='ATTRS:'+links[i].getAttribute('data-id');
+      break;
+    }
+  }
+})())
+```
+
+**data-id format:** `item_SIM_{externalId}_{categoryId}_{portId}`
+- Use the **last number** (`portId`) for `port_summary.jsp?portid=`
+- The first number (`externalId`) returns "Access Restricted" on `port_summary.jsp`
+
+**Strategy opener sidebar behavior:**
+- Links use `href="#"` with JavaScript click handlers
+- Single-click selects the item in the sidebar but does NOT open it in the main content area
+- Double-click (via `browser_mouse_click_xy` with `double_click: true`) also does not reliably open the strategy
+- **Best approach:** Extract the portId from `data-id` and navigate directly to `port_summary.jsp?portid={portId}`
+
+### Re-Running a Simulation (Existing Strategy)
+
+1. Navigate to `port_summary.jsp?portid={ID}`
+2. Click the "Re-Run" tab
+3. The page loads the wizard at `port_wiz.jsp?st=8` (Review tab) with a "Re-Run Simulation" button
+4. Make any parameter changes (e.g., fix the date range on the Period tab)
+5. Click "Re-Run Simulation" — the button is `<a id="SimulButton">`
+6. Wait for the simulation to complete (redirects to summary page)
+
+### P123 URL Quick Reference
+
+| Purpose | URL Pattern |
+|---------|-------------|
+| Strategy wizard | `port_wiz.jsp?st={0-8}` |
+| Strategy summary | `port_summary.jsp?portid={PORTID}` |
+| Simulation runner | `port_sim_go.jsp?{timestamp}` |
+| Strategy opener | `app/opener/ptf` |
+| Ranking raw editor | `app/ranking-system/{id}/editor-raw` |
+| Ranking performance | `rank_perf.jsp?rankid={id}` |
+| AI Factor validation | `sv/aiFactor/{id}/validation` |
+
+### Common Error Patterns & Solutions
+
+| Error | Cause | Solution |
+|-------|-------|----------|
+| "Stale element reference" | P123 DOM re-rendered between snapshot and action | Re-snapshot + immediate action, or use JS injection |
+| "Click target intercepted" | Modal dialog is blocking underlying elements | Interact with the modal first, or dismiss it |
+| "Element not visible (zero dimensions)" | Hidden menu item or collapsed dropdown | Use JS injection to click by text content |
+| "Access Restricted" on `port_summary.jsp` | Wrong ID — used externalId instead of portId | Extract portId (last number) from `data-id` attribute |
+| "No predictions available on [date]" | Simulation period extends beyond AI Factor prediction window | Adjust period to fall within prediction dates (check `learnings.md` LEARN-20260407-002) |
+| Blank page on navigation | URL pattern incorrect for P123's SPA router | Try legacy JSP URLs (`port_summary.jsp`, `rank_perf.jsp`) instead of SPA routes |
 
 ## Naming Convention
 
