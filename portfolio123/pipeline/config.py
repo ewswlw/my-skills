@@ -7,13 +7,15 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-# Skill root: .../portfolio123
+# Skill root: .../portfolio123 — credentials only from this folder’s `.env`
 SKILL_ROOT = Path(__file__).resolve().parents[1]
 _ENV_PATH = SKILL_ROOT / ".env"
 load_dotenv(_ENV_PATH, encoding="utf-8")
 
 P123_API_ID: str | None = os.environ.get("P123_API_ID")
 P123_API_KEY: str | None = os.environ.get("P123_API_KEY")
+P123_USERNAME: str | None = os.environ.get("P123_USERNAME")
+P123_PASSWORD: str | None = os.environ.get("P123_PASSWORD")
 
 # Default vault output (Obsidian vault); override with P123_OUTPUT_DIR
 def _default_output_dir() -> Path:

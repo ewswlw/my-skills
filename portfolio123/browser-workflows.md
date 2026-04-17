@@ -361,6 +361,72 @@ javascript:void((function(){
 5. Click "Re-Run Simulation" — the button is `<a id="SimulButton">`
 6. Wait for the simulation to complete (redirects to summary page)
 
+### Edit-and-Re-Run Loop — Battle-Tested Sequence (2026-04-16)
+
+The single most reliable sequence for "tweak a rule, re-run, read metrics" on an existing strategy. Use this verbatim — every step earned its place from a failure in the prior iteration.
+
+```
+1. browser_navigate → port_summary.jsp?portid={ID}      # confirms strategy exists
+2. browser_navigate → javascript:void(window.location.href='/port_wiz.jsp?st=8&portid={ID}')
+                                                         # MUST include &portid={ID} or wizard
+                                                         # opens with no portfolio context
+3. browser_click → desired tab (Buy / Sell / Rebalance / Period)
+4. browser_wait_for time:2                              # Svelte render
+5. browser_snapshot                                      # get fresh refs (Buy/Sell only)
+6. browser_fill on form fields                           # see "Buy/Sell Rule Textareas" below
+7. browser_navigate → javascript:void(jsPort.generateBy('SimulButton'))
+                                                         # the only reliable sim trigger
+8. browser_wait_for time:60                              # typical 8yr daily sim
+9. browser_navigate → port_summary.jsp?portid={ID}
+10. browser_take_screenshot fullPage:true                # ONLY way to read metrics
+```
+
+**Why each step matters:**
+
+- **Step 2 — `&portid={ID}` is mandatory.** Navigating to `port_wiz.jsp?st=8` alone renders only chrome with no form fields. The wizard's `st=` parameter is sticky to the last visited tab, not literal — you cannot rely on it without the portid.
+- **Step 7 — `jsPort.generateBy('SimulButton')` over clicking.** Clicking the "Re-Run Simulation" link gets stale/intercepted ~50% of the time on Svelte re-renders. The JS call works every time. Note: the existing `jsPort.run(Date.now(), true)` documented above is for the wizard form-submit flow; `generateBy('SimulButton')` is the correct call when re-running an already-saved strategy.
+- **Step 10 — fullPage screenshot, not snapshot.** `port_summary.jsp` renders metrics (CAGR/Sharpe/DD) inside a table the snapshot tree does not traverse. You will get back nothing useful from `browser_snapshot` for results.
+
+### Buy/Sell Rule Textareas — Exact Ref Pattern
+
+Buy and Sell tabs render rules as alternating label/textarea pairs:
+
+| Element | Role |
+|---------|------|
+| `e175` | Buy1 label |
+| `e176` | Buy1 formula textarea |
+| `e177` | Buy2 label |
+| `e178` | Buy2 formula textarea |
+
+Use `browser_fill` directly on the textarea ref. **Do not** use JavaScript injection here — it triggers the "Quick Rules" popup. **To clear a rule, fill with `" "` (single space)** — empty string sometimes leaves the prior value in place.
+
+### Form Field Locations (Don't Guess the Tab)
+
+| What you want to set | Tab that owns it |
+|---------------------|------------------|
+| Position count / sizing method | **Rebalance** (NOT General) |
+| Buy / Sell rule formulas | **Buy** / **Sell** — fields render only after clicking the tab + waiting 2s |
+| Backtest period | **Period & Restrictions** |
+| Universe / Ranking system | **Universe & Ranking** |
+
+### `#bench` Beats `$SPY` in Buy/Sell Rules
+
+Even though `$SPY` is documented as a valid series alias, it errors with `Formula '$SPY' not found` inside Buy/Sell rule formulas on simulated strategies. Use `#bench` instead when the strategy benchmark is set to SPY (it resolves to whatever the strategy's configured benchmark is).
+
+```
+# Works:
+Close(0,#bench) > SMA(200,0,#bench)
+
+# Fails:
+Close(0,$SPY) > SMA(200,0,$SPY)
+```
+
+Lowercase `#bench` is fine. This pattern is the canonical way to add SMA-based market timing hedges.
+
+### Sentinel Value: -100000000
+
+If `port_summary.jsp` shows "Number of Positions: -100000000" (or similar absurd negatives on other metrics), the sim has **not yet run or errored silently**. Do not bother reading other metrics — re-trigger the sim via step 7 above. This is more reliable than parsing for explicit error text, which P123 sometimes suppresses.
+
 ### P123 URL Quick Reference
 
 | Purpose | URL Pattern |
@@ -383,6 +449,12 @@ javascript:void((function(){
 | "Access Restricted" on `port_summary.jsp` | Wrong ID — used externalId instead of portId | Extract portId (last number) from `data-id` attribute |
 | "No predictions available on [date]" | Simulation period extends beyond AI Factor prediction window | Adjust period to fall within prediction dates (check `learnings.md` LEARN-20260407-002) |
 | Blank page on navigation | URL pattern incorrect for P123's SPA router | Try legacy JSP URLs (`port_summary.jsp`, `rank_perf.jsp`) instead of SPA routes |
+| Wizard renders chrome only, no form fields | Navigated to `port_wiz.jsp?st=N` without `&portid={ID}` | Always append `&portid={ID}` when re-entering the wizard for an existing strategy |
+| `Formula '$SPY' not found` in Buy/Sell rule | `$SPY` series alias not recognized inside rule formulas | Use `#bench` (resolves to strategy benchmark) instead of `$SPY` |
+| Re-Run tab navigates but no sim runs | Clicking Re-Run only loads wizard at `st=8`; doesn't execute | Trigger via `javascript:void(jsPort.generateBy('SimulButton'))` |
+| Metrics missing from snapshot of summary page | `port_summary.jsp` metrics live in tables `browser_snapshot` doesn't traverse | Use `browser_take_screenshot` with `fullPage: true` |
+| "Quick Rules" popup appears when editing rule | Used JS injection to set buy/sell textarea value | Use `browser_fill` directly on the textarea ref instead |
+| "Number of Positions: -100000000" sentinel | Sim hasn't run yet or errored silently | Re-trigger sim via `jsPort.generateBy('SimulButton')` — don't trust other metrics on the page |
 
 ## Naming Convention
 
