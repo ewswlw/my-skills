@@ -70,3 +70,14 @@ Synthetic 3× levels **overstate** real LETF returns (volatility drag). Treat pr
 - **Phase B** (exploratory): scans **test** window for joint gate — can find fits **but selecting on test inflates type-I error**; reported **Bonferroni** adjusts for grid size on the excess-vs-SPY bootstrap — typically **does not** reject zero alpha.
 
 Run: `python3 tactical_aa_research/iterate_macro.py`
+
+## Rigorous pipeline (`validation_rigorous.py`)
+
+1. **Pre-registered holdout**: `validation_config.HOLDOUT_START` (default **2020-01-01**) — **never** used in trial selection.
+2. **Purged time-series CV** on pre-holdout data only: `purged_cv.purged_time_series_folds` with **purge gap** and **embargo** between train and each test block.
+3. **Trial selection**: `argmax` mean **in-fold train Sharpe** only (no holdout, no in-fold test used for picking).
+4. **Single holdout evaluation**: CAGR, Calmar, mean excess vs SPY + **block-bootstrap** with Bonferroni × `n_trials`; **PSR** and **DSR** (`deflated_sharpe.py`) on holdout monthly returns with multiplicity bump from grid size.
+
+Run: `python3 tactical_aa_research/validation_rigorous.py`
+
+Changing `HOLDOUT_START` or the grid after seeing holdout results invalidates the pre-registration discipline.
