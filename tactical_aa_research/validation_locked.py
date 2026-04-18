@@ -76,11 +76,19 @@ def main():
     print(f"CAGR {cg:.2%}  Calmar {cm:.2f}  MaxDD {md:.2%}  Sharpe {sh:.2f}")
     print(f"Excess vs SPY mean: {mu_xs*100:.3f} pp/mo  bootstrap p={p_boot:.4f}  Bonf p≈{p_bonf:.4f} (α={alpha_b:.6f})")
     print(f"SR_ann {sr_ann:.3f}  PSR {psr:.4f}  DSR {dsr:.4f}")
+    min_cagr = float(payload.get("min_cagr_gate", 0.13))
+    dsr_min = float(payload.get("dsr_min_gate", 0.95))
+
     print("\nGates:")
-    print(f"  CAGR>15%: {'PASS' if cg>0.15 else 'FAIL'}")
-    print(f"  Calmar>1: {'PASS' if cm>1 else 'FAIL'}")
-    print(f"  DSR>=0.95: {'PASS' if dsr>=0.95 else 'FAIL'}")
-    print(f"  Bonf boot: {'PASS' if p_bonf>=alpha_b else 'FAIL'}")
+    print(f"  CAGR>={min_cagr:.0%}: {'PASS' if cg >= min_cagr else 'FAIL'} ({cg:.2%})")
+    print(f"  Calmar>1: {'PASS' if cm > 1 else 'FAIL'} ({cm:.2f})")
+    print(f"  DSR>={dsr_min:.2f}: {'PASS' if dsr >= dsr_min else 'FAIL'} ({dsr:.4f})")
+    print(
+        f"  Bonf boot (fail if excess significant at family α): {'PASS' if p_bonf >= alpha_b else 'FAIL'} "
+        f"(p≈{p_bonf:.4f}, α={alpha_b:.4f})"
+    )
+    all_pass = cg >= min_cagr and cm > 1 and dsr >= dsr_min and p_bonf >= alpha_b
+    print(f"  ALL FOUR: {'PASS' if all_pass else 'FAIL'}")
 
 
 if __name__ == "__main__":
