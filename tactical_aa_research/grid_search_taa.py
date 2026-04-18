@@ -1,6 +1,8 @@
 """
-TAA v3: blend conservative dual-momentum (Calmar>1) with return sleeves;
-optional equity drawdown throttle on aggregate exposure.
+Legacy grid (2010-era tickers, no stitching / costs).
+
+For the 2003+ stitched panel, costs, and train/test reporting, use:
+  `recommended_taa.py`, `data_panel.py`, `engine.py`, `DEELOGIC.md`.
 """
 from __future__ import annotations
 
