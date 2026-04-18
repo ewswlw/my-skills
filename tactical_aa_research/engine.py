@@ -34,9 +34,22 @@ def dual_mom(
     return w
 
 
-def vol_target_leverage(unlev_ret: pd.Series, lookback: int, target_ann_vol: float, lo: float, hi: float) -> pd.Series:
+def vol_target_leverage(
+    unlev_ret: pd.Series,
+    lookback: int,
+    target_ann_vol: float,
+    lo: float,
+    hi: float,
+    target_multiplier: pd.Series | None = None,
+) -> pd.Series:
     sig = unlev_ret.rolling(lookback).std() * np.sqrt(12)
-    return (target_ann_vol / sig).clip(lo, hi).shift(1)
+    tgt = float(target_ann_vol)
+    if target_multiplier is not None:
+        m = target_multiplier.reindex(unlev_ret.index).astype(float).fillna(1.0)
+        eff = tgt * m
+    else:
+        eff = pd.Series(tgt, index=unlev_ret.index)
+    return (eff / sig).clip(lo, hi).shift(1)
 
 
 def backtest_with_costs(
@@ -47,6 +60,7 @@ def backtest_with_costs(
     lev_lo: float,
     lev_hi: float,
     cost_bps_per_unit_turnover: float = 10.0,
+    vol_tgt_multiplier: pd.Series | None = None,
 ) -> tuple[pd.Series, pd.Series, pd.Series, pd.Series]:
     """
     Signal at month-end t in `weights[t]`; execution for month t+1 return:
@@ -58,7 +72,7 @@ def backtest_with_costs(
     w_exec = weights.shift(1).fillna(0.0)
 
     unlev = (w_exec * rets).sum(axis=1, min_count=1)
-    L = vol_target_leverage(unlev, vol_lb, vol_tgt, lev_lo, lev_hi)
+    L = vol_target_leverage(unlev, vol_lb, vol_tgt, lev_lo, lev_hi, vol_tgt_multiplier)
 
     gross = unlev * L
 

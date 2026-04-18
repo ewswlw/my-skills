@@ -61,3 +61,12 @@ Synthetic 3× levels **overstate** real LETF returns (volatility drag). Treat pr
 - **Train (2003–2012), grid-selected**: e.g. `blend=0.05`, `vol_lb=9`, `vol_tgt=0.10`, `lev_hi=3.5` → **CAGR ~15.5%**, **Calmar ~1.03**.
 - **Test (2013–present), frozen**: **CAGR ~14.7%**, **Calmar ~1.00** — **CAGR>15% not met OOS**.
 - At **≥15 bps** per unit turnover on the same grid, **no** train-period point met both gates.
+
+### Macro-augmented search (`iterate_macro.py`)
+
+- Adds **VIX / term spread** (Yahoo) and **NFCI / UNRATE** (FRED if `FRED_API_KEY` is set), **1-month lagged** vs portfolio dates.
+- Overlays: cut **LETF** exposure when `vix_z_12` or `nfci_z_12` is high; optional **macro vol scaling** of the vol-target.
+- **Phase A**: train-only grid must clear CAGR>15% & Calmar>1 — on native 2010+ data with costs, **often empty**.
+- **Phase B** (exploratory): scans **test** window for joint gate — can find fits **but selecting on test inflates type-I error**; reported **Bonferroni** adjusts for grid size on the excess-vs-SPY bootstrap — typically **does not** reject zero alpha.
+
+Run: `python3 tactical_aa_research/iterate_macro.py`
