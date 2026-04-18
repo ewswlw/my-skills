@@ -81,3 +81,10 @@ Run: `python3 tactical_aa_research/iterate_macro.py`
 Run: `python3 tactical_aa_research/validation_rigorous.py`
 
 Changing `HOLDOUT_START` or the grid after seeing holdout results invalidates the pre-registration discipline.
+
+## Locked discovery (`discover_strategy.py` + `validation_locked.py`)
+
+1. Run **`python3 tactical_aa_research/discover_strategy.py`** — random search **only on pre-holdout** data; writes `locked_strategy.json` with `n_trials_search = N_SEARCH` and the best purged-CV trial.
+2. Run **`python3 tactical_aa_research/validation_locked.py`** — **one** holdout evaluation; **DSR** and **Bonferroni** use `n_trials_search`.
+
+**Empirical tension (native panel, holdout 2020+):** with `N_SEARCH = 2500`, we observed a locked configuration with **CAGR ~21.7%** and **Calmar ~1.05** on holdout, but **DSR ~0.08** (fails ≥0.95). Shrinking `N_SEARCH` enough to pass DSR (~≤18 in a coarse sweep) **collapsed** holdout CAGR/Calmar. Under this data + cost model, **all four gates are not jointly satisfiable** without relaxing multiplicity or using a different (e.g. platform) validation engine.

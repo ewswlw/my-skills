@@ -34,6 +34,25 @@ def dual_mom(
     return w
 
 
+def hybrid_static_tactical(
+    px: pd.DataFrame,
+    tac_w: pd.DataFrame,
+    w_eq: float,
+    w_agg: float,
+    tact_share: float,
+) -> pd.DataFrame:
+    """(1-tact_share)*(w_eq*SPY + w_agg*AGG) + tact_share*tactical_weights; row-normalized."""
+    static = pd.DataFrame(0.0, index=px.index, columns=px.columns)
+    if "SPY" in static.columns:
+        static["SPY"] = w_eq
+    if "AGG" in static.columns:
+        static["AGG"] = w_agg
+    s = static.sum(axis=1).replace(0, np.nan)
+    static = static.div(s, axis=0).fillna(0)
+    out = (1.0 - tact_share) * static + tact_share * tac_w.reindex(px.index).fillna(0)
+    return out.div(out.sum(axis=1).replace(0, np.nan), axis=0).fillna(0)
+
+
 def vol_target_leverage(
     unlev_ret: pd.Series,
     lookback: int,
@@ -107,7 +126,30 @@ def sharpe_ann(r: pd.Series) -> float:
 
 
 def build_weights(px: pd.DataFrame, blend_lev: float) -> pd.DataFrame:
-    w_c = dual_mom(px, RISK_CORE, "CASH", 10, 3, 3)
-    w_l = dual_mom(px, RISK_LEV, "AGG", 10, 2, 3)
+    return build_weights_flexible(
+        px,
+        blend_lev,
+        mom_abs_c=10,
+        mom_fast_c=3,
+        top_k_c=3,
+        mom_abs_l=10,
+        mom_fast_l=2,
+        top_k_l=3,
+    )
+
+
+def build_weights_flexible(
+    px: pd.DataFrame,
+    blend_lev: float,
+    *,
+    mom_abs_c: int,
+    mom_fast_c: int,
+    top_k_c: int,
+    mom_abs_l: int,
+    mom_fast_l: int,
+    top_k_l: int,
+) -> pd.DataFrame:
+    w_c = dual_mom(px, RISK_CORE, "CASH", mom_abs_c, mom_fast_c, top_k_c)
+    w_l = dual_mom(px, RISK_LEV, "AGG", mom_abs_l, mom_fast_l, top_k_l)
     w = (1 - blend_lev) * w_c.fillna(0) + blend_lev * w_l.fillna(0)
     return w.div(w.sum(axis=1).replace(0, np.nan), axis=0).fillna(0)
