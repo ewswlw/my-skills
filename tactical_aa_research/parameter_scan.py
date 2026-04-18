@@ -1,6 +1,11 @@
-"""Fast parameter scan: cache `build_weights` per blend (expensive part)."""
+"""Fast parameter scan: cache `build_weights` per blend (expensive part).
+
+Default: **native ETF panel** (no stitching), same train/test split as `recommended_taa.py`.
+Pass `--stitched` to run the legacy 2003 stitched panel + fixed 2012 split.
+"""
 from __future__ import annotations
 
+import argparse
 import itertools
 import sys
 from pathlib import Path
@@ -10,10 +15,12 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from tactical_aa_research.data_panel import build_panel, trim_from
+from tactical_aa_research.data_panel import build_panel, native_panel_from_common_start, trim_from
 from tactical_aa_research.engine import backtest_with_costs, build_weights, calmar, cagr, max_dd
 
 COST_BPS = 10.0
+TRAIN_FRAC = 0.60
+MIN_TRAIN_MONTHS = 48
 
 
 def metrics(net: pd.Series) -> tuple[float, float, float]:
@@ -23,10 +30,30 @@ def metrics(net: pd.Series) -> tuple[float, float, float]:
     return cg, calmar(cg, md), md
 
 
+def split_train_test(px: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame, pd.Timestamp]:
+    n = len(px)
+    split = max(MIN_TRAIN_MONTHS, int(n * TRAIN_FRAC))
+    if split >= n - 12:
+        split = max(36, n // 2)
+    train = px.iloc[:split].copy()
+    test = px.iloc[split:].copy()
+    return train, test, train.index[-1]
+
+
 def main():
-    px = trim_from(build_panel("1998-01-01"), "2003-01-01")
-    train = px.loc[: pd.Timestamp("2012-12-31")]
-    test = px.loc[pd.Timestamp("2012-12-31") + pd.offsets.MonthEnd(1) :]
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--stitched", action="store_true", help="Use stitched 2003 panel + 2012 split")
+    args = ap.parse_args()
+
+    if args.stitched:
+        px = trim_from(build_panel("1998-01-01"), "2003-01-01")
+        train = px.loc[: pd.Timestamp("2012-12-31")]
+        test = px.loc[pd.Timestamp("2012-12-31") + pd.offsets.MonthEnd(1) :]
+        print("Mode: STITCHED from 2003, train ends 2012-12")
+    else:
+        px, first = native_panel_from_common_start("2005-01-01")
+        train, test, te = split_train_test(px)
+        print(f"Mode: NATIVE only, common start {first.date()}, train ends {te.date()}")
 
     blends = np.round(np.linspace(0.05, 0.45, 41), 3)
     weight_cache = {b: build_weights(px, float(b)) for b in blends}

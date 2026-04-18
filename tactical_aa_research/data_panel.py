@@ -184,3 +184,62 @@ def build_panel(start: str = "1999-01-01") -> pd.DataFrame:
 def trim_from(panel: pd.DataFrame, first_date: str = "2003-01-01") -> pd.DataFrame:
     d = pd.Timestamp(first_date)
     return panel.loc[panel.index >= d].copy()
+
+
+# --- Native ETF panel (no proxy stitching) ---
+
+NATIVE_STRATEGY_TICKERS = [
+    "SPY",
+    "QQQ",
+    "IWM",
+    "EFA",
+    "EEM",
+    "TLT",
+    "GLD",
+    "VNQ",
+    "AGG",
+    "BIL",
+    "UPRO",
+    "TQQQ",
+    "TMF",
+]
+
+
+def build_native_monthly(start: str = "2005-01-01") -> pd.DataFrame:
+    """
+    Month-end adjusted closes for strategy tickers only. NaNs remain before each
+    fund's inception (no back-filled proxies).
+    """
+    raw = yf.download(
+        list(NATIVE_STRATEGY_TICKERS),
+        start=start,
+        interval="1d",
+        auto_adjust=True,
+        progress=False,
+        threads=True,
+    )
+    px = _adj_close(raw)
+    if isinstance(px, pd.Series):
+        px = px.to_frame()
+    px = px.dropna(how="all").ffill()
+    m = px.resample("ME").last()
+    return m[NATIVE_STRATEGY_TICKERS].astype(float)
+
+
+def first_month_all_native(panel: pd.DataFrame) -> pd.Timestamp:
+    """First month-end row where every ticker has a non-null price."""
+    valid = panel.dropna(how="any")
+    if valid.empty:
+        raise ValueError("No overlapping month with all native tickers — check downloads.")
+    return valid.index[0]
+
+
+def native_panel_from_common_start(start_download: str = "2005-01-01") -> tuple[pd.DataFrame, pd.Timestamp]:
+    """
+    Returns (panel trimmed to first full-coverage month, that first timestamp).
+    Column order matches `engine` expectations (subset of LOGICAL_COLUMNS).
+    """
+    raw = build_native_monthly(start_download)
+    first = first_month_all_native(raw)
+    out = raw.loc[raw.index >= first].copy()
+    return out, first

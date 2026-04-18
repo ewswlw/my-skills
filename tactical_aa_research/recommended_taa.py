@@ -1,10 +1,12 @@
 """
-Tactical AA — from 2003, stitched proxies, transaction costs, train / test split.
+Tactical AA — native-listed ETF panel only (no proxy stitching), costs, train/test.
 
-DeepLogic (see DEELOGIC.md): parameters are chosen **only** on 2003–2012; 2013+ is
-reported out-of-sample with those frozen settings. Full-sample numbers are labeled.
+Uses the earliest month-end where **all** strategy tickers have real Yahoo data
+(see `data_panel.native_panel_from_common_start`). Parameters are fit only on the
+train slice; test is the remainder (chronological).
 
-We do **not** claim unconditional live edge; synthetic pre-LETF 3× history is biased high.
+Run:
+  python3 tactical_aa_research/recommended_taa.py
 """
 from __future__ import annotations
 
@@ -20,13 +22,15 @@ _ROOT = Path(__file__).resolve().parents[1]
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
-from tactical_aa_research.data_panel import build_panel, trim_from
+from tactical_aa_research.data_panel import native_panel_from_common_start
 from tactical_aa_research.engine import backtest_with_costs, build_weights, calmar, cagr, max_dd, sharpe_ann
 
 warnings.filterwarnings("ignore", category=FutureWarning)
 
-TRAIN_END = pd.Timestamp("2012-12-31")
 DEFAULT_COST_BPS = 10.0
+# Chronological split: first 60% of months = train (min 48 months if possible)
+TRAIN_FRAC = 0.60
+MIN_TRAIN_MONTHS = 48
 
 
 def equity(net: pd.Series) -> pd.Series:
@@ -44,9 +48,8 @@ def evaluate(
     lev_hi: float,
     cost_bps: float,
 ) -> dict:
-    w = weights if weights is not None else build_weights(px, blend)
     net, _, _, _ = backtest_with_costs(
-        w, px, vol_lb, vol_tgt, lev_lo, lev_hi, cost_bps_per_unit_turnover=cost_bps
+        weights, px, vol_lb, vol_tgt, lev_lo, lev_hi, cost_bps_per_unit_turnover=cost_bps
     )
     eq = equity(net)
     cg = cagr(eq)
@@ -66,16 +69,23 @@ def evaluate(
     }
 
 
+def train_test_split(px: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame, pd.Timestamp]:
+    n = len(px)
+    split = max(MIN_TRAIN_MONTHS, int(n * TRAIN_FRAC))
+    if split >= n - 12:
+        split = max(36, n // 2)
+    train = px.iloc[:split].copy()
+    test = px.iloc[split:].copy()
+    return train, test, train.index[-1]
+
+
 def pick_params_train_only(
     px_full: pd.DataFrame,
+    train_end: pd.Timestamp,
     *,
     cost_bps: float,
 ) -> dict | None:
-    """
-    Grid search **only** on train window; maximize Calmar*CAGR subject to both gates.
-    Uses cached weights per blend for speed.
-    """
-    train = px_full.loc[:TRAIN_END]
+    train = px_full.loc[:train_end]
     blends = np.round(np.linspace(0.05, 0.45, 41), 3)
     cache = {float(b): build_weights(px_full, float(b)) for b in blends}
     best = None
@@ -118,24 +128,28 @@ def pick_params_train_only(
 
 
 def main(cost_bps: float = DEFAULT_COST_BPS) -> None:
-    px = trim_from(build_panel("1998-01-01"), "2003-01-01")
-    test = px.loc[TRAIN_END + pd.offsets.MonthEnd(1) :]
+    px, common_start = native_panel_from_common_start("2005-01-01")
+    train, test, train_end = train_test_split(px)
 
-    print("DeepLogic tactical AA — stitched panel from 2003, monthly, costs")
-    print(f"Panel: {px.index[0].date()} .. {px.index[-1].date()}  (n={len(px)})")
+    print("DeepLogic tactical AA — **native ETF prices only** (no stitching)")
+    print(f"First month with all tickers non-null: {common_start.date()}")
+    print(f"Panel: {px.index[0].date()} .. {px.index[-1].date()}  (n={len(px)} months)")
+    print(f"Train: ..{train_end.date()} ({len(train)} mo) | Test: {len(test)} mo ({test.index[0].date()} ..)")
     print(f"Transaction cost: {cost_bps:.1f} bps per unit turnover on |Δ(L·w)|\n")
 
-    picked = pick_params_train_only(px, cost_bps=cost_bps)
+    picked = pick_params_train_only(px, train_end, cost_bps=cost_bps)
     if picked is None:
-        print("TRAIN (2003–2012): no grid point met CAGR>15% AND Calmar>1 at this cost level.")
-        print("Using documented fallback (not train-optimal): blend=0.15, vol_lb=9, vol_tgt=0.13, lev_hi=2.5\n")
+        print(
+            f"TRAIN: no grid point met CAGR>15% AND Calmar>1 at {cost_bps:.0f} bps. "
+            "Using fallback: blend=0.15, vol_lb=9, vol_tgt=0.13, lev_hi=2.5\n"
+        )
         params = dict(blend=0.15, vol_lb=9, vol_tgt=0.13, lev_lo=1.0, lev_hi=2.5)
     else:
         params = {k: picked[k] for k in ("blend", "vol_lb", "vol_tgt", "lev_lo", "lev_hi")}
         print("TRAIN-selected parameters (frozen for test):")
         print(params)
         print(
-            f"  Train metrics: CAGR {picked['train_cagr']:.2%}  Calmar {picked['train_calmar']:.2f}  "
+            f"  Train: CAGR {picked['train_cagr']:.2%}  Calmar {picked['train_calmar']:.2f}  "
             f"MaxDD {picked['train_mdd']:.2%}\n"
         )
 
@@ -143,28 +157,20 @@ def main(cost_bps: float = DEFAULT_COST_BPS) -> None:
     full = evaluate(w_full, px, cost_bps=cost_bps, **params)
     oos = evaluate(w_full.loc[test.index], test, cost_bps=cost_bps, **params)
 
-    print("FULL sample (informational — includes train period):")
+    print("FULL sample (includes train period — informational):")
     print(
         f"  CAGR {full['cagr']:.2%}  Calmar {full['calmar']:.2f}  MaxDD {full['mdd']:.2%}  Sharpe {full['sharpe']:.2f}"
     )
-    print("\nOUT-OF-SAMPLE (2013–present, frozen params):")
+    print("\nOUT-OF-SAMPLE (frozen params):")
     print(
         f"  CAGR {oos['cagr']:.2%}  Calmar {oos['calmar']:.2f}  MaxDD {oos['mdd']:.2%}  Sharpe {oos['sharpe']:.2f}"
     )
 
-    print("\n--- DeepLogic verdict ---")
-    if picked is not None and (oos["cagr"] < 0.15 or oos["calmar"] < 1.0):
-        print(
-            "Train-period tuning found parameters that met both gates historically on 2003–2012, "
-            "but **out-of-sample** performance does not simultaneously clear CAGR>15% and Calmar>1 "
-            f"at {cost_bps:.0f} bps/month turnover costs. Treat live deployment as experimental.\n"
-        )
+    print("\n--- Notes ---")
     print(
-        "Synthetic stitched 3× LETF history before listing **overstates** achievable returns vs "
-        "real funds; raising costs to ~12–15 bps/unit turnover typically removes all train-period "
-        "solutions that meet both gates.\n"
-        "No Yahoo-backtested strategy warrants **full confidence** for live capital; validate with "
-        "paper trading, smaller size, and a platform-grade simulator (e.g. Portfolio123) if available."
+        "Native-only start is set by the **latest** ETF inception among the sleeve "
+        "(typically 3× funds). No proxy stitching — earlier macro history is omitted "
+        "rather than synthesized."
     )
 
 
