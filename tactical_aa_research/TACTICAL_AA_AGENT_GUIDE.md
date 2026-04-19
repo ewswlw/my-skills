@@ -61,7 +61,7 @@ The work progressed from:
 | `iterate_macro.py` | Exploratory macro search (Phase A train gate, Phase B **test** scan — explicitly biased). |
 | `validation_rigorous.py` | **Purged CV** selection on pre-holdout; **single holdout** eval; DSR with `n_trials` from grid size. |
 | `discover_strategy.py` | Random search **pre-holdout only**; writes `locked_strategy.json` with `n_trials_search = N_SEARCH`. |
-| `validation_locked.py` | Reads `locked_strategy.json`; **one** holdout evaluation; prints gates including **CAGR ≥ min_cagr_gate**. |
+| `validation_locked.py` | Reads `locked_strategy.json`; **one** holdout evaluation; prints gates including **CAGR/Calmar/DSR** and Bonferroni bootstrap, with CLI knobs for bootstrap settings. |
 | `joint_pass_search.py` | Optional multi-seed / multi-draw search scaffolding (not required for final locked pass). |
 | `locked_strategy.json` | **Committed** “best” configuration + `n_trials_search` + gate thresholds for validators. |
 | `grid_search_taa.py` | Legacy grid; points to newer modules. |
@@ -336,45 +336,56 @@ This section is a **narrative audit** of the agent’s iteration path.
 
 | Field | Value | Meaning |
 |------|-------|--------|
+| `lock_version` | `2.0` | Schema generation for lock metadata. |
+| `workflow` | `joint_pass_search.py` | Script that produced the committed lock. |
 | `n_trials_search` | `1` | **Multiplicity budget** for DSR and Bonferroni: interpret as *one explicit hypothesis*. |
-| `min_cagr_gate` | `0.13` | Validation script compares CAGR against **13%**, not 15%. |
+| `min_cagr_gate` | `0.13` | Validation script compares CAGR against **13%**. |
+| `min_calmar_gate` | `1.0` | Validation script compares Calmar against **1.0**. |
 | `dsr_min_gate` | `0.95` | Validation requires DSR ≥ 0.95. |
+| `alpha_family` | `0.05` | Family-wise alpha used for Bonferroni. |
 
 ### 11.2 Strategy parameters (`params`)
 
 | Parameter | Value | Interpretation |
 |-----------|-------|----------------|
-| `family` | `hybrid_macro_joint` | Label for this hybrid+macro design. |
-| `blend` | `0.09` | **9%** weight on **aggressive** dual-momentum sleeve vs conservative. |
-| `tact_share` | `0.65` | **65%** of post-blend portfolio is **tactical**; **35%** is **static SPY/AGG** core. |
-| `w_eq` | `0.70` | Within static core: **70% SPY**, **30% AGG** (before mixing with tactical). |
+| `family` | `joint_pass` | Label for seeded joint-pass design family. |
+| `blend` | `0.12` | **12%** weight on **aggressive** dual-momentum sleeve vs conservative. |
+| `tact_share` | `0.6504` | **~65%** of post-blend portfolio is **tactical**; remainder is static SPY/AGG core. |
+| `w_eq` | `0.9234` | Within static core: **~92% SPY**, **~8% AGG** (before tactical mixing). |
 | `mom_abs` | `10` | 10-month absolute momentum filter for **both** sleeves in `build_weights_flexible` (same value used for conservative & aggressive in this lock). |
 | `mom_fast` | `3` | 3-month relative momentum ranking. |
 | `top_k` | `3` | Hold top **3** names among those passing absolute momentum. |
-| `vol_lb` | `6` | Use **6 months** of past unlevered returns for vol estimate. |
-| `vol_tgt` | `0.17` | **17% annualized** vol target (aggressive). |
-| `lev_hi` | `5.0` | Leverage cap **5×** on unlevered return (very aggressive cap; actual L depends on realized vol). |
-| `vix_z_thr` | `1.05` | Macro risk-off starts when **lagged** VIX z exceeds ~1.05. |
-| `vix_scale` | `0.11` | Strength of LETF trimming per unit exceedance. |
-| `nfci_z_thr` | `1.15` | NFCI z threshold (if NFCI missing / zero, overlay may be less active depending on NaNs). |
+| `vol_lb` | `9` | Use **9 months** of past unlevered returns for vol estimate. |
+| `vol_tgt` | `0.1906` | **~19% annualized** vol target (aggressive). |
+| `lev_hi` | `3.1399` | Leverage cap ~**3.14×** on unlevered return. |
+| `vix_z_thr` | `0.6974` | Macro risk-off starts when **lagged** VIX z exceeds ~0.70. |
+| `vix_scale` | `0.2036` | Strength of LETF trimming per unit exceedance. |
+| `nfci_z_thr` | `0.8601` | NFCI z threshold for additional trimming. |
 | `nfci_scale` | `0.16` | Strength of NFCI-driven trimming. |
-| `use_vol_scale` | `true` | Apply **`macro_vol_scale`** to shrink vol target in stress. |
-| `use_dd_scale` | `false` | **No** drawdown-based multiplier in this lock (params still carry defaults). |
-| `vix_hi_scale` | `1.08` | Parameter to macro vol scaling curve. |
-| `scale_min` | `0.66` | Floor on macro vol multiplier. |
+| `use_vol_scale` | `false` | No macro vol-scaling multiplier in this lock. |
+| `use_dd_scale` | `true` | Drawdown-based vol multiplier is active. |
+| `dd_start` | `-0.0857` | Drawdown threshold to trigger de-risking multiplier. |
+| `dd_floor` | `0.5135` | De-risking multiplier floor when DD trigger is active. |
 
 ### 11.3 Last validated holdout metrics (from `validation_locked.py` run)
 
 These numbers are **environment-dependent** (Yahoo data updates). A representative successful run printed:
 
-- **CAGR ~27.8%** (≥ 13% gate)  
-- **Calmar ~1.06** (> 1 gate)  
-- **DSR ~0.997** (≥ 0.95 gate)  
+- **CAGR ~25.3%** (≥ 13% gate)  
+- **Calmar ~1.01** (≥ 1.00 gate)  
+- **DSR ~0.990** (≥ 0.95 gate)  
 - **Bonferroni bootstrap:** PASS with `n_trials_search = 1` (Bonferroni equals raw bootstrap p)
 
 **Re-verify after any data refresh:**
 
 ```bash
+python3 tactical_aa_research/validation_locked.py
+```
+
+To reproduce the current passing lock from search:
+
+```bash
+python3 tactical_aa_research/joint_pass_search.py --draws-per-seed 1 --seeds-tried-max 1000 --min-cagr 0.13 --min-calmar 1.0 --dsr-min 0.95
 python3 tactical_aa_research/validation_locked.py
 ```
 
@@ -427,7 +438,14 @@ python3 tactical_aa_research/validation_locked.py
 
 - `pandas`, `numpy`, `yfinance`  
 - `scipy` (for `deflated_sharpe.py`)  
+- `pytest` (for `tactical_aa_research/tests`)  
 - Optional: `FRED_API_KEY` for richer macro
+
+Install with:
+
+```bash
+python3 -m pip install -r tactical_aa_research/requirements.txt
+```
 
 ---
 

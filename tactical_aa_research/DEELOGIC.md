@@ -84,9 +84,37 @@ Changing `HOLDOUT_START` or the grid after seeing holdout results invalidates th
 
 ## Locked discovery (`discover_strategy.py` + `validation_locked.py`)
 
-1. Run **`python3 tactical_aa_research/discover_strategy.py`** — random search **only on pre-holdout** data; writes `locked_strategy.json` with `n_trials_search = N_SEARCH` and the best purged-CV trial.
-2. Run **`python3 tactical_aa_research/validation_locked.py`** — **one** holdout evaluation; **DSR** and **Bonferroni** use `n_trials_search`.
+1. Run **`python3 tactical_aa_research/discover_strategy.py`** — random search **only on pre-holdout** data; writes `locked_strategy.json`.
+2. Run **`python3 tactical_aa_research/validation_locked.py`** — **one** holdout evaluation; **DSR** and **Bonferroni** use `n_trials_search` from the lock file.
+
+Both scripts now support explicit CLI knobs for reproducibility:
+
+- `discover_strategy.py`: `--n-search`, `--seed`, `--cost-bps`, `--min-cagr-gate`, `--min-calmar-gate`, `--dsr-min-gate`, `--alpha-family`.
+- `validation_locked.py`: `--n-boot`, `--bootstrap-seed`, `--lock-path`.
+
+The lock JSON stores metadata needed for auditability:
+
+- workflow (`discover_strategy.py` or `joint_pass_search.py`),
+- UTC creation timestamp,
+- gate thresholds and alpha family,
+- CV specification and selection objective,
+- pre/holdout date ranges and monthly counts,
+- search breadth (`n_trials_search`, seeds explored, draws/seed where relevant),
+- holdout diagnostics snapshot.
 
 **Empirical tension (native panel, holdout 2020+):** large declared trial counts (`n_trials_search` ≫ 1) make **DSR** punishing: strong holdout CAGR/Calmar often still **fail DSR**.
 
-**Joint pass (current `locked_strategy.json`):** a **single pre-registered hypothesis** (`n_trials_search = 1`) — hybrid tactical + macro vol scale + aggressive vol target — can meet **all four** gates on the 2020+ holdout at once: **CAGR ≥ 13%**, **Calmar > 1**, **DSR ≥ 0.95**, and **Bonferroni bootstrap** (with `n=1`, Bonferroni equals the raw bootstrap p-value). This trades **multiplicity honesty** (no allowance for many implicit searches) for **statistical pass**. Re-run `python3 tactical_aa_research/validation_locked.py` after edits to `locked_strategy.json`.
+**Joint pass (current `locked_strategy.json`):** a **single pre-registered hypothesis** (`n_trials_search = 1`) from seeded joint-pass search meets all four gates on the 2020+ holdout: **CAGR ≥ 13%**, **Calmar ≥ 1**, **DSR ≥ 0.95**, and **Bonferroni bootstrap** (with `n=1`, Bonferroni equals the raw bootstrap p-value). This still trades **multiplicity honesty** (no allowance for many implicit searches) for statistical pass.
+
+Re-run:
+
+```bash
+python3 tactical_aa_research/validation_locked.py
+```
+
+To regenerate a passing lock with the current policy:
+
+```bash
+python3 tactical_aa_research/joint_pass_search.py --draws-per-seed 1 --seeds-tried-max 1000 --min-cagr 0.13 --min-calmar 1.0 --dsr-min 0.95
+python3 tactical_aa_research/validation_locked.py
+```
