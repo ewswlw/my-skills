@@ -15,9 +15,11 @@ Run:
 """
 from __future__ import annotations
 
+import argparse
 import json
 import random
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 import numpy as np
@@ -38,8 +40,11 @@ DRAWS_PER_SEED = 4
 SEEDS_TRIED_MAX = 400
 SEED0 = 900001
 MIN_CAGR = 0.13
+MIN_CALMAR = 1.0
 DSR_MIN = 0.95
+ALPHA_FAMILY = 0.05
 COST_BPS = COST_BPS_DEFAULT
+LOCK_VERSION = "2.0"
 
 LOCK_PATH = Path(__file__).resolve().parent / "locked_strategy.json"
 
@@ -100,14 +105,48 @@ def random_trial(rng: random.Random) -> dict:
     )
 
 
-def holdout_passes(net_h, bh_h, n_trials: int) -> tuple[bool, dict]:
+def parse_args() -> argparse.Namespace:
+    ap = argparse.ArgumentParser(description="Seeded search for a holdout joint-pass locked strategy.")
+    ap.add_argument("--draws-per-seed", type=int, default=DRAWS_PER_SEED, help="Within-seed random draws.")
+    ap.add_argument("--seeds-tried-max", type=int, default=SEEDS_TRIED_MAX, help="Maximum seeds to explore.")
+    ap.add_argument("--seed0", type=int, default=SEED0, help="Base seed for seed sweep.")
+    ap.add_argument("--min-cagr", type=float, default=MIN_CAGR, help="Holdout CAGR gate.")
+    ap.add_argument("--min-calmar", type=float, default=MIN_CALMAR, help="Holdout Calmar gate.")
+    ap.add_argument("--dsr-min", type=float, default=DSR_MIN, help="Holdout DSR gate.")
+    ap.add_argument("--alpha-family", type=float, default=ALPHA_FAMILY, help="Family-wise alpha for Bonferroni gate.")
+    ap.add_argument("--cost-bps", type=float, default=COST_BPS, help="Turnover cost in bps per unit |Δ(L·w)|.")
+    ap.add_argument(
+        "--lock-path",
+        type=Path,
+        default=LOCK_PATH,
+        help="Output lock JSON path (default: tactical_aa_research/locked_strategy.json).",
+    )
+    ap.add_argument(
+        "--note",
+        type=str,
+        default="joint pass seed sweep; one holdout eval per seed-selected candidate",
+        help="Free-form note embedded in lock metadata.",
+    )
+    return ap.parse_args()
+
+
+def holdout_passes(
+    net_h,
+    bh_h,
+    *,
+    n_trials: int,
+    min_cagr: float,
+    min_calmar: float,
+    dsr_min: float,
+    alpha_family: float,
+) -> tuple[bool, dict]:
     cg, cm = cagr_calmar(net_h)
     excess = align_diff(net_h, bh_h)
     _, p_boot = block_bootstrap_pvalue(np.asarray(excess, dtype=float), block_size=6, n_boot=15000, seed=2026)
     p_bonf = min(1.0, p_boot * n_trials)
-    alpha_b = bonferroni_alpha(n_trials, 0.05)
+    alpha_b = bonferroni_alpha(n_trials, alpha_family)
     _, _, dsr = deflated_sharpe_ratio(np.asarray(net_h.dropna(), dtype=float), n_trials=n_trials)
-    ok = cg >= MIN_CAGR and cm > 1.0 and dsr >= DSR_MIN and p_bonf >= alpha_b
+    ok = cg >= min_cagr and cm >= min_calmar and dsr >= dsr_min and p_bonf >= alpha_b
     return ok, {
         "cagr": float(cg),
         "calmar": float(cm),
@@ -119,6 +158,16 @@ def holdout_passes(net_h, bh_h, n_trials: int) -> tuple[bool, dict]:
 
 
 def main():
+    args = parse_args()
+    draws_per_seed = int(max(args.draws_per_seed, 1))
+    seeds_tried_max = int(max(args.seeds_tried_max, 1))
+    seed0 = int(args.seed0)
+    min_cagr = float(args.min_cagr)
+    min_calmar = float(args.min_calmar)
+    dsr_min = float(args.dsr_min)
+    alpha_family = float(args.alpha_family)
+    cost_bps = float(args.cost_bps)
+
     px, first = native_panel_from_common_start("2005-01-01")
     mf = prep_macro(px)
     pre = px.loc[px.index < HOLDOUT_START]
@@ -127,7 +176,7 @@ def main():
     bh_h = bench_spy(hold)
     folds = list(purged_time_series_folds(len(pre), n_splits=4, purge_gap=6, embargo=1, min_train=36))
 
-    n_trials_search = int(DRAWS_PER_SEED)
+    n_trials_search = int(draws_per_seed)
     ok = False
     diag: dict = {}
     best_t = None
@@ -135,21 +184,29 @@ def main():
     winning_seed = None
     sidx_end = 0
 
-    for sidx in range(SEEDS_TRIED_MAX):
+    for sidx in range(seeds_tried_max):
         if sidx % 50 == 0:
-            print(f"  seed progress {sidx}/{SEEDS_TRIED_MAX} …", flush=True)
-        rng = random.Random(SEED0 + sidx)
+            print(f"  seed progress {sidx}/{seeds_tried_max} …", flush=True)
+        rng = random.Random(seed0 + sidx)
         cand_t = None
         cand_sc = float("-inf")
-        for _ in range(DRAWS_PER_SEED):
+        for _ in range(draws_per_seed):
             t = random_trial(rng)
-            net_pre = run_creative_trial(pre, mf_pre, t, cost_bps=COST_BPS)
+            net_pre = run_creative_trial(pre, mf_pre, t, cost_bps=cost_bps)
             sc = cv_train_score(net_pre, folds)
             if sc > cand_sc:
                 cand_sc = sc
                 cand_t = t
-        net_h = run_creative_trial(hold, mf_hold, cand_t, cost_bps=COST_BPS)
-        ok, diag = holdout_passes(net_h, bh_h, n_trials_search)
+        net_h = run_creative_trial(hold, mf_hold, cand_t, cost_bps=cost_bps)
+        ok, diag = holdout_passes(
+            net_h,
+            bh_h,
+            n_trials=n_trials_search,
+            min_cagr=min_cagr,
+            min_calmar=min_calmar,
+            dsr_min=dsr_min,
+            alpha_family=alpha_family,
+        )
         if cand_sc > best_sc:
             best_sc = cand_sc
             best_t = cand_t
@@ -157,39 +214,65 @@ def main():
         if ok:
             best_t = cand_t
             best_sc = cand_sc
-            winning_seed = SEED0 + sidx
+            winning_seed = seed0 + sidx
             break
 
     if best_t is None:
         raise SystemExit("No candidate produced")
 
-    net_final = run_creative_trial(hold, mf_hold, best_t, cost_bps=COST_BPS)
-    ok, diag = holdout_passes(net_final, bh_h, n_trials_search)
+    net_final = run_creative_trial(hold, mf_hold, best_t, cost_bps=cost_bps)
+    ok, diag = holdout_passes(
+        net_final,
+        bh_h,
+        n_trials=n_trials_search,
+        min_cagr=min_cagr,
+        min_calmar=min_calmar,
+        dsr_min=dsr_min,
+        alpha_family=alpha_family,
+    )
 
     payload = {
+        "lock_version": LOCK_VERSION,
+        "created_at_utc": datetime.now(timezone.utc).isoformat(),
+        "workflow": "joint_pass_search.py",
         "n_trials_search": n_trials_search,
         "seeds_explored": int(sidx_end + 1),
-        "seed0": SEED0,
+        "seed0": seed0,
         "winning_seed": winning_seed,
-        "draws_per_seed": DRAWS_PER_SEED,
+        "draws_per_seed": draws_per_seed,
+        "cost_bps": cost_bps,
+        "alpha_family": alpha_family,
+        "min_calmar_gate": min_calmar,
         "note": "DSR uses n_trials_search=draws_per_seed only; seeds_explored reports outer search breadth.",
-        "min_cagr_gate": MIN_CAGR,
-        "dsr_min_gate": DSR_MIN,
+        "user_note": str(args.note),
+        "min_cagr_gate": min_cagr,
+        "dsr_min_gate": dsr_min,
+        "holdout_start": str(HOLDOUT_START.date()),
+        "search_universe": {
+            "pre_start": str(pre.index[0].date()),
+            "pre_end": str(pre.index[-1].date()),
+            "n_months_pre": int(len(pre)),
+            "hold_start": str(hold.index[0].date()),
+            "hold_end": str(hold.index[-1].date()),
+            "n_months_hold": int(len(hold)),
+        },
+        "cv_spec": {"n_splits": 4, "purge_gap": 6, "embargo": 1, "min_train": 36},
+        "selection_objective": "argmax per-seed purged-CV train score = mean folds [CAGR * max(Calmar,0.05)]",
         "cv_mean_train_objective": best_sc,
         "holdout_all_gates_pass": ok,
         "holdout_diagnostics": diag,
         "params": best_t,
     }
-    LOCK_PATH.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    args.lock_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
     print("=== Joint pass search ===")
     print(f"Native start {first.date()} | holdout {HOLDOUT_START.date()} .. {hold.index[-1].date()}")
-    print(f"n_trials_search (DSR/Bonf)={n_trials_search}  seeds_explored={sidx_end+1}  draws/seed={DRAWS_PER_SEED}")
+    print(f"n_trials_search (DSR/Bonf)={n_trials_search}  seeds_explored={sidx_end+1}  draws/seed={draws_per_seed}")
     if winning_seed is not None:
-        print(f"PASS at seed={winning_seed} (offset {winning_seed - SEED0})")
+        print(f"PASS at seed={winning_seed} (offset {winning_seed - seed0})")
     print("Holdout diagnostics:", diag)
     print(f"ALL GATES PASS: {ok}")
-    print("Wrote", LOCK_PATH)
+    print("Wrote", args.lock_path)
 
 
 if __name__ == "__main__":

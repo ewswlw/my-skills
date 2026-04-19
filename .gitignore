@@ -1,3 +1,6 @@
-
 # Python bytecode
-tactical_aa_research/__pycache__/
+__pycache__/
+*.py[cod]
+
+# Pytest cache
+.pytest_cache/

@@ -12,9 +12,11 @@ Then:
 """
 from __future__ import annotations
 
+import argparse
 import json
 import random
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 import numpy as np
@@ -33,6 +35,12 @@ LOCK_PATH = Path(__file__).resolve().parent / "locked_strategy.json"
 # Larger N is more honest about data-mining but **lowers DSR** for the same holdout Sharpe.
 N_SEARCH = 2500
 SEED = 12345
+COST_BPS = 10.0
+MIN_CAGR_GATE = 0.13
+MIN_CALMAR_GATE = 1.0
+DSR_MIN_GATE = 0.95
+ALPHA_FAMILY = 0.05
+LOCK_VERSION = "2.0"
 
 
 def prep_macro(px: pd.DataFrame) -> pd.DataFrame:
@@ -82,20 +90,47 @@ def random_trial(rng: random.Random) -> dict:
     )
 
 
+def parse_args() -> argparse.Namespace:
+    ap = argparse.ArgumentParser(description="Pre-holdout discovery search for tactical AA lock file.")
+    ap.add_argument("--n-search", type=int, default=N_SEARCH, help="Number of random trials (n_trials_search).")
+    ap.add_argument("--seed", type=int, default=SEED, help="RNG seed for random trial generation.")
+    ap.add_argument("--cost-bps", type=float, default=COST_BPS, help="Turnover cost in bps per unit |Δ(L·w)|.")
+    ap.add_argument("--min-cagr-gate", type=float, default=MIN_CAGR_GATE, help="Downstream holdout CAGR gate.")
+    ap.add_argument("--min-calmar-gate", type=float, default=MIN_CALMAR_GATE, help="Downstream holdout Calmar gate.")
+    ap.add_argument("--dsr-min-gate", type=float, default=DSR_MIN_GATE, help="Downstream holdout DSR gate.")
+    ap.add_argument("--alpha-family", type=float, default=ALPHA_FAMILY, help="Family-wise alpha for Bonferroni gate.")
+    ap.add_argument(
+        "--lock-path",
+        type=Path,
+        default=LOCK_PATH,
+        help="Output lock JSON path (default: tactical_aa_research/locked_strategy.json).",
+    )
+    ap.add_argument(
+        "--note",
+        type=str,
+        default="pre-holdout random search; holdout untouched",
+        help="Free-form note embedded in lock metadata.",
+    )
+    return ap.parse_args()
+
+
 def main():
+    args = parse_args()
+    n_search = int(max(args.n_search, 1))
+
     px, _ = native_panel_from_common_start("2005-01-01")
     mf = prep_macro(px)
     pre = px.loc[px.index < HOLDOUT_START].copy()
     mf_pre = mf.loc[pre.index]
 
     folds = list(purged_time_series_folds(len(pre), n_splits=4, purge_gap=6, embargo=1, min_train=36))
-    rng = random.Random(SEED)
+    rng = random.Random(int(args.seed))
 
     best_t = None
     best_sc = float("-inf")
-    for _ in range(N_SEARCH):
+    for _ in range(n_search):
         t = random_trial(rng)
-        net_full = run_creative_trial(pre, mf_pre, t, cost_bps=10.0)
+        net_full = run_creative_trial(pre, mf_pre, t, cost_bps=float(args.cost_bps))
         scores = []
         for fd in folds:
             tr = net_full.iloc[fd.train_start : fd.train_end]
@@ -106,13 +141,30 @@ def main():
             best_t = t
 
     payload = {
-        "n_trials_search": N_SEARCH,
-        "seed": SEED,
+        "lock_version": LOCK_VERSION,
+        "created_at_utc": datetime.now(timezone.utc).isoformat(),
+        "workflow": "discover_strategy.py",
+        "n_trials_search": n_search,
+        "seed": int(args.seed),
+        "cost_bps": float(args.cost_bps),
+        "alpha_family": float(args.alpha_family),
+        "min_cagr_gate": float(args.min_cagr_gate),
+        "min_calmar_gate": float(args.min_calmar_gate),
+        "dsr_min_gate": float(args.dsr_min_gate),
+        "holdout_start": str(HOLDOUT_START.date()),
+        "search_universe": {
+            "pre_start": str(pre.index[0].date()),
+            "pre_end": str(pre.index[-1].date()),
+            "n_months_pre": int(len(pre)),
+        },
+        "cv_spec": {"n_splits": 4, "purge_gap": 6, "embargo": 1, "min_train": 36},
+        "selection_objective": "mean_fold_train_score where fold score=(max(Calmar,0.01)^1.35)*max(CAGR,0.02)",
         "cv_mean_train_score": best_sc,
+        "note": str(args.note),
         "params": best_t,
     }
-    LOCK_PATH.write_text(json.dumps(payload, indent=2), encoding="utf-8")
-    print("Wrote", LOCK_PATH)
+    args.lock_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    print("Wrote", args.lock_path)
     print("Best CV mean train score:", best_sc)
     print(json.dumps(best_t, indent=2))
 
