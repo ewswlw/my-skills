@@ -41,6 +41,8 @@ MIN_CALMAR_GATE = 1.0
 DSR_MIN_GATE = 0.95
 ALPHA_FAMILY = 0.05
 LOCK_VERSION = "2.0"
+PORTFOLIO_LEVERAGE_ALLOWED = False
+PORTFOLIO_LEVERAGE_CAP = 1.0
 
 
 def prep_macro(px: pd.DataFrame) -> pd.DataFrame:
@@ -64,29 +66,38 @@ def train_score(net: pd.Series) -> float:
     return float((max(cm, 0.01) ** 1.35) * max(cg, 0.02))
 
 
-def random_trial(rng: random.Random) -> dict:
+def random_trial(rng: random.Random, *, portfolio_leverage_allowed: bool) -> dict:
     mode = rng.randint(0, 3)
+    if portfolio_leverage_allowed:
+        top_k_choices = [2, 3]
+        blend_choices = [0.05, 0.08, 0.11, 0.14, 0.18, 0.22]
+        lev_hi = rng.uniform(2.4, 4.5)
+    else:
+        # No portfolio-level leverage: broaden unlevered allocation-space dimensions.
+        top_k_choices = [1, 2, 3, 4]
+        blend_choices = [0.0, 0.04, 0.08, 0.12, 0.16, 0.20, 0.24]
+        lev_hi = 1.0
     return dict(
         family="discovered",
-        blend=rng.choice([0.05, 0.08, 0.11, 0.14, 0.18, 0.22]),
-        tact_share=rng.uniform(0.42, 0.78),
-        w_eq=rng.uniform(0.62, 0.90),
-        mom_abs=rng.choice([8, 10, 12]),
-        mom_fast=rng.choice([2, 3]),
-        top_k=rng.choice([2, 3]),
+        blend=rng.choice(blend_choices),
+        tact_share=rng.uniform(0.30, 0.86),
+        w_eq=rng.uniform(0.55, 0.98),
+        mom_abs=rng.choice([6, 8, 10, 12]),
+        mom_fast=rng.choice([1, 2, 3, 4]),
+        top_k=rng.choice(top_k_choices),
         vol_lb=rng.choice([6, 9, 12]),
-        vol_tgt=rng.uniform(0.075, 0.155),
-        lev_hi=rng.uniform(2.4, 4.5),
-        vix_z_thr=rng.uniform(0.45, 1.15),
-        vix_scale=rng.uniform(0.08, 0.30),
-        nfci_z_thr=rng.uniform(0.55, 1.35),
-        nfci_scale=0.17,
+        vol_tgt=rng.uniform(0.08, 0.22),
+        lev_hi=lev_hi,
+        vix_z_thr=rng.uniform(0.35, 1.40),
+        vix_scale=rng.uniform(0.00, 0.35),
+        nfci_z_thr=rng.uniform(0.35, 1.50),
+        nfci_scale=rng.uniform(0.00, 0.25),
         use_vol_scale=mode in (1, 3),
         use_dd_scale=mode in (2, 3),
-        dd_start=rng.uniform(-0.11, -0.045),
-        dd_floor=rng.uniform(0.48, 0.78),
-        vix_hi_scale=rng.uniform(0.82, 1.18),
-        scale_min=rng.uniform(0.62, 0.82),
+        dd_start=rng.uniform(-0.18, -0.03),
+        dd_floor=rng.uniform(0.35, 0.95),
+        vix_hi_scale=rng.uniform(0.75, 1.25),
+        scale_min=rng.uniform(0.45, 0.95),
     )
 
 
@@ -99,6 +110,18 @@ def parse_args() -> argparse.Namespace:
     ap.add_argument("--min-calmar-gate", type=float, default=MIN_CALMAR_GATE, help="Downstream holdout Calmar gate.")
     ap.add_argument("--dsr-min-gate", type=float, default=DSR_MIN_GATE, help="Downstream holdout DSR gate.")
     ap.add_argument("--alpha-family", type=float, default=ALPHA_FAMILY, help="Family-wise alpha for Bonferroni gate.")
+    ap.add_argument(
+        "--allow-portfolio-leverage",
+        action="store_true",
+        default=PORTFOLIO_LEVERAGE_ALLOWED,
+        help="Enable portfolio-level leverage scaling in backtest engine.",
+    )
+    ap.add_argument(
+        "--portfolio-leverage-cap",
+        type=float,
+        default=PORTFOLIO_LEVERAGE_CAP,
+        help="Maximum allowed portfolio leverage when leverage is enabled.",
+    )
     ap.add_argument(
         "--lock-path",
         type=Path,
@@ -117,6 +140,8 @@ def parse_args() -> argparse.Namespace:
 def main():
     args = parse_args()
     n_search = int(max(args.n_search, 1))
+    leverage_allowed = bool(args.allow_portfolio_leverage)
+    leverage_cap = float(args.portfolio_leverage_cap)
 
     px, _ = native_panel_from_common_start("2005-01-01")
     mf = prep_macro(px)
@@ -129,8 +154,15 @@ def main():
     best_t = None
     best_sc = float("-inf")
     for _ in range(n_search):
-        t = random_trial(rng)
-        net_full = run_creative_trial(pre, mf_pre, t, cost_bps=float(args.cost_bps))
+        t = random_trial(rng, portfolio_leverage_allowed=leverage_allowed)
+        net_full = run_creative_trial(
+            pre,
+            mf_pre,
+            t,
+            cost_bps=float(args.cost_bps),
+            portfolio_leverage_allowed=leverage_allowed,
+            portfolio_leverage_cap=leverage_cap,
+        )
         scores = []
         for fd in folds:
             tr = net_full.iloc[fd.train_start : fd.train_end]
@@ -147,6 +179,8 @@ def main():
         "n_trials_search": n_search,
         "seed": int(args.seed),
         "cost_bps": float(args.cost_bps),
+        "portfolio_leverage_allowed": leverage_allowed,
+        "portfolio_leverage_cap": leverage_cap,
         "alpha_family": float(args.alpha_family),
         "min_cagr_gate": float(args.min_cagr_gate),
         "min_calmar_gate": float(args.min_calmar_gate),

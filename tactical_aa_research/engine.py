@@ -80,18 +80,29 @@ def backtest_with_costs(
     lev_hi: float,
     cost_bps_per_unit_turnover: float = 10.0,
     vol_tgt_multiplier: pd.Series | None = None,
+    *,
+    portfolio_leverage_allowed: bool = True,
+    portfolio_leverage_cap: float | None = None,
 ) -> tuple[pd.Series, pd.Series, pd.Series, pd.Series]:
     """
     Signal at month-end t in `weights[t]`; execution for month t+1 return:
     w_exec[t+1] = weights[t]. Leverage L[t+1] from vol of unlevered series through t.
 
     Returns: net_ret, gross_ret, L, turnover (fraction of NAV; L1 change in L*w_exec).
+
+    If `portfolio_leverage_allowed=False`, portfolio-level leverage is disabled and
+    effective leverage is fixed at 1.0 regardless of vol-target parameters.
     """
     rets = px.pct_change()
     w_exec = weights.shift(1).fillna(0.0)
 
     unlev = (w_exec * rets).sum(axis=1, min_count=1)
-    L = vol_target_leverage(unlev, vol_lb, vol_tgt, lev_lo, lev_hi, vol_tgt_multiplier)
+    if portfolio_leverage_allowed:
+        L = vol_target_leverage(unlev, vol_lb, vol_tgt, lev_lo, lev_hi, vol_tgt_multiplier)
+        if portfolio_leverage_cap is not None:
+            L = L.clip(upper=float(portfolio_leverage_cap))
+    else:
+        L = pd.Series(1.0, index=unlev.index, dtype=float)
 
     gross = unlev * L
 

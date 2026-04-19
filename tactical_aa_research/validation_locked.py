@@ -83,13 +83,22 @@ def main():
     n_trials = int(payload["n_trials_search"])
     t = payload["params"]
     alpha_family = float(payload.get("alpha_family", DEFAULT_ALPHA_FAMILY))
+    leverage_allowed = bool(payload.get("portfolio_leverage_allowed", True))
+    leverage_cap = float(payload.get("portfolio_leverage_cap", 1.0))
 
     px, first = native_panel_from_common_start("2005-01-01")
     mf = prep_macro(px)
     hold = px.loc[px.index >= HOLDOUT_START]
     mf_h = mf.loc[hold.index]
 
-    net = run_creative_trial(hold, mf_h, t, cost_bps=COST_BPS_DEFAULT)
+    net = run_creative_trial(
+        hold,
+        mf_h,
+        t,
+        cost_bps=COST_BPS_DEFAULT,
+        portfolio_leverage_allowed=leverage_allowed,
+        portfolio_leverage_cap=leverage_cap,
+    )
     cg, cm, md, sh = metrics(net)
     bh = bench_spy(hold)
     excess = align_diff(net, bh)
@@ -105,6 +114,7 @@ def main():
 
     print("=== Locked strategy holdout ===")
     print(f"Native start {first.date()} | holdout {HOLDOUT_START.date()} .. {hold.index[-1].date()}")
+    print(f"Portfolio leverage allowed: {leverage_allowed} (cap={leverage_cap:.2f})")
     print(f"n_trials_search (DSR/Bonferroni): {n_trials}")
     print(f"CAGR {cg:.2%}  Calmar {cm:.2f}  MaxDD {md:.2%}  Sharpe {sh:.2f}")
     print(f"Excess vs SPY mean: {mu_xs*100:.3f} pp/mo  bootstrap p={p_boot:.4f}  Bonf p≈{p_bonf:.4f} (α={alpha_b:.6f})")

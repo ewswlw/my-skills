@@ -17,12 +17,52 @@ def _dd_vol_multiplier(unlev: pd.Series, *, dd_start: float, floor: float) -> pd
     return mult.where(~bad, other=floor)
 
 
+def _apply_no_leverage_risk_scale(
+    w: pd.DataFrame,
+    risk_scale: pd.Series,
+    *,
+    agg_share: float = 0.70,
+) -> pd.DataFrame:
+    """
+    Apply a risk-scaling multiplier without portfolio leverage by shrinking
+    non-defensive exposures and reallocating trimmed mass to AGG/BIL.
+    """
+    out = w.copy()
+    scale = risk_scale.reindex(out.index).astype(float).fillna(1.0).clip(lower=0.0, upper=1.0)
+    defensive = [c for c in ("AGG", "BIL", "CASH") if c in out.columns]
+    for t in out.index:
+        s = float(scale.loc[t])
+        if s >= 0.999:
+            continue
+        row = out.loc[t].copy()
+        risky_cols = [c for c in out.columns if c not in defensive and float(row.get(c, 0.0)) > 0.0]
+        if not risky_cols:
+            continue
+        risky_mass_before = float(row[risky_cols].sum())
+        row.loc[risky_cols] = row.loc[risky_cols] * s
+        trimmed = risky_mass_before - float(row[risky_cols].sum())
+        if trimmed > 0:
+            if "AGG" in out.columns:
+                row.loc["AGG"] = float(row.get("AGG", 0.0)) + trimmed * agg_share
+            if "BIL" in out.columns:
+                row.loc["BIL"] = float(row.get("BIL", 0.0)) + trimmed * (1.0 - agg_share)
+            if "AGG" not in out.columns and "BIL" not in out.columns and "CASH" in out.columns:
+                row.loc["CASH"] = float(row.get("CASH", 0.0)) + trimmed
+        srow = float(row.sum())
+        if srow > 0:
+            row = row / srow
+        out.loc[t] = row
+    return out
+
+
 def run_creative_trial(
     px: pd.DataFrame,
     mf: pd.DataFrame,
     t: dict[str, Any],
     *,
     cost_bps: float,
+    portfolio_leverage_allowed: bool = True,
+    portfolio_leverage_cap: float | None = None,
 ) -> pd.Series:
     w_tac = build_weights_flexible(
         px,
@@ -69,6 +109,10 @@ def run_creative_trial(
     else:
         mult = macro_mult.astype(float) * dd_mult.astype(float)
 
+    if not portfolio_leverage_allowed and mult is not None:
+        w = _apply_no_leverage_risk_scale(w, mult)
+        mult = None
+
     net, _, _, _ = backtest_with_costs(
         w,
         px,
@@ -78,5 +122,7 @@ def run_creative_trial(
         float(t["lev_hi"]),
         cost_bps_per_unit_turnover=cost_bps,
         vol_tgt_multiplier=mult,
+        portfolio_leverage_allowed=portfolio_leverage_allowed,
+        portfolio_leverage_cap=portfolio_leverage_cap,
     )
     return net

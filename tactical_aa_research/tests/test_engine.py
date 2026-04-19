@@ -105,6 +105,35 @@ def test_backtest_with_costs_cost_drag_and_non_negative_turnover():
     assert np.allclose(lev0.fillna(0).values, lev10.fillna(0).values)
 
 
+def test_backtest_with_costs_can_disable_portfolio_leverage():
+    px = _price_panel()
+    w = build_weights_flexible(
+        px,
+        0.25,
+        mom_abs_c=10,
+        mom_fast_c=3,
+        top_k_c=3,
+        mom_abs_l=10,
+        mom_fast_l=2,
+        top_k_l=3,
+    )
+    net, gross, lev, turn = backtest_with_costs(
+        w,
+        px,
+        vol_lb=6,
+        vol_tgt=0.20,
+        lev_lo=1.0,
+        lev_hi=4.0,
+        cost_bps_per_unit_turnover=10.0,
+        portfolio_leverage_allowed=False,
+        portfolio_leverage_cap=1.0,
+    )
+    assert np.allclose(lev.fillna(1.0).values, np.ones(len(lev)))
+    assert np.isfinite(net.fillna(0)).all()
+    assert np.isfinite(gross.fillna(0)).all()
+    assert (turn.fillna(0) >= 0).all()
+
+
 def test_cagr_calmar_helpers_return_finite_values_for_monotone_equity():
     idx = pd.date_range("2021-01-31", periods=24, freq="ME")
     eq = pd.Series(np.linspace(1.0, 1.6, len(idx)), index=idx)
