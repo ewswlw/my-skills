@@ -45,6 +45,24 @@ python3 tactical_aa_research/joint_pass_search.py
 python3 tactical_aa_research/validation_locked.py
 ```
 
+## No-portfolio-leverage policy (default)
+
+The current search/validation scripts default to:
+
+- `portfolio_leverage_allowed = false`
+- `portfolio_leverage_cap = 1.0`
+
+This means portfolio NAV is never scaled above 1x. Leveraged ETFs can still appear
+as holdings when selected by momentum logic, but the portfolio-level leverage scalar
+is disabled.
+
+Example no-leverage seeded search:
+
+```bash
+python3 tactical_aa_research/joint_pass_search.py --draws-per-seed 1 --seeds-tried-max 1200 --min-cagr 0.13 --min-calmar 1.0 --dsr-min 0.95
+python3 tactical_aa_research/validation_locked.py
+```
+
 ## Notes
 
 - Holdout boundary is defined in `validation_config.py` (`HOLDOUT_START`).

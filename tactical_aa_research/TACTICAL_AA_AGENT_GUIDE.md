@@ -322,29 +322,39 @@ This section is a **narrative audit** of the agent’s iteration path.
 7. **Creative hybrid strategies**  
    - Introduced **SPY/AGG static core** mixed with tactical sleeve to stabilize drawdowns / alter return distribution.
 
-8. **Joint gate request with CAGR floor 13%**  
+8. **Joint gate request with CAGR floor 13% (portfolio leverage enabled era)**  
    - Empirical search showed: **with honest large `n_trials_search`, passing all four simultaneously was not achieved** in automated sweeps documented during the session.  
-   - **Resolution committed to repo:** lock a **single hypothesis** with **`n_trials_search = 1`** so DSR/Bonferroni penalties match “one published vector,” yielding **PASS** on all four gates on holdout for that vector.
+   - **Resolution at that time:** lock a **single hypothesis** with **`n_trials_search = 1`** so DSR/Bonferroni penalties match “one published vector,” yielding **PASS** on all four gates on holdout for that vector.
+
+9. **Constraint change: no portfolio-level leverage allowed**  
+   - Strategy engine now supports explicit policy flags:
+     - `portfolio_leverage_allowed`
+     - `portfolio_leverage_cap`
+   - Default policy in search scripts is now:
+     - `portfolio_leverage_allowed=false`
+     - `portfolio_leverage_cap=1.0`
+   - Leveraged ETFs (UPRO/TQQQ/TMF) may still appear as instruments, but portfolio NAV scaling is disabled.
+   - Large seeded sweeps under this rule (e.g., 1200/2000/3000 seeds with draws-per-seed=1) **did not** recover an all-four-gates pass; recurring failure mode is Calmar < 1 on holdout.
 
 ---
 
-## 11. Best strategy (current locked configuration)
+## 11. Best strategy (historical all-gates pass with portfolio leverage enabled)
 
 **Source of truth:** `tactical_aa_research/locked_strategy.json` (committed).
 
-### 11.1 Meta fields
+### 11.1 Meta fields (historical leveraged-pass lock)
 
 | Field | Value | Meaning |
 |------|-------|--------|
 | `lock_version` | `2.0` | Schema generation for lock metadata. |
-| `workflow` | `joint_pass_search.py` | Script that produced the committed lock. |
+| `workflow` | `joint_pass_search.py` | Script that produced the historical pass lock. |
 | `n_trials_search` | `1` | **Multiplicity budget** for DSR and Bonferroni: interpret as *one explicit hypothesis*. |
 | `min_cagr_gate` | `0.13` | Validation script compares CAGR against **13%**. |
 | `min_calmar_gate` | `1.0` | Validation script compares Calmar against **1.0**. |
 | `dsr_min_gate` | `0.95` | Validation requires DSR ≥ 0.95. |
 | `alpha_family` | `0.05` | Family-wise alpha used for Bonferroni. |
 
-### 11.2 Strategy parameters (`params`)
+### 11.2 Strategy parameters (`params`, historical leveraged-pass lock)
 
 | Parameter | Value | Interpretation |
 |-----------|-------|----------------|
@@ -367,7 +377,7 @@ This section is a **narrative audit** of the agent’s iteration path.
 | `dd_start` | `-0.0857` | Drawdown threshold to trigger de-risking multiplier. |
 | `dd_floor` | `0.5135` | De-risking multiplier floor when DD trigger is active. |
 
-### 11.3 Last validated holdout metrics (from `validation_locked.py` run)
+### 11.3 Last validated holdout metrics (historical leveraged-pass run)
 
 These numbers are **environment-dependent** (Yahoo data updates). A representative successful run printed:
 
@@ -382,12 +392,26 @@ These numbers are **environment-dependent** (Yahoo data updates). A representati
 python3 tactical_aa_research/validation_locked.py
 ```
 
-To reproduce the current passing lock from search:
+To reproduce the historical leveraged-pass lock from search:
 
 ```bash
 python3 tactical_aa_research/joint_pass_search.py --draws-per-seed 1 --seeds-tried-max 1000 --min-cagr 0.13 --min-calmar 1.0 --dsr-min 0.95
 python3 tactical_aa_research/validation_locked.py
 ```
+
+### 11.4 Current no-portfolio-leverage status
+
+With the active default policy:
+
+- `portfolio_leverage_allowed=false`
+- `portfolio_leverage_cap=1.0`
+
+the recent broad seeded searches have not yet produced an all-four-gates pass.
+Representative no-leverage holdout outcomes show:
+
+- CAGR around low-teens in better runs,
+- DSR and Bonferroni gates often still passing with `n_trials_search=1`,
+- **Calmar gate** as the dominant failure mode (typically < 1).
 
 ---
 

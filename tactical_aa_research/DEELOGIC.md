@@ -89,7 +89,7 @@ Changing `HOLDOUT_START` or the grid after seeing holdout results invalidates th
 
 Both scripts now support explicit CLI knobs for reproducibility:
 
-- `discover_strategy.py`: `--n-search`, `--seed`, `--cost-bps`, `--min-cagr-gate`, `--min-calmar-gate`, `--dsr-min-gate`, `--alpha-family`.
+- `discover_strategy.py`: `--n-search`, `--seed`, `--cost-bps`, `--min-cagr-gate`, `--min-calmar-gate`, `--dsr-min-gate`, `--alpha-family`, and leverage-policy flags.
 - `validation_locked.py`: `--n-boot`, `--bootstrap-seed`, `--lock-path`.
 
 The lock JSON stores metadata needed for auditability:
@@ -97,14 +97,37 @@ The lock JSON stores metadata needed for auditability:
 - workflow (`discover_strategy.py` or `joint_pass_search.py`),
 - UTC creation timestamp,
 - gate thresholds and alpha family,
+- leverage policy (`portfolio_leverage_allowed`, `portfolio_leverage_cap`),
 - CV specification and selection objective,
 - pre/holdout date ranges and monthly counts,
 - search breadth (`n_trials_search`, seeds explored, draws/seed where relevant),
 - holdout diagnostics snapshot.
 
+## No-portfolio-leverage constraint status
+
+Current default policy in discovery and seeded search is:
+
+- `portfolio_leverage_allowed=false`
+- `portfolio_leverage_cap=1.0`
+
+Under this policy, portfolio-level leverage is disabled, while leveraged ETFs may
+still be selected as instruments.
+
+Additional large seeded sweeps were run under this constraint (examples: 1200, 2000,
+and 3000 seeds with draws-per-seed=1), and the current best candidates **did not**
+clear the Calmar ≥ 1 gate on holdout. Typical no-leverage outcomes retained DSR/Bonf
+passes but failed on risk-adjusted drawdown control:
+
+- representative holdout result: CAGR ~13.2%, Calmar ~0.49, DSR ~0.986, Bonf PASS.
+
+This indicates the leverage ban is currently the binding constraint for meeting all
+four gates simultaneously in this framework/window.
+
 **Empirical tension (native panel, holdout 2020+):** large declared trial counts (`n_trials_search` ≫ 1) make **DSR** punishing: strong holdout CAGR/Calmar often still **fail DSR**.
 
-**Joint pass (current `locked_strategy.json`):** a **single pre-registered hypothesis** (`n_trials_search = 1`) from seeded joint-pass search meets all four gates on the 2020+ holdout: **CAGR ≥ 13%**, **Calmar ≥ 1**, **DSR ≥ 0.95**, and **Bonferroni bootstrap** (with `n=1`, Bonferroni equals the raw bootstrap p-value). This still trades **multiplicity honesty** (no allowance for many implicit searches) for statistical pass.
+**Joint pass (historical, with portfolio leverage enabled):** a **single pre-registered hypothesis** (`n_trials_search = 1`) previously met all four gates on the 2020+ holdout: **CAGR ≥ 13%**, **Calmar ≥ 1**, **DSR ≥ 0.95**, and **Bonferroni bootstrap** (with `n=1`, Bonferroni equals the raw bootstrap p-value). That result relied on portfolio-level leverage.
+
+**Current no-portfolio-leverage policy:** with `portfolio_leverage_allowed=false` and cap `1.0`, recent wide seeded sweeps have not yet produced a configuration that clears all four gates simultaneously; the dominant failure mode is Calmar < 1.
 
 Re-run:
 
@@ -112,9 +135,9 @@ Re-run:
 python3 tactical_aa_research/validation_locked.py
 ```
 
-To regenerate a passing lock with the current policy:
+To run the current no-portfolio-leverage policy search:
 
 ```bash
-python3 tactical_aa_research/joint_pass_search.py --draws-per-seed 1 --seeds-tried-max 1000 --min-cagr 0.13 --min-calmar 1.0 --dsr-min 0.95
+python3 tactical_aa_research/joint_pass_search.py --draws-per-seed 1 --seeds-tried-max 1200 --min-cagr 0.13 --min-calmar 1.0 --dsr-min 0.95
 python3 tactical_aa_research/validation_locked.py
 ```
