@@ -17,6 +17,32 @@ def _dd_vol_multiplier(unlev: pd.Series, *, dd_start: float, floor: float) -> pd
     return mult.where(~bad, other=floor)
 
 
+def _breadth_risk_scale(
+    breadth: pd.Series,
+    *,
+    breadth_thr: float,
+    breadth_floor: float,
+) -> pd.Series:
+    thr = float(max(breadth_thr, 1e-6))
+    floor = float(min(max(breadth_floor, 0.0), 1.0))
+    lin = floor + (breadth / thr) * (1.0 - floor)
+    scale = lin.where(breadth < thr, other=1.0)
+    return scale.clip(lower=floor, upper=1.0).fillna(1.0)
+
+
+def _breadth_fraction(
+    px: pd.DataFrame,
+    *,
+    mom_abs: int,
+    breadth_columns: tuple[str, ...],
+) -> pd.Series:
+    cols = [c for c in breadth_columns if c in px.columns]
+    if not cols:
+        return pd.Series(1.0, index=px.index, dtype=float)
+    mom = px[cols].div(px[cols].shift(max(int(mom_abs), 1))) - 1.0
+    return mom.gt(0).mean(axis=1).fillna(0.0)
+
+
 def _apply_no_leverage_risk_scale(
     w: pd.DataFrame,
     risk_scale: pd.Series,
@@ -51,6 +77,39 @@ def _apply_no_leverage_risk_scale(
         srow = float(row.sum())
         if srow > 0:
             row = row / srow
+        out.loc[t] = row
+    return out
+
+
+def _apply_regime_defensive_override(
+    w: pd.DataFrame,
+    *,
+    trigger: pd.Series,
+    agg_share: float,
+    tmf_share: float,
+) -> pd.DataFrame:
+    out = w.copy()
+    trig = trigger.reindex(out.index).fillna(False).astype(bool)
+    agg = float(min(max(agg_share, 0.0), 1.0))
+    tmf = float(min(max(tmf_share, 0.0), 1.0))
+    bil = max(0.0, 1.0 - agg - tmf)
+    target: dict[str, float] = {}
+    if "AGG" in out.columns:
+        target["AGG"] = agg
+    if "TMF" in out.columns:
+        target["TMF"] = tmf
+    if "BIL" in out.columns:
+        target["BIL"] = bil
+    elif "CASH" in out.columns:
+        target["CASH"] = bil
+    for t in out.index[trig]:
+        row = pd.Series(0.0, index=out.columns, dtype=float)
+        active = {k: v for k, v in target.items() if v > 0.0}
+        if not active:
+            continue
+        s = float(sum(active.values()))
+        for k, v in active.items():
+            row.loc[k] = float(v / s)
         out.loc[t] = row
     return out
 
@@ -103,11 +162,55 @@ def run_creative_trial(
         if bool(t.get("use_dd_scale", False))
         else pd.Series(1.0, index=px.index)
     )
+    if bool(t.get("use_breadth_gate", False)):
+        breadth_frac = _breadth_fraction(
+            px,
+            mom_abs=int(t.get("breadth_mom_abs", t["mom_abs"])),
+            breadth_columns=(
+                "SPY",
+                "QQQ",
+                "IWM",
+                "EFA",
+                "EEM",
+                "VNQ",
+                "UPRO",
+                "TQQQ",
+                "TMF",
+            ),
+        )
+        breadth_mult = _breadth_risk_scale(
+            breadth_frac,
+            breadth_thr=float(t.get("breadth_thr", 0.55)),
+            breadth_floor=float(t.get("breadth_floor", 0.60)),
+        )
+    else:
+        breadth_frac = pd.Series(1.0, index=px.index)
+        breadth_mult = pd.Series(1.0, index=px.index)
 
-    if not t["use_vol_scale"] and not bool(t.get("use_dd_scale", False)):
+    if not t["use_vol_scale"] and not bool(t.get("use_dd_scale", False)) and not bool(t.get("use_breadth_gate", False)):
         mult = None
     else:
-        mult = macro_mult.astype(float) * dd_mult.astype(float)
+        mult = macro_mult.astype(float) * dd_mult.astype(float) * breadth_mult.astype(float)
+
+    if bool(t.get("use_regime_override", False)):
+        breadth_thr = float(t.get("regime_breadth_thr", 0.65))
+        breadth_sig = breadth_frac.reindex(w.index).fillna(1.0)
+        breadth_bad = breadth_sig <= max(min(breadth_thr, 1.0), 1e-6)
+        vix_z = mf.get("vix_z_12", pd.Series(0.0, index=w.index)).reindex(w.index).fillna(0.0)
+        nfci_z = mf.get("nfci_z_12", pd.Series(0.0, index=w.index)).reindex(w.index).fillna(0.0)
+        use_vix = bool(t.get("regime_use_vix", True))
+        use_nfci = bool(t.get("regime_use_nfci", True))
+        regime_trig = breadth_bad if breadth_thr > 0 else pd.Series(False, index=w.index)
+        if use_vix:
+            regime_trig = regime_trig | (vix_z >= float(t.get("regime_vix_z_thr", 1.2)))
+        if use_nfci:
+            regime_trig = regime_trig | (nfci_z >= float(t.get("regime_nfci_z_thr", 1.1)))
+        w = _apply_regime_defensive_override(
+            w,
+            trigger=regime_trig.astype(bool),
+            agg_share=float(t.get("regime_agg_share", 0.65)),
+            tmf_share=float(t.get("regime_tmf_share", 0.20)),
+        )
 
     if not portfolio_leverage_allowed and mult is not None:
         w = _apply_no_leverage_risk_scale(w, mult)

@@ -72,32 +72,84 @@ def random_trial(rng: random.Random, *, portfolio_leverage_allowed: bool) -> dic
         top_k_choices = [2, 3]
         blend_choices = [0.05, 0.08, 0.11, 0.14, 0.18, 0.22]
         lev_hi = rng.uniform(2.4, 4.5)
+        use_dd_scale = mode in (2, 3)
+        use_breadth_gate = rng.choice([False, True])
+        use_regime_override = rng.choice([False, True])
+        regime_use_vix = rng.choice([False, True])
+        regime_use_nfci = rng.choice([False, True])
+        w_eq = rng.uniform(0.55, 0.98)
+        tact_share = rng.uniform(0.30, 0.86)
+        vol_tgt = rng.uniform(0.08, 0.22)
+        top_k = rng.choice(top_k_choices)
     else:
-        # No portfolio-level leverage: broaden unlevered allocation-space dimensions.
-        top_k_choices = [1, 2, 3, 4]
+        # No portfolio-level leverage: use crash-aware template mix.
+        tpl = rng.choice(["crash_aware", "barbell", "offense"])
         blend_choices = [0.0, 0.04, 0.08, 0.12, 0.16, 0.20, 0.24]
         lev_hi = 1.0
+        if tpl == "crash_aware":
+            top_k_choices = [1, 2]
+            w_eq = rng.uniform(0.62, 0.86)
+            tact_share = rng.uniform(0.45, 0.82)
+            vol_tgt = rng.uniform(0.08, 0.13)
+            use_dd_scale = True
+            use_breadth_gate = True
+            use_regime_override = True
+            regime_use_vix = True
+            regime_use_nfci = rng.choice([False, True])
+        elif tpl == "barbell":
+            top_k_choices = [1, 2]
+            w_eq = rng.uniform(0.80, 0.97)
+            tact_share = rng.uniform(0.30, 0.60)
+            vol_tgt = rng.uniform(0.08, 0.14)
+            use_dd_scale = rng.random() < 0.8
+            use_breadth_gate = rng.random() < 0.8
+            use_regime_override = rng.random() < 0.6
+            regime_use_vix = True
+            regime_use_nfci = True
+        else:  # offense
+            top_k_choices = [2, 3]
+            w_eq = rng.uniform(0.70, 0.93)
+            tact_share = rng.uniform(0.58, 0.88)
+            vol_tgt = rng.uniform(0.10, 0.16)
+            use_dd_scale = rng.random() < 0.9
+            use_breadth_gate = rng.random() < 0.9
+            use_regime_override = rng.random() < 0.7
+            regime_use_vix = rng.random() < 0.9
+            regime_use_nfci = rng.random() < 0.8
+        top_k = rng.choice(top_k_choices)
     return dict(
         family="discovered",
         blend=rng.choice(blend_choices),
-        tact_share=rng.uniform(0.30, 0.86),
-        w_eq=rng.uniform(0.55, 0.98),
+        tact_share=tact_share,
+        w_eq=w_eq,
         mom_abs=rng.choice([6, 8, 10, 12]),
         mom_fast=rng.choice([1, 2, 3, 4]),
-        top_k=rng.choice(top_k_choices),
+        top_k=top_k,
         vol_lb=rng.choice([6, 9, 12]),
-        vol_tgt=rng.uniform(0.08, 0.22),
+        vol_tgt=vol_tgt,
         lev_hi=lev_hi,
         vix_z_thr=rng.uniform(0.35, 1.40),
         vix_scale=rng.uniform(0.00, 0.35),
         nfci_z_thr=rng.uniform(0.35, 1.50),
         nfci_scale=rng.uniform(0.00, 0.25),
         use_vol_scale=mode in (1, 3),
-        use_dd_scale=mode in (2, 3),
-        dd_start=rng.uniform(-0.18, -0.03),
-        dd_floor=rng.uniform(0.35, 0.95),
+        use_dd_scale=use_dd_scale,
+        use_breadth_gate=use_breadth_gate,
+        breadth_mom_abs=rng.choice([6, 8, 10, 12]),
+        breadth_thr=rng.uniform(0.42, 0.72),
+        breadth_floor=rng.uniform(0.40, 0.82),
+        use_regime_override=use_regime_override,
+        regime_use_vix=regime_use_vix,
+        regime_use_nfci=regime_use_nfci,
+        regime_breadth_thr=rng.uniform(0.35, 0.55),
+        regime_vix_z_thr=rng.uniform(0.90, 1.60),
+        regime_nfci_z_thr=rng.uniform(0.85, 1.50),
+        regime_agg_share=rng.uniform(0.55, 0.95),
+        regime_tmf_share=rng.uniform(0.00, 0.25),
+        dd_start=rng.uniform(-0.16, -0.04),
+        dd_floor=rng.uniform(0.40, 0.92),
         vix_hi_scale=rng.uniform(0.75, 1.25),
-        scale_min=rng.uniform(0.45, 0.95),
+        scale_min=rng.uniform(0.50, 0.92),
     )
 
 

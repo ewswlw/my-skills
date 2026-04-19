@@ -7,8 +7,16 @@ from tactical_aa_research.joint_pass_search import random_trial as joint_random_
 def test_discover_random_trial_disables_leverage_when_policy_false():
     t = discover_random_trial(random.Random(11), portfolio_leverage_allowed=False)
     assert float(t["lev_hi"]) == 1.0
+    assert "use_breadth_gate" in t
+    assert "breadth_mom_abs" in t
+    assert "breadth_thr" in t
+    assert "breadth_floor" in t
 
 
 def test_joint_random_trial_disables_leverage_when_policy_false():
     t = joint_random_trial(random.Random(17), portfolio_leverage_allowed=False)
     assert float(t["lev_hi"]) == 1.0
+    assert "use_breadth_gate" in t
+    assert "breadth_mom_abs" in t
+    assert "breadth_thr" in t
+    assert "breadth_floor" in t

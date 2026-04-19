@@ -81,6 +81,16 @@ def cv_train_score(net, folds) -> float:
     return float(np.mean(scores)) if scores else float("-inf")
 
 
+def make_fold_spec(n_pre: int, *, mode: str) -> dict[str, int]:
+    if mode == "strict":
+        return {"n_splits": 4, "purge_gap": 6, "embargo": 1, "min_train": 36}
+    if mode == "balanced":
+        return {"n_splits": 5, "purge_gap": 3, "embargo": 1, "min_train": 48}
+    if mode == "early":
+        return {"n_splits": 4, "purge_gap": 3, "embargo": 1, "min_train": max(36, min(72, n_pre // 3))}
+    raise ValueError(f"Unknown cv-mode: {mode}")
+
+
 def random_trial(rng: random.Random, *, portfolio_leverage_allowed: bool) -> dict:
     mode = rng.randint(0, 3)
     if portfolio_leverage_allowed:
@@ -109,6 +119,18 @@ def random_trial(rng: random.Random, *, portfolio_leverage_allowed: bool) -> dic
         nfci_scale=rng.uniform(0.00, 0.25),
         use_vol_scale=mode in (1, 3),
         use_dd_scale=mode in (2, 3),
+        use_breadth_gate=rng.choice([False, True]),
+        breadth_mom_abs=rng.choice([6, 8, 10, 12]),
+        breadth_thr=rng.uniform(0.40, 0.75),
+        breadth_floor=rng.uniform(0.35, 0.85),
+        use_regime_override=rng.choice([False, True]),
+        regime_use_vix=rng.choice([False, True]),
+        regime_use_nfci=rng.choice([False, True]),
+        regime_breadth_thr=rng.uniform(0.35, 0.60),
+        regime_vix_z_thr=rng.uniform(0.90, 1.60),
+        regime_nfci_z_thr=rng.uniform(0.85, 1.50),
+        regime_agg_share=rng.uniform(0.45, 0.90),
+        regime_tmf_share=rng.uniform(0.00, 0.45),
         dd_start=rng.uniform(-0.18, -0.03),
         dd_floor=rng.uniform(0.35, 0.95),
         vix_hi_scale=rng.uniform(0.75, 1.25),
@@ -125,6 +147,13 @@ def parse_args() -> argparse.Namespace:
     ap.add_argument("--min-calmar", type=float, default=MIN_CALMAR, help="Holdout Calmar gate.")
     ap.add_argument("--dsr-min", type=float, default=DSR_MIN, help="Holdout DSR gate.")
     ap.add_argument("--alpha-family", type=float, default=ALPHA_FAMILY, help="Family-wise alpha for Bonferroni gate.")
+    ap.add_argument(
+        "--cv-mode",
+        type=str,
+        default="strict",
+        choices=["strict", "balanced", "early"],
+        help="Pre-holdout CV fold construction profile.",
+    )
     ap.add_argument("--cost-bps", type=float, default=COST_BPS, help="Turnover cost in bps per unit |Δ(L·w)|.")
     ap.add_argument(
         "--allow-portfolio-leverage",
@@ -199,7 +228,8 @@ def main():
     hold = px.loc[px.index >= HOLDOUT_START]
     mf_pre, mf_hold = mf.loc[pre.index], mf.loc[hold.index]
     bh_h = bench_spy(hold)
-    folds = list(purged_time_series_folds(len(pre), n_splits=4, purge_gap=6, embargo=1, min_train=36))
+    fold_spec = make_fold_spec(len(pre), mode=str(args.cv_mode))
+    folds = list(purged_time_series_folds(len(pre), **fold_spec))
 
     n_trials_search = int(draws_per_seed)
     ok = False
@@ -304,7 +334,7 @@ def main():
             "hold_end": str(hold.index[-1].date()),
             "n_months_hold": int(len(hold)),
         },
-        "cv_spec": {"n_splits": 4, "purge_gap": 6, "embargo": 1, "min_train": 36},
+        "cv_spec": fold_spec,
         "selection_objective": "argmax per-seed purged-CV train score = mean folds [CAGR * max(Calmar,0.05)]",
         "cv_mean_train_objective": best_sc,
         "holdout_all_gates_pass": ok,
