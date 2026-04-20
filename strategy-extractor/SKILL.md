@@ -226,12 +226,14 @@ If score < 9, list the top 3 barriers and propose workarounds.
 2. Note current `updated` date in frontmatter — will be replaced with today
 3. Note existing tags list — check before adding new tags
 
-**Write sequence (do all five):**
+**Write sequence (do all of the following):**
 1. Update frontmatter: bump `updated` to today, append any new strategy-specific tags to the `tags` list (2-space indented YAML)
-2. Add a new row to each of the three Master Strategy Summary tables (Part A, B, C)
-3. Add new entry to Table of Contents using **Obsidian wiki links** for same-file navigation: `[[#Strategy N: Full Heading Text|Strategy N: Short label]] - **Testability: X/10**` — the `#` means "current file"; use the exact H1 heading text for the link target
-4. Add new row to Overview Matrix (if present)
-5. Append new strategy section (template below) at the end of the file
+2. **Study links (master list):** In the top `## Master Strategy Summary` area, maintain a numbered `### Study links (primary sources)` subsection listing every strategy’s canonical URL(s): arXiv/SSRN/journal DOI, QuantPedia/blog primary article, or — if none exists — an Obsidian `[[vault path]]` wikilink to the extracted PDF/text note. Use full `https://` markdown links with descriptive anchor text.
+3. **Part A source column:** Add or update the **Primary source** column on the Part A table so each row points to the same link(s) as the master list (compact: `[arXiv](url)`, `[SSRN](url)`, `[DOI](url)`, or `[[wikilink]]`).
+4. Add a new row to **Part A** (with **Primary source** filled per step 3), **Part B**, and **Part C**
+5. Add new entry to Table of Contents using **Obsidian wiki links** for same-file navigation: `[[#Strategy N: Full Heading Text|Strategy N: Short label]] - **Testability: X/10**` — the `#` means "current file"; use the exact H1 heading text for the link target
+6. Add new row to Overview Matrix (if present)
+7. Append new strategy section (template below) at the end of the file — **including `## Study links`** immediately after the opening `> **Core Concept**:` block and before `## Strategy Summary`
 
 **Never skip a strategy** based on testability score. Every extracted strategy is appended.
 
@@ -246,6 +248,7 @@ Append exactly the following structure. Do NOT wrap it in a code fence — paste
 - Strategy heading: H1 (`# Strategy N:`)
 - Section headings: H2 (`##`)
 - Blockquote uses `**Core Concept**:`
+- **`## Study links`**: Required after the blockquote and before `## Strategy Summary` — bullet list of primary publication URL(s) (arXiv, SSRN, journal DOI, official blog/research page) or vault `[[wikilink]]` when no public URL; note *URL TBD* if the paper is paywalled or not yet posted
 - Sample period inline in Strategy Summary; no separate Backtest Period table
 - Timeframe Specifications: bullet list, not table
 - Edge Hypothesis: **What specific market inefficiency** + **Why the edge persists**
@@ -257,6 +260,11 @@ Append exactly the following structure. Do NOT wrap it in a code fence — paste
 # Strategy [N]: [Strategy Name]
 
 > **Core Concept**: [One paragraph: what the strategy does, what signal it uses, what it trades, how it rebalances]
+
+## Study links
+
+- **[Author (Year)]** — *[Paper title]*. [Primary URL](https://...) · [optional secondary: PDF/DOI]
+- If no public URL: vault mirror `[[path/to/extracted/note]]` and/or *Primary URL not located — TBD*
 
 ## Strategy Summary
 
@@ -420,7 +428,10 @@ Run through every item before writing output.
 - [ ] Data limitations documented with alternatives
 
 **Vault output:**
-- [ ] Appended to `file dump/Academic Research/strategiesextracted.md`
+- [ ] Master `### Study links (primary sources)` subsection lists every strategy with working links or explicit TBD/wikilink
+- [ ] Part A table includes **Primary source** column (or equivalent) matching the master list
+- [ ] Each strategy section includes `## Study links` after `> **Core Concept**:` and before `## Strategy Summary`
+- [ ] Appended to `file dump/Academic Research/strategiesextracted.md` (or the user’s batch file, e.g. `strategies extracted 03.10.26.md`, when specified)
 - [ ] TOC uses Obsidian wiki links `[[#Strategy N: Full Heading|Display]]` for same-file navigation
 - [ ] Strategy heading uses H1: `# Strategy N: [Name]`
 - [ ] Blockquote uses `> **Core Concept**:`
