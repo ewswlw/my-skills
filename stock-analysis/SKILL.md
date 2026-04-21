@@ -1,6 +1,6 @@
 ---
 name: stock-analysis
-description: "Analyze stocks and companies using financial market data via yfinance. Get company profiles, technical insights, price charts, insider holdings, and financial statements for comprehensive stock research."
+description: "Analyze stocks and companies using financial market data via yfinance, with optional FRED macro series via fredapi. Get company profiles, technical insights, price charts, insider holdings, financial statements, and rates/macro context for comprehensive stock research."
 ---
 
 # Stock Analysis
@@ -10,8 +10,18 @@ Comprehensive stock and company analysis using the `yfinance` Python library for
 ## Setup
 
 ```bash
-uv add yfinance pandas numpy
+uv add yfinance pandas numpy fredapi
 ```
+
+### FRED API key (authoritative — lives in this skill)
+
+The St. Louis Fed requires this key on every FRED request. **Use the value below** for all `fredapi` / FRED REST examples in this skill (copy the constant into one-off scripts when needed).
+
+```python
+FRED_API_KEY = "149095a7c7bdd559b94280c6bdf6b3f9"
+```
+
+If you rotate the key at [FRED API Keys](https://fred.stlouisfed.org/docs/api/api_key.html), replace the string in **this block only** so the skill stays the single source of truth.
 
 ## Core Capabilities
 
@@ -20,6 +30,7 @@ uv add yfinance pandas numpy
 - **Fundamental Analysis**: Income statement, balance sheet, cash flow, analyst recommendations
 - **Insider Activity**: Major holders, institutional holders, insider transactions
 - **Financial Data**: Earnings history, dividends, splits, options chain
+- **Macro Context (FRED)**: Risk-free rate, Treasury curve, Fed funds, VIX proxies, etc., aligned to equity research
 
 ## Common Workflows
 
@@ -146,6 +157,28 @@ for sym in tickers:
           f"1Y Return: {ytd_return:.1f}% | P/E: {info.get('trailingPE', 'N/A')}")
 ```
 
+### 7. Macro overlay (FRED + equity)
+
+Use FRED for rates and macro series; combine with `yfinance` prices for context (discount rates, regime, factor timing).
+
+```python
+import yfinance as yf
+from fredapi import Fred
+
+FRED_API_KEY = "149095a7c7bdd559b94280c6bdf6b3f9"
+fred = Fred(api_key=FRED_API_KEY)
+
+# Examples: 10Y Treasury constant maturity, effective Fed funds, CPI
+dgs10 = fred.get_series("DGS10", observation_start="2015-01-01")
+fedfunds = fred.get_series("FEDFUNDS", observation_start="2015-01-01")
+
+spy = yf.download("SPY", start="2015-01-01", auto_adjust=True)["Close"]
+print("DGS10 tail:\n", dgs10.tail())
+print("SPY tail:\n", spy.tail())
+```
+
+Common FRED series IDs: `DGS2`, `DGS10`, `DGS30`, `FEDFUNDS`, `T10Y2Y`, `VIXCLS`, `UNRATE`, `CPIAUCSL`, `DEXUSEU`.
+
 ## Key yfinance API Reference
 
 ### Ticker Object
@@ -218,13 +251,14 @@ df = yf.download(["AAPL", "MSFT"], period="1y", interval="1d", auto_adjust=True)
 3. **Multi-ticker downloads** are faster than looping individual `.history()` calls
 4. **Rate limiting** — yfinance uses Yahoo Finance's public API; add `time.sleep(0.5)` between rapid successive calls to avoid throttling
 5. **Data availability** — some fields (e.g., insider transactions detail) may be sparse for small-cap or non-US stocks
+6. **FRED** — use `FRED_API_KEY` from the **FRED API key** section in this skill; change only that block when the key rotates
 
 ---
 
 ## Windows/Cursor Compatibility Notes
 
 - Complete rewrite: all `Yahoo/get_stock_*` MCP API calls replaced with `yfinance` Python library.
-- Install: `uv add yfinance pandas numpy`.
+- Install: `uv add yfinance pandas numpy fredapi` (omit `fredapi` if you only need Yahoo-backed data).
 - No MCP connector required — yfinance calls Yahoo Finance's public API directly.
 - The original `references/yahoo-api.md` documents the old Manus Yahoo MCP parameters; it remains for reference but is no longer the active calling convention.
 - Run any of the above code snippets with `uv run python your_script.py`.
