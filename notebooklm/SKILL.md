@@ -1,45 +1,60 @@
 ---
 name: notebooklm
 description: >
-  Full control over the user's NotebookLM research notebooks via MCP. Use this skill
-  proactively whenever the user wants to query their stored research, ask questions about
-  sources, add PDFs or URLs to a notebook, create audio overviews/podcasts/quizzes/study
-  guides/mind maps, or manage notes. Trigger on: /notebooklm, "ask my notebooks", "check
-  my research", "what does my [notebook] say about", "add this to NotebookLM", "create an
-  audio overview", "quiz me on", "query [topic]", or any research/finance/trading question
-  that likely overlaps with stored sources (macro, quant, equities, academic finance,
-  AI/coding, fixed income). When in doubt — if the user's question sounds like something
-  their notebooks might know — use this skill and check.
+  Unified NotebookLM workflows: (A) curated research notebooks via `nlm` CLI, (B) vault
+  markdown → Studio artifacts via `notebooklm` CLI (notebooklm-py). Triggers: /notebooklm,
+  /notebooklm-enrichment, podcast or audio overview from notes, study guide, quiz, mind map,
+  "ask my notebooks", "check my research", "what does my [notebook] say about", add PDF/URL
+  to NotebookLM, query stored macro/quant/equities/academic/fixed-income research. Always
+  use the terminal — never NotebookLM MCP.
 ---
 
-This skill gives Claude full, efficient control over the user's NotebookLM instance via
-the `user-notebooklm-mcp` MCP server.
+# NotebookLM (unified CLI skill)
 
----
+**Location of truth:** `C:\Users\Eddy\.claude\skills\notebooklm\SKILL.md`
 
-## Auth Recovery Protocol
+## Non-negotiables
 
-When you see `RPC Error 16: Authentication expired` or any auth failure, work through
-these steps silently — never ask the user to handle it manually unless all three fail:
+- **No MCP.** Do not call `user-notebooklm-mcp`, `refresh_auth`, or any NotebookLM MCP tool.
+- **Two separate CLIs and two auth flows:** `nlm` (notebooklm-mcp-cli) and `notebooklm` (notebooklm-py). Logging into one does not log you into the other.
+- **Use Shell** to run commands; paste outputs into the conversation when summarizing for the user.
 
-1. Call `refresh_auth` — reloads cached tokens from disk (fast, no browser)
-2. Retry the original operation
-3. If still failing, run in terminal:
-   ```powershell
-   uv tool run --from notebooklm-mcp-cli nlm login
-   ```
-   This opens Chrome silently, captures fresh cookies, and saves them automatically.
-   Then call `refresh_auth` once more and retry.
+## Which CLI?
 
-Tokens typically expire after ~24 hours of inactivity.
+| Goal | CLI | Package |
+|------|-----|---------|
+| Query **existing** notebooks by ID, cross-notebook query, add sources to a known notebook, `nlm` Studio (audio/quiz/slides), notes | **`nlm`** | `notebooklm-mcp-cli` |
+| **Create** a fresh notebook from vault `.md`, generate/download artifacts with `notebooklm generate` / `download` | **`notebooklm`** | `notebooklm-py` |
+
+**Anti-patterns:** Using **`nlm`** for the `notebooklm create` → `generate` → `download` flow, or **`notebooklm`** for the hardcoded notebook ID table below (possible, but the skill optimizes **`nlm`** for that corpus).
 
 ---
 
-## Notebook Directory
+## Shared: installs and PATH (Windows)
 
-All IDs are hardcoded for zero-latency lookups. If a call returns a not-found or invalid-ID
-error, the notebook was likely deleted or recreated — run `notebook_list` to refresh, then
-update this table.
+| CLI | Install | Shims (typical) |
+|-----|---------|-----------------|
+| `nlm` | `uv tool install "notebooklm-mcp-cli>=0.4.6"` | `C:\Users\Eddy\.local\bin\nlm.exe` |
+| `notebooklm` | `uv tool install "notebooklm-py[browser]"` | `C:\Users\Eddy\.local\bin\notebooklm.exe` |
+
+**Fallback:** `uv tool run --from notebooklm-mcp-cli nlm ...` or `uv tool run --from notebooklm-py notebooklm ...`
+
+If **`notebooklm login`** fails with missing Chromium, run once:
+
+`& "$env:APPDATA\uv\tools\notebooklm-py\Scripts\python.exe" -m playwright install chromium`
+
+---
+
+# Part A — `nlm` (curated notebooks)
+
+## Auth (`nlm`)
+
+1. `nlm login` (browser).
+2. On errors: `nlm doctor` then `nlm login` again.
+
+## Notebook directory
+
+IDs are cached for fast routing. If a command says invalid ID, run **`nlm notebook list`** and update this table.
 
 | Notebook | ID | Sources | Primary Topics |
 |---|---|---|---|
@@ -56,11 +71,7 @@ update this table.
 | **Thematic Market Research** | `7bf41f30-a96a-4ee1-bc32-3712517f4181` | 2 | Macro themes, sector trends, thematic investing |
 | **Notebook LLM** | `0ee4658a-7de8-478e-8ea7-b77a862a3556` | 10 | NotebookLM itself, knowledge management, LLM tools |
 
----
-
-## Topic Routing
-
-### Embedded Map (use without any live lookup)
+## Topic routing
 
 | Query is about... | Route to |
 |---|---|
@@ -75,65 +86,38 @@ update this table.
 | Business cases for AI, enterprise AI ROI, AI adoption | **Biz Cases AI** |
 | NotebookLM usage, knowledge management tools | **Notebook LLM** |
 
-When genuinely ambiguous, call `notebook_describe` on 1-2 candidate notebooks to inspect
-source titles before routing — don't guess blind.
+If ambiguous: **`nlm notebook describe <NOTEBOOK_ID>`** on 1–2 candidates before choosing.
 
-### Cross-Notebook Queries
+### Cross-notebook
 
-When a topic clearly spans multiple notebooks (e.g., "ML approaches to credit spreads"),
-pick the **top 1-2 most relevant notebooks**, query them in parallel, then synthesize one
-unified answer. Don't default to querying all 12 — that's slow and noisy.
+Prefer **1–2** notebooks. Either:
 
-### Academic Research Fan-Out Rule
+- `nlm cross query "Question" -n <id1>,<id2>`, or
+- Two parallel **`nlm notebook query`** calls, then synthesize.
 
-- **Default:** Query **v3 only** (most recent additions, avoids triple-notebook latency)
-- **Fan out to v1 + v2 when:**
-  - User says "comprehensive", "all my research", "search all versions", or
-  - v3 returns a low-confidence or "not found in sources" answer
-- When fanning out, run all 3 queries **in parallel** — don't chain them sequentially
+Use **`-a` / `--all`** only when the user explicitly wants every notebook.
 
----
+### Academic Research fan-out
 
-## Query Workflow
+- Default: **v3** only.
+- Fan out to **v1 + v2** when the user asks for comprehensive / all versions, or v3 returns weak coverage.
+- Fan-out queries should run **in parallel**, not serially.
 
-### Single-Notebook Query
+## Query workflow (`nlm`)
 
-```
-notebook_query(
-  notebook_id  = <ID from directory>,
-  query        = <user's question>,
-  conversation_id = <session thread ID if follow-up, else null>
-)
+```powershell
+nlm notebook query <NOTEBOOK_ID> "Your question"
+nlm notebook query <NOTEBOOK_ID> "Follow-up" -c <conversation_id>
+nlm cross query "Your question" -n <id1>,<id2>
 ```
 
-### Follow-Up Threading
+Use **`--json`** when you need structured output (e.g. `conversation_id`).
 
-Capture `conversation_id` from every `notebook_query` response and hold it for the session.
-On follow-up questions (user says "also", "what about", "and", "follow up on that"),
-pass the same `conversation_id` to maintain context and avoid re-explaining the topic.
+## Adding sources (`nlm`)
 
-Each notebook gets its own thread — never mix `conversation_id` values across notebooks.
+**File dump root:** `C:\Users\Eddy\Documents\Obsidian Vault\file dump\`
 
-### Cross-Notebook Query Pattern
-
-1. Fire `notebook_query` calls to each target notebook concurrently
-2. Synthesize the responses into one integrated answer
-3. If answers conflict between notebooks, flag the discrepancy explicitly
-
----
-
-## Adding Sources
-
-### File Dump Location
-
-The user's file drop folder is:
-```
-C:\Users\Eddy\Documents\Obsidian Vault\file dump\
-```
-
-Subfolder → notebook routing:
-
-| File Dump Subfolder | Target Notebook |
+| File dump subfolder | Target notebook |
 |---|---|
 | `Macro Research/` | Thematic Market Research |
 | `Academic Research/` | Academic Research v3 |
@@ -145,123 +129,100 @@ Subfolder → notebook routing:
 | `Sector Research/` | Tickers or Thematic Market Research |
 | `Thematic Research/` | Thematic Market Research |
 
-### Add Workflow
-
-When the user names a file or folder, use `Glob` to resolve the full path, then:
-
-```
-source_add(
-  notebook_id  = <target notebook ID>,
-  source_type  = "file",
-  file_path    = <absolute Windows path>,
-  wait         = True,      ← always True — ensures processing before querying
-  wait_timeout = 120
-)
+```powershell
+nlm source add <NOTEBOOK_ID> --file "C:\absolute\path\to\file.pdf" --wait --wait-timeout 600
+nlm source add <NOTEBOOK_ID> --url "https://example.com" --wait
 ```
 
-After a successful add, immediately query the new source for its key thesis or main
-takeaways — this gives the user instant value without an extra step.
+Use **`--youtube`** for YouTube URLs (repeat flags for bulk). After adding, run a short **`nlm notebook query`** for takeaways. Tell the user which notebook you targeted if they did not specify.
 
-If the user doesn't specify a target notebook, tell them which one you're routing to
-before adding (don't surprise them).
+## Studio artifacts (`nlm`)
 
-### Adding a URL
+Confirm with the user before creating (quota/latency). Many commands accept **`-y` / `--confirm`** after approval.
 
-```
-source_add(
-  notebook_id  = <target notebook ID>,
-  source_type  = "url",
-  url          = <url>,
-  wait         = True
-)
+```powershell
+nlm studio status
 ```
 
----
+| User intent | Pattern |
+|-------------|---------|
+| Deep-dive audio | `nlm audio create <ID> --format deep_dive` |
+| Brief audio | `nlm audio create <ID> --format brief` |
+| Debate audio | `nlm audio create <ID> --format debate` |
+| Quiz / report / flashcards / mind map / slides / infographic | `nlm quiz create`, `nlm report create`, etc. (see `--help`) |
 
-## Studio Artifacts
+Example:
 
-Always ask for confirmation before creating — these take time and consume quota.
-Use `confirm=True` only after user approval.
-
-After triggering creation, poll `studio_status` every 15 seconds and report progress.
-
-### Natural Language Triggers → Artifact Type
-
-| User says... | artifact_type | Key options |
-|---|---|---|
-| "podcast", "audio overview", "deep dive" | `audio` | `audio_format="deep_dive"` (default) |
-| "quick audio", "brief summary audio" | `audio` | `audio_format="brief"` |
-| "debate", "two sides" | `audio` | `audio_format="debate"` |
-| "quiz me", "test me" | `quiz` | `question_count=5`, `difficulty="medium"` |
-| "study guide", "briefing doc" | `report` | `report_format="Briefing Doc"` |
-| "flashcards" | `flashcards` | `difficulty="medium"` |
-| "mind map" | `mind_map` | — |
-| "slides", "slide deck", "presentation" | `slide_deck` | `slide_format="detailed_deck"` |
-| "infographic" | `infographic` | `detail_level="standard"` |
-
-Default audio creation:
-```
-studio_create(
-  notebook_id  = <id>,
-  artifact_type = "audio",
-  audio_format = "deep_dive",
-  audio_length = "default",
-  confirm      = True
-)
+```powershell
+nlm audio create <NOTEBOOK_ID> --format deep_dive --length default -y
 ```
 
----
+Use **`nlm download`** per `--help` to fetch files locally.
 
-## Output Format
+## Notes (`nlm`)
 
-Structure every query response like this:
+```powershell
+nlm note list <NOTEBOOK_ID>
+nlm note create <NOTEBOOK_ID> -c "Content..." -t "Title"
+```
+
+## Output format (for `nlm` Q&A)
 
 ```
 **[Notebook Name] — Answer**
-<Synthesized answer in clear, substantive prose. Don't just paraphrase the question.>
+<Substantive prose>
 
 **Sources referenced**
-- <Key source title or "multiple sources across the notebook">
+- <Title or "multiple sources">
 
 **Follow-up suggestions**
-- <Dig deeper on X within this notebook>
-- <Cross-check Y in Notebook Z>
-- <Suggested action: add a source / create an audio overview / run a quiz>
+- <Next step in this notebook>
+- <Optional cross-notebook check>
 ```
-
-For cross-notebook answers, integrate insights naturally — one cohesive answer that
-credits each contributing notebook, rather than separate blocks per notebook.
 
 ---
 
-## Notes
+# Part B — `notebooklm` (vault → NotebookLM artifacts)
 
-Save research insights during a session:
+Use for **new** notebooks built from vault markdown and for **`generate` / `download`** flows.
 
-```
-note(notebook_id=<id>, action="create", content=<content>, title=<title>)
-```
+## Auth (`notebooklm`)
 
-List existing notes: `note(notebook_id=<id>, action="list")`
+`notebooklm login` (separate from `nlm login`). Storage default: `C:\Users\Eddy\.notebooklm\storage_state.json`.
+
+**Preferred invocation:** `notebooklm` on PATH after global install. **Fallback:** `uv run --project "C:\Users\Eddy\Documents\Obsidian Vault" notebooklm ...`
+
+## Workflow
+
+1. `notebooklm create "Title from file"`
+2. `notebooklm source add "<absolute_path_to_md>"`
+3. `notebooklm generate audio "make it engaging" --wait` (or video, quiz, flashcards, study-guide, mind-map)
+4. `notebooklm download audio .\output.mp3` → move to **`file dump\Notebook LLM\`**
+
+## Paths
+
+- **Input:** any `.md` under the vault (e.g. macro, knowledge, ticker notes).
+- **Output:** `C:\Users\Eddy\Documents\Obsidian Vault\file dump\Notebook LLM\` with descriptive filenames.
+
+## Command table
+
+| Artifact | Generate | Download |
+|----------|----------|----------|
+| Audio / podcast | `notebooklm generate audio "make it engaging" --wait` | `notebooklm download audio .\name.mp3` |
+| Study guide | `notebooklm generate report --template study-guide --wait` | `notebooklm download report .\guide.md` |
+| Quiz | `notebooklm generate quiz --wait` | `notebooklm download quiz --format markdown .\quiz.md` |
+| Mind map | `notebooklm generate mind-map --wait` | `notebooklm download mind-map .\mindmap.json` |
+
+Markdown, PDF, URL, and YouTube are supported as sources where the CLI allows. **`--wait`** blocks until generation finishes.
 
 ---
 
 ## Maintenance
 
-### Notebook directory has changed?
-Run `notebook_list`, update the hardcoded table in this skill with new IDs/titles/counts.
-
-### Re-authenticate
 ```powershell
-uv tool run --from notebooklm-mcp-cli nlm login
-```
-
-### Check for CLI updates
-```
-server_info()   ← returns current version + latest_version
-```
-Upgrade if needed:
-```powershell
+nlm notebook list
 uv tool upgrade notebooklm-mcp-cli
+uv tool upgrade notebooklm-py
 ```
-After upgrading, call `refresh_auth` to confirm the new version connects cleanly.
+
+Refresh the notebook ID table when titles/counts change.

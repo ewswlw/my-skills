@@ -7,12 +7,16 @@ description: >
   Eval, NodeRank, ZScore, Aggregate, FHistRank, LoopSum), technical analysis in P123 (RSI, MACD,
   SMA, ATR, Bollinger), financial statement factors (Sales, OpInc, FCF, EPS, ROE, EBITDA, MktCap),
   macro/FRED constants (##FEDFUNDS, ##UST10YR, ##CPI, ##UNRATE), universe IDs (SP500, Prussell3000),
-  and replicating academic strategies on P123 (BAB, Piotroski, momentum, value, quality, low-vol).
+  replicating academic strategies on P123 (BAB, Piotroski, momentum, value, quality, low-vol),
+  and ML learning-logic questions (LightGBM vs ExtraTrees, bias-variance, few features, noisy labels,
+  top-decile ranking, residual chasing, crash months, 3MRel).
 ---
 
 # Portfolio123 Agent Skill
 
 Automate every supported Portfolio123 workflow: API data collection, ranking systems, universes, screens, backtests, strategy creation (browser), AI Factor training and evaluation, pipelines, and self-improvement via continual learning.
+
+**Agent read order (default):** [Decision tree](#decision-tree--route-to-reference-file) (pick topic file) → [Core Rules](#core-rules) + [Validation Hierarchy](#validation-hierarchy) → open the linked `.md` for that task. For **ML/Python off-platform helpers**, see [pipeline/README.md](pipeline/README.md) (still subject to native P123 validation for reported performance).
 
 ## Decision Tree — Route to Reference File
 
@@ -27,6 +31,7 @@ Automate every supported Portfolio123 workflow: API data collection, ranking sys
 | **Strategy creation** | create strategy, Stock strategy, ETF strategy, TAA, wizard | [browser-workflows.md](browser-workflows.md) + [strategy-templates.md](strategy-templates.md) |
 | **Strategy buy/sell rules** | NoBars, EntryPrice, MaxPosRet%, trailing stop, time exit, rank sell | [references/technical-functions.md](references/technical-functions.md) |
 | **AI Factor** | configure, train, validate, evaluate, predictor, LightGBM, ExtraTrees | [ai-factor-guide.md](ai-factor-guide.md) + [browser-workflows.md](browser-workflows.md) |
+| **LightGBM vs ExtraTrees (learning logic)** | few features, noisy labels, bias-variance, ranking top decile, residual chase, crash months, 3MRel, SP500, compare algorithms | [lightgbm-vs-extratrees-learning.md](lightgbm-vs-extratrees-learning.md) + [ai-factor-guide.md](ai-factor-guide.md) (Algorithms) |
 | **Strategy Book** | book, multi-strategy, combine strategies, portfolio combination, allocation | [strategy-templates.md](strategy-templates.md) (Pipeline 4) + [browser-workflows.md](browser-workflows.md) (Strategy Book Validation) |
 | **Quick factor lookup** | ~50 validated factors by category, common pitfalls | [factor-quickref.md](factor-quickref.md) |
 | **Complete factor lookup** | full financial statement factor list, pre-built factor naming | [references/fundamental-data.md](references/fundamental-data.md) |
@@ -83,6 +88,7 @@ Automate every supported Portfolio123 workflow: API data collection, ranking sys
 ## Quick Reference Links
 
 ### Automation & Platform
+- **Pipeline (Python / p123api):** [pipeline/README.md](pipeline/README.md) — data pull, PurgedKFold, model gates, factor upload, orchestrator CLI (outputs still validated per Validation Hierarchy)
 - **API:** [api-reference.md](api-reference.md) — all endpoints, auth, credits, retry, pitfalls, code examples
 - **Browser:** [browser-workflows.md](browser-workflows.md) — login, strategy wizard, AI Factor config, snapshot-verify
 - **Rankings:** [ranking-templates.md](ranking-templates.md) — 5 XML templates, validation checklist
@@ -90,6 +96,7 @@ Automate every supported Portfolio123 workflow: API data collection, ranking sys
 - **Validation:** [strategy-validation.md](strategy-validation.md) — screen vs simulation; [case-studies.md](case-studies.md) — vault exemplars + TAA pitfalls
 - **Factors:** [factor-quickref.md](factor-quickref.md) — ~50 validated factors by category
 - **AI Factor:** [ai-factor-guide.md](ai-factor-guide.md) — ML workflow, 16 presets, 4 validation methods
+- **LightGBM vs Extra Trees (learning logic):** [lightgbm-vs-extratrees-learning.md](lightgbm-vs-extratrees-learning.md) — bias–variance, few features × noise, ranking-tail metrics
 - **Philosophy:** [andreas-reference.md](andreas-reference.md) — robustness-first, Train Wide Filter Smart
 - **Learning:** [learnings.md](learnings.md) — discoveries, promotion rules, DNA fingerprinting
 
@@ -116,6 +123,7 @@ Automate every supported Portfolio123 workflow: API data collection, ranking sys
 | Academic strategy replication | Which formula pattern worked, what the P123 equivalent of the paper's metric is | learnings.md → references/formula-quick-reference.md |
 | Screen vs simulation conflict | Different CAGR/slippage/turnover between modes | learnings.md → strategy-validation.md |
 | UI vs API turnover mismatch | UI shows lower turnover than API for “same” strategy | learnings.md → api-reference.md § UI vs Platform |
+| ML model / algorithm choice | ExtraTrees vs LightGBM narrative matched user regime; top-decile vs RMSE story | learnings.md → lightgbm-vs-extratrees-learning.md |
 
 ## Graceful Degradation
 

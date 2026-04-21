@@ -95,6 +95,8 @@ The Method tab fields are **read-only while any trained model exists**. To chang
 
 **Model ensembling (prediction averaging):** Distinct from the buy-filter ensemble above — this pattern averages the raw prediction scores of LightGBM and ExtraTrees into a single composite. LightGBM fixes residuals (sharp, carries overfitting risk); ExtraTrees averages random trees (rounder, often more stable). Averaging their predictions combines strengths: reduce blow-ups while still aiming for upside.
 
+**Structured side-by-side narrative (series roadmap, few features × noise, bias–variance, ranking-tail metrics when RMSE is insufficient):** see [lightgbm-vs-extratrees-learning.md](lightgbm-vs-extratrees-learning.md). Conceptual only—validate in native P123 (Validation Hierarchy in `SKILL.md`).
+
 ### LightGBM Learning Logic: How It Works
 
 LightGBM uses **histogram binning**: instead of searching infinite real-valued split thresholds, it rounds continuous features (e.g., ROE) into ~255 bins. Each stock's feature value becomes a bin index. Split search becomes finite: "which bin boundary reduces loss most?" using precomputed bin-level gradient aggregates.
