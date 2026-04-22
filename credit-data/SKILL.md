@@ -61,6 +61,33 @@ from credit_data import CreditData
 
 ---
 
+## Running from the terminal (inline, no script file)
+
+When an agent or user wants **one-off analysis without writing a `.py` file** (e.g. Cursor `/terminal` or “stdout only”), **do not** rely on long `uv run python -c "..."` on Windows — nested quotes often break and strings get truncated before they reach Bloomberg.
+
+**Preferred on PowerShell:** pipe a **single-quoted** here-string into `uv run python -` (program read from stdin). Bloomberg must still be open.
+
+```powershell
+cd "C:\Users\Eddy\Documents\Obsidian Vault"
+@'
+import sys
+sys.path.insert(0, r"C:\Users\Eddy\.claude\skills\credit-data")
+from credit_data import CreditData
+
+cd = CreditData()
+df = cd.fetch("cad short er and cad long er")
+print(df.columns.tolist())
+print(df.tail())
+'@ | uv run python -
+```
+
+- Use `@' ... '@` (not `@" "@`) so PowerShell does **not** expand `$` inside your Python.
+- For paths or tickers that are painful to quote, set `$env:MY_VAR = '...'` in PowerShell and read `os.environ["MY_VAR"]` in Python.
+- **PowerShell 5.1:** chain commands with `;` not `&&` unless you are on PS 7+.
+- If the user asked for **no disk artifacts**, avoid `cd.save()` and shell redirection (`>`, `Out-File`); print results or use `cd.save()` only when they want a file.
+
+---
+
 ## Core API
 
 ```python
