@@ -587,6 +587,12 @@ def predictability_score(returns: pd.Series, verbose: bool = True) -> dict:
 | Strong signal at one frequency only | Focus strategy on that timeframe; do not force to other scales |
 | Score > 80 | Verify data integrity — extremely high predictability may indicate a data error |
 
+### Bivariate / conditional predictability (footnote for Step 2)
+
+The rules above apply to **univariate** predictability of the **target** series *Y* (the default and mandatory starting point in the skill). For hypotheses where edge comes from **cross-series timing** (e.g. “macro **X** leads asset **Y** by τ”), **Y** can score **low** on marginal predictability while **incremental** predictability from **X** (conditional on lags of **Y**) is still meaningful.
+
+In that case: **do not** treat **Score < 20** on **Y** alone as an automatic **STOP** without reading the **bivariate** guidance in `lead-lag-predictive-inclusion.md` (Section 6) and running any **pre-specified** conditional checks with the same **PIT and OOS** discipline. The univariate score remains the **default gate** for **single-asset, single-series** strategies.
+
 ---
 
 ## Multi-Scale Check

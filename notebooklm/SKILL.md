@@ -5,8 +5,9 @@ description: >
   markdown → Studio artifacts via `notebooklm` CLI (notebooklm-py). Triggers: /notebooklm,
   /notebooklm-enrichment, podcast or audio overview from notes, study guide, quiz, mind map,
   "ask my notebooks", "check my research", "what does my [notebook] say about", add PDF/URL
-  to NotebookLM, query stored macro/quant/equities/academic/fixed-income research. Always
-  use the terminal — never NotebookLM MCP.
+  to NotebookLM, query stored macro/quant/equities/academic/fixed-income research. Agents
+  must run the auth preflight in this skill before the first CLI call (and retry after login
+  when a command fails with auth errors). Always use the terminal — never NotebookLM MCP.
 ---
 
 # NotebookLM (unified CLI skill)
@@ -18,6 +19,40 @@ description: >
 - **No MCP.** Do not call `user-notebooklm-mcp`, `refresh_auth`, or any NotebookLM MCP tool.
 - **Two separate CLIs and two auth flows:** `nlm` (notebooklm-mcp-cli) and `notebooklm` (notebooklm-py). Logging into one does not log you into the other.
 - **Use Shell** to run commands; paste outputs into the conversation when summarizing for the user.
+- **Auth preflight:** On `/notebooklm` (or any invocation of this skill), follow **Automatic authentication** below before relying on either CLI.
+
+## Automatic authentication (agents — mandatory for `/notebooklm`)
+
+Goal: **never assume** a session is valid. Restore auth **proactively** (probe) and **reactively** (retry after login when a command fails with an auth error).
+
+### When to run
+
+1. **Proactive:** Before the **first** `nlm` command in this chat/task, and before the **first** Part B `notebooklm` command (`create`, `source`, `generate`, `download`, etc.).
+2. **Reactive:** If any `nlm` or `notebooklm` output says authentication expired, not logged in, or invalid session — run the matching **Login recovery** once, then **retry the failed command** once (not a tight loop).
+
+### `nlm` (notebooklm-mcp-cli)
+
+| Step | Action |
+|------|--------|
+| **Probe** | `nlm notebook list -q` (fast; IDs only). Success ⇒ `nlm` session OK for this task. |
+| **Login recovery** | Run `nlm login` (browser/Chrome). Use a **long** agent wait (e.g. 180s) so the user can finish the flow. |
+| **Retry** | Re-run **`nlm notebook list -q`**. If still broken: `nlm doctor`, then `nlm login` again, then probe once more. |
+| **Stop** | After **one** full recovery cycle, if the probe still fails, stop and tell the user what `nlm doctor` / stderr reported — do not spam `login`. |
+
+Treat stderr containing “Authentication”, “expired”, or “re-authenticate” the same as a failed probe.
+
+### `notebooklm` (notebooklm-py) — Part B only
+
+| Step | Action |
+|------|--------|
+| **Probe** | `notebooklm list` (or `notebooklm list --json` if you need structured output). **Do not** use `notebooklm status` alone as the auth check — it can print context even when `list` would say “Not logged in.” |
+| **Login recovery** | `notebooklm login` (browser). Same long wait as `nlm login`. |
+| **Retry** | `notebooklm list` again. If Chromium errors appear, run the Playwright install one-liner in **Shared: installs** once, then retry login. |
+| **CI / headless** | If there is no browser, rely on **`NOTEBOOKLM_AUTH_JSON`** (see `notebooklm` help) or stop and explain — do not pretend login worked. |
+
+### User messaging
+
+When launching `nlm login` or `notebooklm login`, briefly tell the user a browser window may open and they should complete Google/NotebookLM sign-in if prompted.
 
 ## Which CLI?
 
@@ -49,8 +84,9 @@ If **`notebooklm login`** fails with missing Chromium, run once:
 
 ## Auth (`nlm`)
 
-1. `nlm login` (browser).
-2. On errors: `nlm doctor` then `nlm login` again.
+**Agents:** use **Automatic authentication** (probe + recovery) on every `/notebooklm` run.
+
+**Manual:** `nlm login` (browser). On errors: `nlm doctor` then `nlm login` again.
 
 ## Notebook directory
 
@@ -187,6 +223,8 @@ nlm note create <NOTEBOOK_ID> -c "Content..." -t "Title"
 Use for **new** notebooks built from vault markdown and for **`generate` / `download`** flows.
 
 ## Auth (`notebooklm`)
+
+**Agents:** before Part B commands, run the **`notebooklm` probe** in **Automatic authentication**.
 
 `notebooklm login` (separate from `nlm login`). Storage default: `C:\Users\Eddy\.notebooklm\storage_state.json`.
 

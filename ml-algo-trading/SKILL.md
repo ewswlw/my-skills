@@ -1,7 +1,15 @@
 ---
 name: ml-algo-trading
 description: >
-  A comprehensive toolkit for building, validating, and deploying ML-driven algorithmic trading strategies. Covers the full lifecycle from feature engineering (fractional differentiation, alpha factors, factor grammar, symbolic regression) and labeling (triple-barrier, meta-labeling) to robust validation (purged cross-validation, deflated Sharpe ratio, factor screening gate) and deployment. Includes agentic workflow integration, discovery memory, non-linear factor aggregation, and ReAct reasoning traces. Use for tasks involving "trading strategy", "alpha factor", "backtest", "triple barrier", "meta-labeling", "purged CV", "signal generation", "walk-forward", "regime detection", "factor discovery", "factor grammar", "screening gate", "discovery memory", or any ML-driven trading workflow.
+  Use this skill whenever the work touches systematic trading with ML or statistics — even if
+  the user only says "backtest", "overfitting", "alpha", "factors", "Sharpe", "walk-forward",
+  "PurgedKFold", "PSR/DSR", "triple barrier", "meta-label", "HRP", "regime", or is wiring an
+  agent to do quant research. Also use for lead–lag, Granger causality, cross-asset timing,
+  n_trials and data snooping, feature screening (|t|>3), predictability, fractional
+  differentiation, discovery memory, genetic-algorithm factor search, or validation design.
+  The skill is the canonical 9-step pipeline: hypothesis and data validation, features,
+  labels, purged CV, walk-forward, deflated/probabilistic Sharpe, deploy/reject — with deep
+  reference docs for each step under references/.
 ---
 
 # ML Algorithmic Trading Toolkit
@@ -9,6 +17,23 @@ description: >
 This skill provides a systematic, 9-step pipeline for developing and validating machine learning-based trading strategies. It emphasizes robustness and overfitting prevention, incorporating best practices from modern financial machine learning.
 
 > **Reference files** for this skill live at `C:\Users\Eddy\.claude\skills\ml-algo-trading\references\`. Wherever instructions say "read `references/[file].md` in this skill's folder", use that absolute path.
+
+### Progressive disclosure (load references as needed)
+
+| User intent | Read first |
+|-------------|------------|
+| Data leaks, PIT, survivorship, provenance | `data-validation.md` |
+| "Is this series worth modeling?" / entropy / Hurst | `predictability-analysis.md` |
+| FFD, factor grammar, screening gate | `feature-engineering.md` |
+| Triple barrier, meta-label, sample weights | `labeling-weighting.md` |
+| A leads B, Granger, n_trials for pairs, Epps, net-of-cost | `lead-lag-predictive-inclusion.md` |
+| Purged K-fold, PSR, DSR, walk-forward, Kelly, CPCV/PBO | `validation-backtesting.md` |
+| GBM tuning, SHAP, non-linear factor aggregation | `model-selection.md` |
+| Regimes, HMM, live monitoring, τ stability | `regime-philosophy.md` |
+| HRP, portfolio weights | `portfolio-construction.md` |
+| GA, discovery memory, filter testing | `strategy-improvement.md` |
+
+**Compatibility:** Python 3.10+ recommended; install libraries via Step 0 (`uv add pandas numpy statsmodels scikit-learn lightgbm xgboost vectorbt shap hmmlearn gplearn`).
 
 ## Core Axiom
 
@@ -28,11 +53,15 @@ Every strategy **MUST** follow this pipeline. Do not skip steps.
     8. Deploy/Reject <-- 7. PSR + DSR <-- 6. Walk-Forward
 ```
 
+Cross-asset **timing** hypotheses (A leads B) require explicit **temporal** structure, **transmission** rationale, and **rolling/OOS** validation — see `references/lead-lag-predictive-inclusion.md`. That is in addition to the standard regime axiom, not a replacement for it.
+
 ### Step 0: Install Dependencies
 Install the core libraries required for most trading strategy workflows.
 ```bash
 uv add pandas numpy statsmodels scikit-learn lightgbm xgboost vectorbt shap hmmlearn gplearn
 ```
+
+`statsmodels` supports **Granger** and classical time-series tests used in `references/lead-lag-predictive-inclusion.md`. **Transfer entropy** and similar nonlinear screens are **optional** and are **not** a required `uv add` in the core skill.
 
 ### Step 1: Hypothesis + Reasoning Trace
 
@@ -50,7 +79,9 @@ uv add pandas numpy statsmodels scikit-learn lightgbm xgboost vectorbt shap hmml
 3.  **Expected factor expression**: What mathematical form should the signal take? Use the factor grammar from `references/feature-engineering.md`. (e.g., "`rank(volume_spike_4w) * z_score(spread_13w)`")
 4.  **Expected regime sensitivity**: In which regimes should this work, and where might it break? (e.g., "should work in normal vol; may fail during flights to quality when correlations spike")
 
-If you cannot complete all four elements, your hypothesis is underspecified - refine it before proceeding.
+5.  **(Conditional — A leads B / cross-series timing only)** **Information flow and transmission**: In one short paragraph, state **how** information is supposed to travel from X to Y (e.g. flows, earnings revision lag, options hedging, roll mechanics in a **proxy**). **Pre-register** the **direction** of lead (X→Y, not "both until one fits") and either a **rough lag order of magnitude** or a **small, enumerated** set of candidate lags **tied to that mechanism**. **Heatmap** or **unbounded** pair×lag **fishing** is **not** a valid substitute for (1)–(4); use discovery memory in `references/strategy-improvement.md` Section C to log **rejected** (pair, τ) attempts.
+
+If you cannot complete all four elements (and five when timing is claimed), your hypothesis is underspecified - refine it before proceeding.
 
 ### Step 1.5: Data Validation (MANDATORY)
 -   **Before any data enters the pipeline**, run it through the validation layer. Read `references/data-validation.md` for the full specification and usage examples.
@@ -58,6 +89,7 @@ If you cannot complete all four elements, your hypothesis is underspecified - re
 -   **Bias checks are never skippable** — look-ahead, survivorship, backfill, and corporate action checks always run.
 -   Output is a `ValidatedDataset` object that carries the DataFrame plus validation metadata, fill masks, and a provenance hash chain.
 -   If validation fails, fix the data issues before proceeding. Do not bypass validation to "see what happens."
+-   For **synthetic, ETF, or rolled-futures** series, **reconcile** the economic claim to the **tradable** series (spot vs **rolling** product, **ETF** vs **underlying**). See `references/lead-lag-predictive-inclusion.md` and **Instrument** content in `references/data-validation.md`.
 
 ### Step 2: Data + Predictability Gate
 -   Select sources matching the signal type (price, fundamental, alternative).
@@ -66,14 +98,17 @@ If you cannot complete all four elements, your hypothesis is underspecified - re
     -   **Score < 20 = STOP** - no exploitable signal exists; change asset, timeframe, or hypothesis.
     -   **Score 20-40 = CAUTION** - weak signal only; proceed only with a regime-switching approach and apply stricter thresholds (DSR > 0.97, walk-forward > 70% profitable windows).
     -   **Score > 40 = PROCEED** - sufficient signal to continue.
+-   **Bivariate timing hypotheses (X→Y):** If the edge is **cross-series** timing, the marginal predictability of **Y** **alone** may be **low** while **incremental** predictability from **X** still exists. In that case, read the **Bivariate / conditional** footnote in `references/predictability-analysis.md` and `references/lead-lag-predictive-inclusion.md` before treating **Score < 20** on Y as a hard **STOP**. Do not use this as an excuse to skip validation or inflate **n_trials** informally.
 
 ### Step 3: Features + Screening Gate
 -   Engineer features grounded in the hypothesis. For a full guide on feature construction  -- including autonomous factor discovery via symbolic regression and factor grammar  -- read `references/feature-engineering.md` in this skill's folder.
+-   **Hedging vs positioning:** **Contemporaneous** beta and correlation are primarily for **hedge ratio** and **risk**; **directional** timing from another series usually requires **lagged** information flow. See `references/lead-lag-predictive-inclusion.md` for lead–lag, **Granger** (predictive inclusion), and how they relate to **IC**.
 -   Apply fractional differentiation to achieve stationarity while preserving memory.
--   **MANDATORY Factor Screening Gate**: Every candidate factor must pass **|t-statistic| > 3.0** in a univariate IC test against forward returns before entering the model. Factors below this hurdle are excluded from the feature matrix but logged in the discovery memory (see `references/strategy-improvement.md` Section C). This prevents the "Factor Zoo" problem and limits the multiple-testing penalty at DSR time. See `screen_factors()` in `references/feature-engineering.md`.
+-   **MANDATORY Factor Screening Gate**: Every candidate factor must pass **|t-statistic| > 3.0** in a univariate IC test against forward returns before entering the model. Factors below this hurdle are excluded from the feature matrix but logged in the discovery memory (see `references/strategy-improvement.md` Section C). This prevents the "Factor Zoo" problem and limits the multiple-testing penalty at DSR time. See `screen_factors()` in `references/feature-engineering.md`. **Granger** and lead–lag diagnostics are **pre-screens** or **alignment checks** unless the hypothesis **pre-specifies** replacing the IC rule — do not silently swap gates after peeking at results.
 
 ### Step 4: Labels
 -   Choose a labeling method. For implementation details, read `references/labeling-weighting.md` in this skill's folder.
+-   For **X→Y** / **lagged** cross-series **features**: ensure **labels** and **barriers** use **only** information that would be available at **label time** for the **target**; avoid **same-bar** leakage of **Y**'s **future** into the effectively **causal** feature–label construction. See **Causal alignment** in `references/labeling-weighting.md` and Section 11 of `references/lead-lag-predictive-inclusion.md`.
     -   **Simple**: Forward return sign.
     -   **Better**: **Triple-Barrier Method** for dynamic profit-taking and stop-loss.
     -   **Advanced**: **Meta-Labeling** to separate the bet sizing decision from the direction.
@@ -82,23 +117,26 @@ If you cannot complete all four elements, your hypothesis is underspecified - re
 -   Select a model based on dataset size (see decision tree below).
 -   **MANDATORY**: Use **Purged K-Fold Cross-Validation** to prevent data leakage. For the `PurgedKFold` class implementation, read `references/validation-backtesting.md`. For hyperparameter tuning patterns using purged CV, read `references/model-selection.md`.
 -   **GA alternative**: When searching 20+ indicator parameters, use Genetic Algorithm optimization instead of grid search. Read `references/strategy-improvement.md` Section B. **Record n_trials = population_size x generations x re-runs** -- you will need this number in Step 7 for DSR.
+-   **Lead–lag / Granger exploration:** If you run **pair × lag τ × maxlag** (or **bidirectional** A↔B) searches that **informed** which features entered the model, add those **counts** to the **n_trials** total for DSR in Step 7 (same **honesty** as for GA). See `references/lead-lag-predictive-inclusion.md` Section 5.
 
 ### Step 6: Walk-Forward Validation
 -   Use an expanding or rolling window to simulate live trading.
 -   **Pass condition**: Strategy achieves positive annualized return in >= 60% of walk-forward windows (or >= 70% if predictability score was 20-40).
 -   **Trigger for Strategy Improver**: If 40-60% of windows are profitable (below threshold but not a total failure), apply the binary filter testing framework from `references/strategy-improvement.md` Section A before declaring failure. Never optimize filter parameters - test each filter as strictly binary (present vs. absent).
+-   **Rolling lead–lag / Granger stability** can be treated as a **diagnostic** in the same **binary** spirit (e.g. “signal **off** when rolling Granger p-value > threshold” — **pre-specify** the rule **before** test) when diagnosing **regime-conditional** failure; see `references/lead-lag-predictive-inclusion.md`.
 
 ### Step 7: PSR + Deflated Sharpe Ratio
 -   **First run PSR** (Probabilistic Sharpe Ratio) on walk-forward OOS returns: confirms the observed SR is statistically significant, accounting for fat tails and skew. **PSR < 0.95 = FAIL** - SR estimate is unreliable; do not proceed to deployment.
 -   **Then run DSR** (Deflated Sharpe Ratio): adjusts for the number of strategy trials tested. **DSR < 0.95 = FAIL** - high probability of data snooping.
     -   If GA was used in Step 5: set `n_trials = population_size x generations x re-runs` (the count recorded in Step 5). Do not use n_trials = 1.
+    -   If **lead–lag / Granger** grids (pair × τ × `maxlag`, including **both** directions if both were **tested to choose** features) were used, **add** that **count** to `n_trials` — it is not enough to count only the final **model** seed. See `references/lead-lag-predictive-inclusion.md` Section 5. Optional: **CPCV** and **PBO** in `references/validation-backtesting.md` for heavy combinatorial searches.
 -   For both implementations, read `references/validation-backtesting.md` in this skill's folder.
 
 ### Step 8: Deploy or Reject
 -   Run the final **Overfitting Prevention Checklist** below. All items must pass.
 -   **Position sizing**: Use Kelly Criterion to convert model probabilities into position sizes. Half-Kelly (scale=0.5) is the standard safe choice. Read `references/validation-backtesting.md` for `probability_to_position_size()`.
 -   **Multi-asset portfolios**: Use Hierarchical Risk Parity (HRP) to allocate across assets or strategies. Read `references/portfolio-construction.md`.
--   **Production monitoring**: Deploy regime probability tracker and rolling moment stability monitor. See live monitoring section in `references/regime-philosophy.md`.
+-   **Production monitoring**: Deploy regime probability tracker and rolling moment stability monitor. See live monitoring section in `references/regime-philosophy.md`. For **cross-series** timing features, add **lag decay** and **Granger** / **optimal-τ** **stability** checks as in `references/lead-lag-predictive-inclusion.md` Section 13.
 
 ---
 
@@ -127,6 +165,10 @@ Dataset size?
 | **Predictability score < 20** | No exploitable signal in the series | Change asset, timeframe, or hypothesis entirely. Do not build a model. |
 | **Predictability score 20-40** | Weak signal only | Use regime-switching approach only; apply stricter walk-forward (70%) and DSR (0.97) thresholds. |
 | PSR < 0.95 | SR estimate statistically unreliable | Extend data history; or lower benchmark SR threshold; or accept edge is marginal and reduce position sizing. |
+| **High IC but Granger fails** | Feature may be **contemporaneous** / **beta**-like or misaligned vs **lag** hypothesis | Re-check **causal alignment**; distinguish **hedging** vs **timing**; see `references/lead-lag-predictive-inclusion.md` Section 4 |
+| **Granger passes but strategy unprofitable** | **Linear** inclusion does not imply **net** edge; **costs** or **nonlinear** implementation | **Net-of-cost** IC; walk-forward with **turnover**; optional **GBM** vs **linear** — count **model** search in **n_trials** |
+| **Optimal τ flips across rolling windows** | **Regime** **inversion** or **overfit** **full-sample** τ | **Regime-indexed** τ; **disable** signal when **rolling** **stability** fails; `references/regime-philosophy.md` |
+| **Spurious lead at high frequency** | **Epps** / **asynchronous** **microstructure** | Do not port **daily** **shift** **pipelines** to **tick** without **HF** **discipline**; `references/lead-lag-predictive-inclusion.md` Section 8 |
 
 ---
 
@@ -140,13 +182,18 @@ Dataset size?
 -   [ ] **OOS degradation**: OOS performance not significantly worse than IS. *(Fix: Reduce features or increase regularization.)*
 -   [ ] **Walk-forward consistency**: Profitable (positive annualized return) in >= 60% of walk-forward windows. *(Fix: Add regime filter or simplify the model.)*
 -   [ ] **PSR**: Probabilistic Sharpe Ratio > 0.95 on walk-forward OOS returns. *(Fix: Extend data history; or reduce benchmark SR.)*
--   [ ] **Deflated Sharpe**: DSR > 0.95 accounting for all trials (n_trials from Step 5). *(Fix: Test fewer variations; use GA's full evaluation count as n_trials.)*
+-   [ ] **Deflated Sharpe**: DSR > 0.95 accounting for all trials (**n_trials** from Step 5, **including** lead–lag / **Granger** **grids** that **informed** feature choice). *(Fix: Test fewer variations; use GA's full evaluation count as n_trials; count pair×τ×**maxlag** as in `references/lead-lag-predictive-inclusion.md`.)*
 -   [ ] **Factor screening gate**: All features in the model passed |t-statistic| > 3.0 in a univariate IC test before entering the model. *(Fix: Remove features below the hurdle; log them in discovery memory for potential refinement.)*
 -   [ ] **No data snooping**: Features and thresholds were chosen *before* examining test data.
 -   [ ] **Parameter robustness**: Performance survives -20% perturbation of key parameters. *(Fix: Simplify model or use ensemble.)*
 -   [ ] **Stationarity**: All input features pass ADF test (p < 0.05). *(Fix: Apply fractional differentiation or use returns.)*
 -   [ ] **Random data test**: Strategy fails on shuffled/surrogate data. *(Fix: If strategy profits on noise, features are too smooth or autocorrelated - increase lag, apply FFD, or remove smoothed moving-average features.)*
 -   [ ] **Crisis stress test**: Strategy survives 2008-09, 2020, and 2022 drawdown periods without catastrophic loss. *(Fix: Add volatility-regime filter to reduce exposure during high-vol environments; apply half-Kelly or quarter-Kelly sizing.)*
+-   [ ] **Timing / cross-series**: **Transmission** mechanism + **pre-registered** lag set (or small enumerated set); **no** **heatmap-only** discovery. *(Fix: see Step 1 element 5 and `references/lead-lag-predictive-inclusion.md`.)*
+-   [ ] **Lead–lag / Granger**: **Rolling** and **OOS** **stable**; **reject** **full-sample-only** promotion. *(Fix: rolling Granger, rolling τ, walk-forward.)*
+-   [ ] **n_trials**: **All** **pair×lag×maxlag** (and **bidirectional** tests if used to **choose** features) counted toward **DSR**. *(Fix: Section 5 in `references/lead-lag-predictive-inclusion.md`.)*
+-   [ ] **Net-of-cost**: Feature or walk-forward evaluation uses **realistic** **costs** for the **traded** universe. *(Fix: `references/lead-lag-predictive-inclusion.md` Section 10.)*
+-   [ ] **Instrument mapping**: **ETF/futures** **proxy** **matches** thesis **or** thesis **reworded** to **tradable** instrument. *(Fix: `references/data-validation.md` and `references/lead-lag-predictive-inclusion.md` Section 7.)*
 
 ---
 
@@ -162,7 +209,8 @@ This section describes how to use an AI coding agent (Cursor, Claude Code, Manus
 |  Standardized data panel, primitives, normalization         |
 +-------------------------------------------------------------+
 |  Layer 2: REASONING (Agent as Hypothesis Generator)         |
-|  ReAct trace: inefficiency -> cause -> expression -> regime |
+|  ReAct trace: inefficiency -> cause -> expression -> regime   |
+|  (+ transmission + lag set when A leads B — see Step 1)        |
 +-------------------------------------------------------------+
 |  Layer 3: STRATEGY (Automated Backtesting)                  |
 |  Factor computation, screening gate, walk-forward, DSR      |
@@ -220,13 +268,14 @@ Instruct the agent with a persistent system prompt or context that enforces the 
 2. **Propose a factor expression** using the factor grammar from `references/feature-engineering.md`
 3. **State a behavioral or structural rationale**  -- this is the reasoning trace from Step 1
 4. **Only then** write code to compute and test the factor
+5. **If the hypothesis claims A leads B:** add **element 5** from Step 1 (**transmission** + **pre-registered** direction and **lag** set)
 
 **Protocol for any AI coding agent:**
 
 ```
 Agent receives: data panel + discovery memory + search policy suggestion
 Agent outputs:
-  1. Reasoning trace (4 elements  -- see Step 1)
+  1. Reasoning trace (4 elements, or 5 when timing is claimed  -- see Step 1)
   2. Factor computation code (using grammar primitives)
   3. Screening gate results
   4. If passed: walk-forward backtest
@@ -256,6 +305,9 @@ def execute_factor_test(
     """
     Standard factor evaluation: screening gate + quintile spread + walk-forward.
     The agent calls this with pre-computed factor values.
+    For lagged / cross-series predictors, `factor_values` must be **causally aligned**
+    to the decision date (no same-bar **target** leakage) — see Step 4 and
+    `references/lead-lag-predictive-inclusion.md`.
 
     Returns:
         Dict with screening_result, quintile spread, walk_forward pass/fail
@@ -316,7 +368,10 @@ This emulates the memory-update mechanism from `references/strategy-improvement.
 
 | Anti-Pattern | How It Manifests | Prevention |
 |---|---|---|
-| **Brute-force mining** | Agent generates dozens of factors without reasoning traces | Reject any factor without a complete 4-element trace |
+| **Brute-force mining** | Agent generates dozens of factors without reasoning traces | Reject any factor without a complete 4- or 5-element trace (5 when A leads B) |
+| **Heatmap / pair-lag mining** | Agent searches many pairs and lags without a **transmission** story | Reject; require Step 1 element 5 and **n_trials** for the full search |
+| **Dual-test cherry-pick** | Agent only reports when **IC** and **Granger** both pass in-sample | **Pre-specify** one **primary** gate; the other is **diagnostic** — see `references/lead-lag-predictive-inclusion.md` Section 4 |
+| **n_trials = 1** after a grid | DSR run with **n_trials = 1** after **pair×τ** exploration | **Count** all exploratory comparisons that **informed** feature choice (Step 5–7) |
 | **Parameter tweaking loops** | Agent keeps adjusting the same factor's lookback window | Enforce exploration after 3 consecutive exploitation cycles |
 | **Ignoring negative memory** | Agent re-tests a hypothesis that already failed | Require memory check before every new hypothesis |
 | **Skipping the screening gate** | Agent feeds unscreened factors directly into GBM | Gate is mandatory  -- no exceptions |
@@ -330,7 +385,8 @@ This emulates the memory-update mechanism from `references/strategy-improvement.
 |---|---|
 | `data-validation.md` | **Step 1.5 mandatory validation layer**; `validate()` API; `ValidatedDataset` wrapper; 7 validation domains (schema, calendar, alignment, bias, quality, reconciliation, provenance); `ValidationConfig` with 25+ fields; bias prevention (look-ahead shift-and-correlate + AST audit, survivorship, selection, backfill, corporate actions); asset-class-specific gap thresholds; provenance SHA-256 hash chain; edge case handling (12 cases); usage examples |
 | `regime-philosophy.md` | Core regime axiom; **What Shifts Across Regimes table** (means, variances, autocorrelations, factor loadings); tactical checklist; HMM + threshold detection; failure diagnostics; **Asset & Timeframe Adaptations table** (daily/weekly/monthly/intraday); live monitoring; intervention triggers |
-| `predictability-analysis.md` | **Agent Execution Spec** (annotated CONFIG template + 10-step execution order + **report output template**); entropy suite (5 methods); Hurst, BDS, Runs, Variance Ratio; Predictability Score 0-100; **expanded decision rules table** (10 conditions incl. score 20-40 no-regime case) |
+| `predictability-analysis.md` | **Agent Execution Spec** (annotated CONFIG template + 10-step execution order + **report output template**); entropy suite (5 methods); Hurst, BDS, Runs, Variance Ratio; Predictability Score 0-100; **expanded decision rules table** (10 conditions incl. score 20-40 no-regime case); **bivariate / conditional** footnote for X→Y timing |
+| `lead-lag-predictive-inclusion.md` | **Lead–lag** on **returns**; **Granger** (predictive inclusion); **|t|>3** IC **relationship**; **n_trials** (pair×τ×**maxlag**, **bidirectional**); **bivariate** predictability; **ETF/roll** hygiene; **Epps** / HF; optional **transfer entropy**; **net-of-cost**; **adversarial** naive bolt-on table; **label** **leakage**; production **lag** **decay** |
 | `feature-engineering.md` | Fractional differentiation, alpha factors, information-driven bars; **Autonomous Factor Discovery** (factor grammar, interpretable primitives, symbolic regression via `gplearn`, LLM-assisted ideation); **Factor Screening Gate** (`screen_factors()`, |t-stat| > 3.0 hurdle, temporal isolation) |
 | `labeling-weighting.md` | Triple-barrier method, meta-labeling, sample weights |
 | `model-selection.md` | Model comparison matrix, GBM hyperparameter grids, SHAP feature selection, tuning with purged CV; **Non-Linear Factor Aggregation** (`build_synthesis_layer()`, GBM as factor combiner vs direct predictor, IC-weighted linear baseline comparison, guard rails) |
@@ -347,3 +403,4 @@ This emulates the memory-update mechanism from `references/strategy-improvement.
 - Install command: `uv add` replaces `sudo uv pip install --system`.
 - All reference file paths use absolute form: `C:\Users\Eddy\.claude\skills\ml-algo-trading\references\[file].md`.
 - Python-only workflow, fully compatible with Windows and any AI coding agent (Cursor, Claude Code, Manus, Windsurf, etc.).
+- If the YAML `description` field is ever edited to include characters that break parsing (e.g. unquoted `:` inside a **single-line** value), use a **block scalar** (`description: >`) as now or **quote** the string; keep frontmatter **valid YAML**.

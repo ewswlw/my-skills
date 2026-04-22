@@ -1,0 +1,37 @@
+{
+  "name": "perplexity_ask",
+  "description": "Answer a question using web-grounded AI (Sonar Pro model). Best for: quick factual questions, summaries, explanations, and general Q&A. Returns a text response with numbered citations. Fastest and cheapest option. For in-depth multi-source research, use perplexity_research instead.",
+  "arguments": {
+    "type": "object",
+    "properties": {
+      "messages": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "role": {
+              "type": "string",
+              "enum": ["system", "user", "assistant"],
+              "description": "Role of the message sender"
+            },
+            "content": { "type": "string", "description": "The content of the message" }
+          },
+          "required": ["role", "content"],
+          "additionalProperties": false
+        },
+        "description": "Array of conversation messages"
+      },
+      "search_recency_filter": {
+        "type": "string",
+        "enum": ["hour", "day", "week", "month", "year"]
+      },
+      "search_domain_filter": {
+        "type": "array",
+        "items": { "type": "string" }
+      },
+      "search_context_size": { "type": "string", "enum": ["low", "medium", "high"] }
+    },
+    "required": ["messages"],
+    "additionalProperties": false
+  }
+}

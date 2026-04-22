@@ -1,7 +1,7 @@
 ---
 name: recession-alert
 description: >
-  Loads, validates, merges, and uses RecessionALERT macro and market-health data (CMHI, RFE, OPTIMUM, Trendex, SuperIndex, breadth, Gen-2, MF Prob) for any quantitative trading or asset allocation project—not only SPX. Covers Raw Data Excel ingestion, frequency alignment, feature engineering, statistical diagnostics, signal hierarchy, and test-driven development for clean pipelines. Use when the user mentions recession alert, RecessionALERT, CMHI, RFE-6, OPTIMUM, Trendex, SuperIndex, breadth timing, macro regime, or building strategies from Raw Data in the Recession Alert project folder.
+  Loads, validates, merges, and uses RecessionALERT macro and market-health data (CMHI, RFE, OPTIMUM, Trendex, SuperIndex, breadth, Gen-2, MF Prob) for any quantitative trading or asset allocation project—not only SPX. Covers Raw Data Excel ingestion (bundled under this skill’s raw-data/), frequency alignment, feature engineering, statistical diagnostics, signal hierarchy, and test-driven development for clean pipelines. Use when the user mentions recession alert, RecessionALERT, CMHI, RFE-6, OPTIMUM, Trendex, SuperIndex, breadth timing, macro regime, or building strategies from Raw Data.
 ---
 
 # RecessionALERT Quantitative Data Skill
@@ -10,17 +10,26 @@ Reference files live in this skill folder: `references/`. Read them when the tas
 
 ## Quick start (paths)
 
-Paths are relative to the **Obsidian vault root** (the folder containing `Coding Projects/`) unless you pin a different working directory.
+**Primary (portable):** Raw Data workbooks ship inside this skill:
 
 | Location | Purpose |
 |----------|---------|
-| `Coding Projects/Recession Alert/Raw Data/` | Four authoritative Excel exports (read-only) |
+| `<skill-root>/raw-data/cmhi_data.xlsx` | CMHI export (snake_case on disk) |
+| `<skill-root>/raw-data/monthly_data_4.xlsx` | Monthly / RFE export |
+| `<skill-root>/raw-data/optimum_data.xlsx` | OPTIMUM export |
+| `<skill-root>/raw-data/weekly_data_2.xlsx` | Weekly breadth / Trendex / MF / Gen-2 export |
+
+`<skill-root>` is the folder containing this `SKILL.md` (e.g. `~/.claude/skills/recession-alert` on this machine). See `raw-data/README.md` for vendor filename mapping and refresh rules.
+
+**Vault (optional):** When working inside the Obsidian vault, paths are relative to **vault root** (the folder containing `Coding Projects/`):
+
+| Location | Purpose |
+|----------|---------|
+| `Coding Projects/Recession Alert/Raw Data/` | Human export drop zone (vendor filenames); sync source for refreshing `raw-data/` |
 | `Coding Projects/Recession Alert/processed data/` | Regenerable parquet/CSV caches (e.g. Bloomberg) |
 | `Coding Projects/Recession Alert/Guides/` | Full encyclopedias: economic meaning, methodology |
-| `Coding Projects/Recession Alert/project-spec.md` | Full XML requirements |
-| `Coding Projects/Recession Alert/project-constitution.md` | Hard boundaries (structural fail-fast vs discretionary defaults) |
 
-**Raw Data files:** `CMHI_DATA.xlsx`, `MonthlyData (4).xlsx`, `OPTIMUM_DATA.xlsx`, `WeeklyData (2).xlsx`.
+**Spec / constitution for this skill bundle:** `project-spec.md` and `project-constitution.md` next to this `SKILL.md` (not only under the vault Recession Alert folder).
 
 **Primary implementation reference:** `spx_timing_strategy.py` (loaders `load_*`, `merge_all`, `engineer_features`, embedded tests). Treat it as one consumer of the panel—not the only possible strategy.
 
@@ -87,4 +96,4 @@ Before writing pipeline code, define (or accept defaults for):
 
 ## Triggers
 
-Invoke for `/recession-alert`, “RecessionALERT data,” “CMHI,” “RFE-6,” “OPTIMUM TRADE,” “Trendex,” “SuperIndex,” “merge Raw Data,” “asset allocation using recession indicators,” or any task that reads `Coding Projects/Recession Alert/Raw Data/`.
+Invoke for `/recession-alert`, “RecessionALERT data,” “CMHI,” “RFE-6,” “OPTIMUM TRADE,” “Trendex,” “SuperIndex,” “merge Raw Data,” “asset allocation using recession indicators,” or any task that reads the bundled `raw-data/` workbooks or the vault export folder.

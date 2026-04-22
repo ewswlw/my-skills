@@ -2,9 +2,11 @@
 
 Distilled from `Guides/RecessAlert_Complete_Encyclopedia.md` and `Guides/RecessAlert_TimeSeries_Encyclopedia.md`. For full prose and methodology, read those files in the vault.
 
+**On-disk names (skill bundle):** This skill ships workbooks under `raw-data/` as `cmhi_data.xlsx`, `monthly_data_4.xlsx`, `optimum_data.xlsx`, and `weekly_data_2.xlsx`. Section titles below use those names. The vault export folder may still use vendor filenames (`CMHI_DATA.xlsx`, etc.)—see `raw-data/README.md` for the mapping.
+
 ---
 
-## File: CMHI_DATA.xlsx
+## File: cmhi_data.xlsx
 
 Composite Market Health Index: breadth, momentum, volume, and macro inputs standardized and combined.
 
@@ -37,11 +39,11 @@ Composite Market Health Index: breadth, momentum, volume, and macro inputs stand
 
 **Note:** Long-run mean of CMHI is about +0.3, not zero—bulls are longer than bears.
 
-**CMHI-2 / CMHI-3:** Present on **WEEKLY** and **MONTHLY** sheets of `CMHI_DATA.xlsx`, not on the **DAILY** sheet. The reference `load_cmhi()` reads **DAILY** only (SP500, DIFF, CMHI). Strategies that gate on **CMHI-2** must load weekly/monthly CMHI or extend the loader—see `signal-hierarchy.md`.
+**CMHI-2 / CMHI-3:** Present on **WEEKLY** and **MONTHLY** sheets of `cmhi_data.xlsx`, not on the **DAILY** sheet. The reference `load_cmhi()` reads **DAILY** only (SP500, DIFF, CMHI). Strategies that gate on **CMHI-2** must load weekly/monthly CMHI or extend the loader—see `signal-hierarchy.md`.
 
 ---
 
-## File: MonthlyData (4).xlsx
+## File: monthly_data_4.xlsx
 
 ### Sheet: DATA (main monthly panel)
 
@@ -79,7 +81,7 @@ World Leading Economic Index and related—monthly macro context.
 
 ### Sheet: WEEKLY DATA
 
-Weekly SuperIndex (`WEEK`, `WLIr`, `WLInr`, etc.). **Stale after ~2015** in many exports; reference implementation prefers **WeeklyData (2).xlsx → WEEKLY LEI's** for current SUPERINDEX.
+Weekly SuperIndex (`WEEK`, `WLIr`, `WLInr`, etc.). **Stale after ~2015** in many exports; reference implementation prefers **`weekly_data_2.xlsx` → WEEKLY LEI's** for current SUPERINDEX.
 
 ### Sheet: INPUTS
 
@@ -87,7 +89,7 @@ Model performance stats (lead times, CoV, false positives)—metadata, not time 
 
 ---
 
-## File: OPTIMUM_DATA.xlsx
+## File: optimum_data.xlsx
 
 ### Sheet: OPTIMUM
 
@@ -104,7 +106,7 @@ Model performance stats (lead times, CoV, false positives)—metadata, not time 
 
 ---
 
-## File: WeeklyData (2).xlsx
+## File: weekly_data_2.xlsx
 
 ### Sheet: WEEKLY LEI's
 
@@ -147,7 +149,7 @@ Many columns: **MTLV2**, **SIGS**, **DCOM**, **VIX**, **%>50DMA**, **%200DMA**, 
 2. **RAVI forward columns:** Future return columns are hindsight—never feed them as same-day features.
 3. **Gen-2 revisions:** Near-term probabilities can revise for a few days—document if you simulate point-in-time.
 4. **OPTIMUM / STM:** In-sample optimization—use holdout, walk-forward, and DSR.
-5. **Monthly WEEKLY DATA vs WEEKLY LEI's:** Use **WeeklyData** for up-to-date SUPERINDEX join in `load_recession`.
+5. **Monthly WEEKLY DATA vs WEEKLY LEI's:** Use **`weekly_data_2.xlsx`** for up-to-date SUPERINDEX join in `load_recession`.
 
 ---
 
@@ -155,12 +157,12 @@ Many columns: **MTLV2**, **SIGS**, **DCOM**, **VIX**, **%>50DMA**, **%200DMA**, 
 
 | Loader | Source file / sheet | Key outputs |
 |--------|---------------------|-------------|
-| `load_cmhi` | CMHI_DATA / DAILY | SP500, DIFF, CMHI |
-| `load_recession` | MonthlyData / RFE VARIANTS + WeeklyData / WEEKLY LEI's (+ optional WEEKLY DATA for WLIr) | RFE-6, SUPERINDEX, WLIr |
-| `load_breadth_extended` | WeeklyData / SP500 BREADTH DATA | MTLV2, SIGS, DCOM, VIX, %>50DMA |
-| `load_trendex` | WeeklyData / TRENDEX PROB MODELS | TDIFF, NET P, TOP, BOT |
-| `load_gen2` | WeeklyData / GEN-2 PROB MODELS | P(TOP)*, P(BOT)* |
-| `load_mf_prob` | WeeklyData / SP500 MF PROB MODEL | NET AVG, NET TOP3, BIGBOT, BIGTOP, NET DIFF |
-| `load_optimum` | OPTIMUM_DATA / OPTIMUM | TRADE, DIFFN, OPT-CMHI, STM |
+| `load_cmhi` | cmhi_data.xlsx / DAILY | SP500, DIFF, CMHI |
+| `load_recession` | monthly_data_4.xlsx / RFE VARIANTS + weekly_data_2.xlsx / WEEKLY LEI's (+ optional monthly WEEKLY DATA for WLIr) | RFE-6, SUPERINDEX, WLIr |
+| `load_breadth_extended` | weekly_data_2.xlsx / SP500 BREADTH DATA | MTLV2, SIGS, DCOM, VIX, %>50DMA |
+| `load_trendex` | weekly_data_2.xlsx / TRENDEX PROB MODELS | TDIFF, NET P, TOP, BOT |
+| `load_gen2` | weekly_data_2.xlsx / GEN-2 PROB MODELS | P(TOP)*, P(BOT)* |
+| `load_mf_prob` | weekly_data_2.xlsx / SP500 MF PROB MODEL | NET AVG, NET TOP3, BIGBOT, BIGTOP, NET DIFF |
+| `load_optimum` | optimum_data.xlsx / OPTIMUM | TRADE, DIFFN, OPT-CMHI, STM |
 
 See `loaders-and-merge.md` for merge order and pitfalls.

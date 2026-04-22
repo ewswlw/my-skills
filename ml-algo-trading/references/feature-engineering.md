@@ -461,6 +461,8 @@ This prevents the agent from degenerating into a brute-force parameter optimizer
 
 **MANDATORY** — run after feature construction, before labeling (Step 4). Every candidate factor must pass this gate to enter the model. This prevents the "Factor Zoo" problem and limits the multiple-testing penalty at DSR time.
 
+**Cross-series timing (lead–lag, Granger):** If the factor uses **lagged** values of another series to predict a **target** return, use `lead-lag-predictive-inclusion.md` for **causal alignment**, **transmission** story, and how **|t|>3** IC fits together with **Granger** (predictive inclusion) — the screening gate still applies to factors **as they enter the model**; do not replace it with a single full-sample test.
+
 ### Hurdle: |t-statistic| > 3.0
 
 ```python

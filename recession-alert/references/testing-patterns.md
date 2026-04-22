@@ -92,7 +92,7 @@ Or menu groups `--menu 13`–`22` for focused suites. Prefer **`uv run`** per va
 
 ## Suggested checklist before “strategy works” claims
 
-- [ ] Schema validation passes on current Raw Data
+- [ ] Schema validation passes on current Raw Data (skill `raw-data/*.xlsx` and/or vault `Coding Projects/Recession Alert/Raw Data/`, depending on which paths the code loads)
 - [ ] Merged panel start date matches **max overlap** or explicit user start
 - [ ] Benchmark column aligned with strategy returns (lag, total return)
 - [ ] At least one **integration** test: load → merge → one backtest metric on toy data

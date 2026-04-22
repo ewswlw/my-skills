@@ -1,0 +1,40 @@
+{
+  "skill_name": "project-spec",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "/project-spec\n\nWe're a 6-person startup building a B2B SaaS for construction subcontractors to track change orders and lien deadlines. MVP in 4 months. Stack idea: Next.js 15 on Vercel, Postgres on Neon, Clerk for auth, Stripe for subscriptions. Need multi-tenant isolation, admin vs field-user roles, and exports to CSV for their accountants. Compliance: nothing HIPAA. Integrations: maybe QuickBooks later—not MVP. Team is TypeScript-heavy, one person knows a bit of Python. Success = first 10 paying GCs using it weekly.",
+      "expected_output": "Phased interview with lettered options and [RECOMMENDED] defaults; devil's advocate; 8–10 phase roadmap awaiting approval; then in-memory recursive-refine and two files (constitution + XML spec) only after gates; Phase 8 asks for proceed/revise/stop before any implementation.",
+      "files": [],
+      "expectations": [
+        "First substantive reply either asks about existing project-spec.md/project-constitution.md or states none found, then begins structured interview",
+        "Interview batches use a), b), c) style options with at least one [RECOMMENDED] per question",
+        "Assistant does not create application source code, install dependencies, or scaffold a repo before explicit user permission matching Phase 8",
+        "Roadmap has between 8 and 10 numbered phases with titles and dependencies before file writes",
+        "Devil's advocate section presents 3–5 numbered risks/challenges before asking how to address them"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "project spec — internal only\n\nMy manager wants a small web dashboard for our ops team to replay failed Kafka consumer messages from a dead-letter topic into a staging sink (not prod). Java/Spring at work, deploy on our k8s cluster, behind corporate SSO (Okta). Data is PII-light but still internal. I need a spec I can hand to another engineer; no mobile app. Timeline ~6 weeks part-time.",
+      "expected_output": "Archetype leans internal tool / data-adjacent; interview covers audit, prod write safety, SSO, idempotency; same gates and deliverables as eval 1.",
+      "files": [],
+      "expectations": [
+        "Questions reflect internal-tool or pipeline concerns (e.g. audit, prod access, deployment boundary)",
+        "Waits for user answers between phases rather than inventing all requirements in one shot",
+        "Final artifacts target project root as project-constitution.md and project-spec.md with the prescribed structures"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Use /project-spec for this idea: cross-platform React Native app + Node API for a local gym's class booking and push reminders. They have ~800 members, one location, budget is tight. Owner wants Apple Pay + Google Pay eventually; start with card on file via Stripe. Offline: nice-to-have for viewing schedule only. I'm solo dev, never shipped RN to both stores.",
+      "expected_output": "Mobile + backend archetype questions; timeline realism and store submission called out in devil's advocate; innovation step may propose something small; recursive-refine and XML spec.",
+      "files": [],
+      "expectations": [
+        "Interview includes mobile-relevant dimensions (offline, push, sync, or store constraints) in at least one batch",
+        "Explicit approval checkpoint for the roadmap (approved / changes) before drafting final specs",
+        "project-spec.md uses the XML template shape from Phase 7 (project_specification root and core child tags)"
+      ]
+    }
+  ]
+}

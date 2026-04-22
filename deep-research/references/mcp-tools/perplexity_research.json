@@ -1,0 +1,37 @@
+{
+  "name": "perplexity_research",
+  "description": "Conduct deep, multi-source research on a topic (Sonar Deep Research model). Best for: literature reviews, comprehensive overviews, investigative queries needing many sources. Returns a detailed response with numbered citations. Significantly slower than other tools (30+ seconds). For quick factual questions, use perplexity_ask instead. For logical analysis and reasoning, use perplexity_reason instead.",
+  "arguments": {
+    "type": "object",
+    "properties": {
+      "messages": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "role": {
+              "type": "string",
+              "enum": ["system", "user", "assistant"],
+              "description": "Role of the message sender"
+            },
+            "content": { "type": "string", "description": "The content of the message" }
+          },
+          "required": ["role", "content"],
+          "additionalProperties": false
+        },
+        "description": "Array of conversation messages"
+      },
+      "strip_thinking": {
+        "type": "boolean",
+        "description": "If true, removes <think>...</think> tags and their content from the response to save context tokens. Default is false."
+      },
+      "reasoning_effort": {
+        "type": "string",
+        "enum": ["minimal", "low", "medium", "high"],
+        "description": "Controls depth of deep research reasoning. Higher values produce more thorough analysis."
+      }
+    },
+    "required": ["messages"],
+    "additionalProperties": false
+  }
+}

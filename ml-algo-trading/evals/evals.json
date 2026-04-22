@@ -1,0 +1,40 @@
+{
+  "skill_name": "ml-algo-trading",
+  "evals": [
+    {
+      "id": 1,
+      "name": "pipeline-hypothesis-dsr-trace",
+      "prompt": "I'm building a weekly equity long/short that uses 40 candidate factors. I've already run IC tests and kept everything with |t|>2.5. Walk-forward looks good. Can you tell me if I'm ready to go live? I have CSV of returns in my repo under data/oos_returns.csv — mostly want to know about DSR and what n_trials I should use: I only tried 3 different random seeds for LightGBM.",
+      "expected_output": "The assistant applies the skill pipeline: challenges |t|>2.5 vs mandatory |t|>3, requires honest n_trials (not just 3 seeds — counts feature trials, grid search, any lag/GA exploration), runs through PSR/DSR and overfitting checklist, and refuses 'go live' without purged validation narrative.",
+      "files": [],
+      "expectations": [
+        "Mentions deflated/probabilistic Sharpe and multiple testing (n_trials) explicitly",
+        "References |t|>3 screening gate or explains deviation",
+        "Does not green-light 'go live' based only on walk-forward and 3 seeds"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "lead-lag-granger-heatmap",
+      "prompt": "I ran a heatmap of optimal lags between 20 sector ETFs and found oil leads our energy name by 6 days on daily returns, Granger p-value 0.03 full sample. Can you help me code the signal? No theory really — I just want the strongest lag.",
+      "expected_output": "The assistant uses lead-lag/predictive-inclusion: rejects heatmap-only discovery, demands transmission mechanism and pre-registered direction/lags, requires rolling/OOS Granger, warns on n_trials and ETF/oil basis risk, and ties to Step 1 element 5 and discovery memory.",
+      "files": [],
+      "expectations": [
+        "Rejects or heavily qualifies 'no theory' approach",
+        "Mentions `lead-lag-predictive-inclusion.md` or equivalent pipeline steps (rolling, n_trials)",
+        "Does not only output code without economic/regime context"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "predictability-gate-bivariate",
+      "prompt": "My target ETF has predictability score 15 on your univariate battery but I'm running a VIX->SPY timing model where Granger is significant. The PM says the score 15 means we should STOP. Is that right?",
+      "expected_output": "The assistant references bivariate/conditional case from predictability footnote: Y alone can look weak while X→Y incremental predictability exists; does not use this to skip validation, DSR, or inflate trials; points to `predictability-analysis.md` footnote and `lead-lag-predictive-inclusion.md` Section 6.",
+      "files": [],
+      "expectations": [
+        "Explains that marginal predictability of Y is not the whole story for cross-series timing",
+        "Still emphasizes OOS discipline and pre-specified tests, not a license to overfit"
+      ]
+    }
+  ]
+}

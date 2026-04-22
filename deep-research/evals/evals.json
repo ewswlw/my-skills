@@ -1,0 +1,38 @@
+{
+  "skill_name": "deep-research",
+  "evals": [
+    {
+      "id": 1,
+      "name": "api-json-contract",
+      "prompt": "Run deep research via the skill's CLI on a tiny sanity check: the user needs one word. Use `uv run python` on `scripts/research.py` with `--json` and query: 'Reply with the single word OK and nothing else.' Save stdout as `result.json`. Success means Perplexity returned and JSON has research_source, query, and non-empty content after any thinking-stripping.",
+      "expected_output": "`result.json` is valid JSON with `research_source` of `Perplexity` (when `PERPLEXITY_API_KEY` is set) and a short `content` string.",
+      "files": [],
+      "expectations": [
+        "Valid JSON on stdout (or in result.json) with top-level key research_source",
+        "content field exists and, after the run, does not start with a redacted_thinking block (stripped in script)"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "markdown-report-shape",
+      "prompt": "Use the same CLI without `--json` for a one-line research ask: 'What is the capital of Japan?' Write stdout to `report.md` (or capture). The skill requires the first line to be **Research source:** and sections Question and Findings.",
+      "expected_output": "Markdown file starts with `**Research source:**` then has `## Question` and `## Findings`.",
+      "files": [],
+      "expectations": [
+        "First non-empty line matches **Research source:** Perplexity or Fallback",
+        "Body includes '## Question' and '## Findings'"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "substantive-answer-length",
+      "prompt": "Run `research.py` with a slightly heavier query (one call): 'In one short paragraph, what are the two main use cases the Perplexity docs give for sonar-pro vs sonar-deep-research?' Use `--json`, save to `result.json`. Expects non-trivial `content` length if API is available.",
+      "expected_output": "JSON `content` is at least 80 characters, or a documented API error; `research_source` is present when successful.",
+      "files": [],
+      "expectations": [
+        "research_source is present in JSON on success",
+        "When research_source is Perplexity, content length >= 80 characters"
+      ]
+    }
+  ]
+}

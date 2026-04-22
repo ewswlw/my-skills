@@ -1,0 +1,57 @@
+{
+  "skill_name": "recursive-refine",
+  "evals": [
+    {
+      "id": 0,
+      "expectations": [
+        "outputs/refined.md exists and contains Python code for the /users endpoint",
+        "The refined SQL path uses parameterized queries or an ORM — no f-string or string concatenation building SQL from name/email",
+        "outputs/scorecard.md or transcript.md documents multiple criteria with PASS/FAIL or numeric scores (at least 3 criteria)",
+        "The refined Python includes at least one GET endpoint (e.g. @app.get health/readiness) — not only POST /users"
+      ],
+      "prompt": "Refine this Python FastAPI draft for a production API design review. Deliver the improved code plus any brief notes needed for reviewers.\n\n```python\nfrom fastapi import FastAPI\nimport sqlite3\n\napp = FastAPI()\n\ndef get_db():\n    return sqlite3.connect(\"app.db\")\n\n@app.post(\"/users\")\ndef add_user(name: str, email: str):\n    db = get_db()\n    query = f\"INSERT INTO users (name, email) VALUES ('{name}', '{email}')\"\n    db.execute(query)\n    db.commit()\n    return {\"ok\": True}\n```",
+      "expected_output": "Refined snippet addresses SQL injection, validation, HTTP semantics, operability (e.g. health route), with auditable scorecard.",
+      "baseline_constraints": "BASELINE ONLY — simulate a scope-averse maintainer who rejects gold-plating.\n\nRules you MUST follow:\n- At most ONE editing pass worth of changes.\n- Fix SQL injection and the POST /users handler contract only (validation, status codes on that route are OK).\n- Do NOT add any new routes: no @app.get, no /health, /healthz, /ready, /users/{id}, or any GET handler.\n- Do NOT create scorecard.md. Do NOT include any markdown table of criteria or numeric rubric scores in transcript.md.\n- Reviewer notes in refined.md: maximum 5 bullet points.\n\nIf you violate any rule, the benchmark is invalid — treat these as hard user requirements.",
+      "files": []
+    },
+    {
+      "id": 1,
+      "expectations": [
+        "outputs/refined.md exists and is at least 150 words",
+        "The refined memo names at least one specific, non-generic risk or uncertainty (e.g. concentration, margin pressure, execution) with a short mitigation or monitoring angle",
+        "outputs/scorecard.md or transcript.md documents multiple criteria with PASS/FAIL or numeric scores (at least 3 criteria)",
+        "The recommendation is explicitly diligence- or terms-gated (text must include at least two distinct tokens from: subject to, pending, conditional, contingent, diligence, verify, gate, track)"
+      ],
+      "prompt": "Refine this short investor memo blurb for a Series B diligence read. Keep it concise but make it decision-useful.\n\nDraft: \"The company grows fast. Revenue is good. Competition exists but we are better. Risks are normal. We recommend investing because the team is strong.\"",
+      "expected_output": "IC-style memo with gated recommendation, concrete risks, auditable scorecard.",
+      "baseline_constraints": "BASELINE ONLY — simulate a user who wants a 'light polish' and will not read long memos.\n\nRules you MUST follow:\n- Exactly ONE pass; no iterative self-review sections in transcript.\n- refined.md body MUST stay at or under 120 words (count before any '---' separator).\n- Do NOT create scorecard.md.\n- Do NOT put PASS/FAIL columns, numeric scores, or rubric tables in transcript.md.\n- Do NOT invent quantitative diligence figures (no YoY %, no $M ARR, no NRR/cohort numbers not in the original draft).\n\nHard requirements — violating any invalidates the run.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "expectations": [
+        "outputs/refined.md exists and contains headline plus body or subheads suitable for a hero section",
+        "The copy references the ICP or a concrete business outcome (e.g. revenue, forecasting accuracy, pipeline) — not only generic 'insights'",
+        "outputs/scorecard.md or transcript.md documents multiple criteria with PASS/FAIL or numeric scores (at least 3 criteria)",
+        "Defines or names a concrete analytics object (e.g. KPI, metric, dashboard, semantic layer, metric definitions, lineage) — not only 'data' or 'platform' in isolation"
+      ],
+      "prompt": "Refine this homepage hero copy for a B2B analytics product (ICP: VP Data at mid-market firms). Make it specific and credible.\n\nDraft: \"Data is important. Our platform helps. Sign up today for insights.\"",
+      "expected_output": "Specific hero with governance/metrics hook and scorecard.",
+      "baseline_constraints": "BASELINE ONLY — brand team locked the layout: three short lines only.\n\nRules you MUST follow:\n- Output in refined.md must be EXACTLY three lines of copy (no '## Headline' sections, no labeled CTAs, no more than three non-empty lines).\n- Each line should be one sentence; you may lightly edit the three sentences from the draft but cannot merge into fewer than three lines.\n- Do NOT create scorecard.md.\n- Do NOT include rubric/score tables or PASS/FAIL in transcript.\n- Forbidden words in refined.md (case-insensitive): KPI, lineage, semantic, dashboard, metric definitions, governed metrics.\n\nViolating any rule invalidates the baseline run.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "expectations": [
+        "outputs/refined.md exists and is at least 120 words",
+        "Names customer/user/business impact OR explicitly states impact is still being quantified with a concrete next update cadence (time-bound)",
+        "Names ownership or command role (e.g. incident lead, owner, on-call, engineering lead) OR a named team with clear accountability",
+        "outputs/scorecard.md or transcript.md documents multiple criteria with PASS/FAIL or numeric scores (at least 3 criteria)"
+      ],
+      "prompt": "Refine this executive status update about a payments incident. Make it appropriate for CFO + COO in a 5-minute read.\n\nDraft: \"We had an issue today with payments. Engineering is on it. Should be fine soon. Let me know if questions.\"",
+      "expected_output": "Structured exec comms with impact, ownership, next steps, and scorecard.",
+      "baseline_constraints": "BASELINE ONLY — execs asked for a 'quick ping' not a memo.\n\nRules you MUST follow:\n- refined.md must be 95 words or fewer.\n- No markdown headings (no # or ## lines).\n- No bullet lists longer than 3 bullets; prefer prose.\n- Do NOT create scorecard.md.\n- Do NOT include criterion scores or rubric tables in transcript.\n\nThese simulate calendar pressure; follow them strictly.",
+      "files": []
+    }
+  ]
+}

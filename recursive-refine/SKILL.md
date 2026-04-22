@@ -1,11 +1,11 @@
 ---
 name: recursive-refine
-description: "Take any generated content and recursively evaluate, diagnose, and improve it against a dynamically generated, domain-specific scoring rubric until every criterion passes a defined threshold. Includes adversarial stress-testing. Only use when explicitly called with /recursive-refine."
+description: "Iteratively refine any draft (copy, memo, spec, API code, email, deck bullets) against a custom rubric with numeric scoring, failure diagnosis, and adversarial review until every criterion clears its threshold—or the iteration cap hits. Use when the user invokes /recursive-refine, asks for rubric-based or criterion-based polishing, 'stress-test', 'red-team', 'won't ship until it's good enough', executive-ready tightening, diligence-grade clarity, production API review loops, or multi-pass improvement with an auditable scorecard. Also use when a one-shot edit is likely insufficient for high-stakes content."
 ---
 
 # Recursive Self-Improvement Refiner
 
-This skill takes any generated content and recursively evaluates, diagnoses, and improves it against a dynamically generated, domain-specific scoring rubric until every criterion passes its threshold. It includes adversarial stress-testing and will never ship output that scores below threshold on any criterion.
+This skill takes any generated content and recursively evaluates, diagnoses, and improves it against a dynamically generated, domain-specific scoring rubric until every criterion passes its threshold. It includes adversarial stress-testing and will not treat the job as done while any criterion remains below threshold (subject to max iterations and plateau rules below).
 
 ## Workflow
 
@@ -23,14 +23,14 @@ This step replaces a static lookup with a 3-stage reasoning protocol to create a
 The agent first analyzes the content to answer three questions:
 
 1.  **What is the primary domain?** (e.g., Software Engineering, Finance, Design, Data Science, Marketing, Legal, Operations)
-2.  **What is the specific sub-type within that domain?** (e.g., within Software Engineering â†’ Backend API, Frontend UI, DevOps Config, ML Pipeline, CLI Tool, Database Schema)
+2.  **What is the specific sub-type within that domain?** (e.g., within Software Engineering ? Backend API, Frontend UI, DevOps Config, ML Pipeline, CLI Tool, Database Schema)
 3.  **Who is the intended audience and what is their goal?** (e.g., "a senior engineer reviewing a PR for correctness" vs. "a non-technical stakeholder reading a product spec for understanding")
 
-*If confidence in classification is <70%, the skill falls back to the `General Content` rubric.* 
+*If confidence in classification is <70%, the skill falls back to the `General Content` rubric.*
 
 #### Stage B: Rubric Generation
 
-Using the analysis from Stage A, the agent generates a custom rubric of 6â€“10 criteria. Each criterion includes:
+Using the analysis from Stage A, the agent generates a custom rubric of 6–10 criteria. Each criterion includes:
 
 -   **Name**: A short, specific label (e.g., "Idempotency", "Data Density", "Visual Hierarchy").
 -   **What It Measures**: A one-sentence definition of the criterion.
@@ -66,18 +66,23 @@ The agent attacks the content from the perspective of the derived adversarial pe
 
 ### Step 5: Improve (Targeted Rewrite)
 
-The agent applies the fixes from the diagnosis and adversarial review. **It only rewrites what failed**, preserving all passing sections.
+The agent applies the fixes from the diagnosis and adversarial review. **Prefer minimal edits**: only rewrite sections that fail criteria. If the first pass leaves **no** criterion above threshold (common for very rough drafts), a **full rewrite** is appropriate—then re-evaluate.
 
 ### Step 6: Loop or Terminate
 
 After the rewrite, the agent returns to **Step 2: Evaluate**. The loop terminates when:
 1.  **All criteria pass**.
-2.  **Max iterations** are reached (default: 5).
+2.  **Max iterations** is reached (default: 5).
 3.  The **score plateaus** with no improvement across 2 iterations.
 
 ### Step 7: Output Delivery
 
-The final, refined content is delivered, along with a scorecard showing the initial scores, final scores, and total improvement for each criterion.
+Always deliver two artifacts (unless the user opts out):
+
+1.  **Refined content** — the final text or code, ready to paste or commit.
+2.  **Scorecard** — a compact table: criterion name, threshold, initial score, final score, PASS/FAIL, and one line on largest deltas. This makes the loop **auditable** and proves nothing shipped below threshold.
+
+If the user needs files, use `refined.md` and `scorecard.md`. A `transcript.md` is optional but useful for long sessions (capture rubric, iterations, and adversarial findings).
 
 ---
 

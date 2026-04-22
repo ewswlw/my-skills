@@ -261,6 +261,8 @@ Track these in production for early regime-change detection:
 - **Forecast error decomposition** — within-regime vs transition-period errors
 - **Data likelihood under known regimes** — how "normal" is current data?
 
+**Lead–lag / transmission stability:** If the strategy uses an estimated **optimal lag τ** between series, treat **τ** as **regime-dependent** — a **joint** state of volatility, liquidity, macro, and (where available) positioning often indexes whether **A→B** lead–lag is **stable** or **inverts**. Monitor **rolling** optimal lag, **rolling** Granger **p-value**, or **decay** of out-of-sample predictive power, not just a **full-sample** estimate. See `lead-lag-predictive-inclusion.md`.
+
 ### Intervention Triggers
 
 | Trigger | Action |

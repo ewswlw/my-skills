@@ -1,20 +1,24 @@
 ---
 name: project-spec
-description: "Interview the user in-depth about their project, asking detailed questions to create a comprehensive project specification and implementation roadmap. Runs /recursive-refine as the final quality gate, then requires explicit user permission before any implementation begins. Only use when explicitly called with /project-spec."
+description: "Full-delivery project specification: structured multi-phase interview (lettered options + [RECOMMENDED] defaults, progress bar format), devil's-advocate risk review, 8–10 phase roadmap with explicit approval, optional small-scope innovation pitch, /recursive-refine on both project-spec.md (XML) and project-constitution.md before writing, then a mandatory implementation permission gate—no code or scaffolding until the user says proceed. Use when the user invokes /project-spec or needs a build-ready spec—not a light PRD—including greenfield planning, 'spec before we code', architecture + requirements capture, project constitution, handoff for an AI or team implementer, or replacing an informal idea with an auditable plan. Prefer write-a-prd or similar only when they want a short doc without the full interview, refine loop, and implement gate."
 ---
 
 # Create Project Specification
 
+## How you communicate (all environments)
+
+Phases refer to **messages** to the user. In Cursor, Claude Code, or chat UIs there is no separate `message` tool: use your **normal reply to the user** for every interview batch, summary, roadmap, and gate. For **writing files**, use the environment's file writer (e.g. **Write**). For **post-write verification**, run a quick directory listing in the terminal (PowerShell: `Get-ChildItem project-spec.md, project-constitution.md`; Unix: `ls -la project-spec.md project-constitution.md`).
+
 ## Phase 1: Project Analysis & Domain Detection
 
-1. Check if a `project-spec.md` or `project-constitution.md` file already exists in the workspace. If yes, use the `message` tool to ask the user if they want to update the existing spec or start a new one. Wait for their reply before proceeding.
+1. Check if a `project-spec.md` or `project-constitution.md` file already exists in the workspace. If yes, **ask the user in chat** whether to update the existing spec or start a new one. Wait for their reply before proceeding.
 2. Analyze the user's project description (`$ARGUMENTS`). Identify the core components, goals, and project archetype (e.g., SaaS, e-commerce, data pipeline, mobile app, AI product, internal tool). 
 3. Read the file at `references/domain-templates.md` in this skill's folder (`C:\Users\Eddy\.claude\skills\project-spec\references\domain-templates.md`) to load archetype-specific questions. Inject these into your dynamically generated interview categories.
 4. Generate 4-6 high-level interview categories specific to the project, ordered from highest architectural impact to lowest (e.g., core data model before deployment).
 
 ## Phase 2: In-Depth Interview (with Progress Tracking)
 
-Conduct the interview using the `message` tool. At the start of every message, display a progress indicator:
+Conduct the interview in **your replies to the user**. At the start of every interview batch, display a progress indicator:
 
 > **[Phase X of Y: Category Name — ████░░░░░░ Z%]**
 
@@ -35,7 +39,7 @@ At the end of each batch, include this prompt:
 
 ## Phase 3: Devil's Advocate Review
 
-After the user answers the final batch of questions, generate an initial requirements summary using the `message` tool. 
+After the user answers the final batch of questions, generate an initial requirements summary in your **next reply**. 
 
 Immediately following the summary in the same message, conduct an adversarial review. Adopt the perspective of a skeptical senior architect and identify 3-5 potential risks across these categories: Security, Scalability, Integration Complexity, Edge Cases, or Timeline Realism. 
 
@@ -45,7 +49,7 @@ Use the "5 Whys" technique (probing the root cause of a requirement) to challeng
 
 ## Phase 4: Plan Validation Checkpoint
 
-Once risks are resolved, use the `message` tool to generate a high-level implementation roadmap with 8-10 numbered phases. Each phase must include a title, key tasks, and dependencies. 
+Once risks are resolved, in your **next reply** present a high-level implementation roadmap with 8-10 numbered phases. Each phase must include a title, key tasks, and dependencies. 
 
 **Exit Condition:** End the message by asking: "Does this roadmap look correct? Reply 'approved' or suggest changes." **Wait for the user's explicit approval.** If they suggest changes, update the roadmap and ask for approval again.
 
@@ -53,7 +57,7 @@ Once risks are resolved, use the `message` tool to generate a high-level impleme
 
 After the roadmap is approved, answer the following question internally: "What is the single smartest, most radically innovative, and most compelling addition I could make to this project right now?"
 
-If the idea can be implemented without adding new external dependencies or extending the timeline by more than 10% (this is the definition of "actionable and within scope"), propose it to the user using the `message` tool. If they approve, update the spec. Otherwise, proceed to Phase 6 (Recursive Refinement).
+If the idea can be implemented without adding new external dependencies or extending the timeline by more than 10% (this is the definition of "actionable and within scope"), propose it in your **next reply**. If they approve, update the spec. Otherwise, proceed to Phase 6 (Recursive Refinement).
 
 ## Phase 6: Recursive Refinement (via /recursive-refine)
 
@@ -72,7 +76,7 @@ Before writing any files, draft both `project-constitution.md` and `project-spec
 
 ## Phase 7: Write the Final Specification
 
-Use the `file` tool to write the **refined** specification to two files in the project root:
+Write the **refined** specification to two files in the project root (use the workspace file writer, e.g. **Write**):
 
 **File 1: `project-constitution.md`** — The immutable core. Must be formatted exactly like this:
 ```markdown
@@ -116,7 +120,7 @@ Use the `file` tool to write the **refined** specification to two files in the p
 </project_specification>
 ```
 
-**Exit Condition:** After writing both files, use the `shell` tool to run `ls -la` to verify they exist. Then proceed to Phase 8.
+**Exit Condition:** After writing both files, verify they exist via a terminal listing (see **How you communicate**). Then proceed to Phase 8.
 
 ## Phase 8: Implementation Permission Gate (MANDATORY)
 
@@ -151,4 +155,8 @@ Then ask the user explicitly:
 
 ## Windows/Cursor Compatibility Notes
 
-- Phase 1 Step 3: domain-templates.md path changed from Manus absolute path to: `C:\Users\Eddy\.claude\skills\project-spec\references\domain-templates.md`.
+- Phase 1 Step 3: `domain-templates.md` lives next to this skill. Resolve the skill folder at runtime if the install path differs; on this machine it is `C:\Users\Eddy\.claude\skills\project-spec\references\domain-templates.md`.
+
+## Maintainer: testing this skill (skill-creator)
+
+Benchmark prompts and optional expectations live in `evals/evals.json`. For full with-skill vs baseline runs, grading, and `eval-viewer/generate_review.py`, use a sibling workspace folder `project-spec-workspace/` (see `C:\Users\Eddy\.claude\skills\skill-creator\SKILL.md`). **Description auto-optimization** (`scripts.run_loop`) needs the Claude Code CLI (`claude -p`); in Cursor IDE, tune the YAML `description` manually with human review.

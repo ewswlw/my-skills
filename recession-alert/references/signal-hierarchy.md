@@ -6,7 +6,7 @@ Summarized from `Guides/RecessAlert_Complete_Encyclopedia.md` (Parts 5 and 7). U
 
 ## Six-layer framework (conceptual)
 
-**Data availability:** Layer 2 often cites **CMHI-2** (de-trended CMHI). That series lives on **CMHI_DATA → WEEKLY or MONTHLY**, not on the **DAILY** sheet. The stock `load_cmhi()` path in `spx_timing_strategy.py` loads **DAILY** only—so either extend loaders to include weekly CMHI-2 merged to daily, or use **daily CMHI** alone as a regime proxy and document the substitution.
+**Data availability:** Layer 2 often cites **CMHI-2** (de-trended CMHI). That series lives on **`cmhi_data.xlsx` → WEEKLY or MONTHLY**, not on the **DAILY** sheet. The stock `load_cmhi()` path in `spx_timing_strategy.py` loads **DAILY** only—so either extend loaders to include weekly CMHI-2 merged to daily, or use **daily CMHI** alone as a regime proxy and document the substitution.
 
 | Layer | Role | Primary inputs |
 |-------|------|----------------|
@@ -25,7 +25,7 @@ Not every strategy uses all layers; **non-SPX** projects may map layers to other
 
 | Rank | Signal | Source | Threshold idea |
 |------|--------|--------|----------------|
-| 1 | RFE-6 | MonthlyData RFE VARIANTS | =1 → ensemble recession warning |
+| 1 | RFE-6 | monthly_data_4.xlsx → RFE VARIANTS | =1 → ensemble recession warning |
 | 2 | RFE-5 | Same | Slightly earlier, more noise |
 | 3 | CMHI-2 < 0 | CMHI WEEKLY/MONTHLY | Bear regime |
 | 4 | LEADING PROB | Monthly DATA | >0.5 recession probability |

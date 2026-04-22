@@ -8,6 +8,10 @@ Standard ML labeling (`y = sign(return_t+1)`) has two critical problems:
 
 The techniques below address both problems.
 
+### Causal alignment (lead–lag and cross-series features)
+
+When the **feature** side uses **lagged** information from a **second** series **X** to **predict** **Y**, labels and **triple-barrier** events must be defined with **point-in-time** consistency: only information that would have been **known at the label time** for **Y** may influence the **label** or **barrier** logic. A **non-leaky** lead–lag feature paired with a **leaky** label (e.g. same-bar future information from **Y** smuggled into the “signal”) is a common footgun. See `lead-lag-predictive-inclusion.md` Section 11 and SKILL.md Step 4.
+
 ---
 
 ## Triple-Barrier Method

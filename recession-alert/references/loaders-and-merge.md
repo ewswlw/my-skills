@@ -1,6 +1,6 @@
 # Loaders, Schema Validation, and Merge
 
-Patterns are taken from `spx_timing_strategy.py` in the Recession Alert project. Adapt names if you fork loaders.
+Patterns are taken from `spx_timing_strategy.py` in the Recession Alert project. **Filenames:** The skill bundles workbooks under `<skill-root>/raw-data/` as `cmhi_data.xlsx`, `monthly_data_4.xlsx`, `optimum_data.xlsx`, and `weekly_data_2.xlsx`. Reference vault code may still use legacy vendor names until updated; point loaders at the skill paths when working outside the vault.
 
 ---
 
@@ -8,16 +8,16 @@ Patterns are taken from `spx_timing_strategy.py` in the Recession Alert project.
 
 | Function | File | Sheet | Required columns (strict) | Returns |
 |----------|------|-------|----------------------------|---------|
-| `load_cmhi` | `CMHI_DATA.xlsx` | DAILY | DATE, SP500, DIFF, CMHI | Index DATE; cols SP500, DIFF, CMHI |
-| `load_recession` | `MonthlyData (4).xlsx` | RFE VARIANTS | Unnamed: 0, RFE-6 | Dict: `rfe` (monthly RFE-6), `weekly` (SUPERINDEX[, WLIr]) |
-| `load_recession` | `WeeklyData (2).xlsx` | WEEKLY LEI's | DATE, SUPER | SUPER → SUPERINDEX |
-| `load_recession` (optional) | `MonthlyData (4).xlsx` | WEEKLY DATA | WEEK, WLIr if present | Joins WLIr onto weekly (may be stale) |
-| `load_breadth` | `WeeklyData (2).xlsx` | SP500 BREADTH DATA | DATE, MTLV2 | MTLV2, SIGS (SIGS optional → NaN) |
+| `load_cmhi` | `cmhi_data.xlsx` | DAILY | DATE, SP500, DIFF, CMHI | Index DATE; cols SP500, DIFF, CMHI |
+| `load_recession` | `monthly_data_4.xlsx` | RFE VARIANTS | Unnamed: 0, RFE-6 | Dict: `rfe` (monthly RFE-6), `weekly` (SUPERINDEX[, WLIr]) |
+| `load_recession` | `weekly_data_2.xlsx` | WEEKLY LEI's | DATE, SUPER | SUPER → SUPERINDEX |
+| `load_recession` (optional) | `monthly_data_4.xlsx` | WEEKLY DATA | WEEK, WLIr if present | Joins WLIr onto weekly (may be stale) |
+| `load_breadth` | `weekly_data_2.xlsx` | SP500 BREADTH DATA | DATE, MTLV2 | MTLV2, SIGS (SIGS optional → NaN) |
 | `load_breadth_extended` | Same | Same | DATE, MTLV2 | MTLV2, SIGS, DCOM, VIX, %>50DMA (if present) |
-| `load_trendex` | `WeeklyData (2).xlsx` | TRENDEX PROB MODELS | DATE, TDIFF, NET P, TOP, BOT | Those columns |
-| `load_gen2` | `WeeklyData (2).xlsx` | GEN-2 PROB MODELS | DATE + any P(TOP)/P(BOT) | All P(TOP)/P(BOT) columns |
-| `load_mf_prob` | `WeeklyData (2).xlsx` | SP500 MF PROB MODEL | DATE, NET AVG, NET TOP3, BIGBOT, BIGTOP, NET DIFF | Those columns |
-| `load_optimum` | `OPTIMUM_DATA.xlsx` | OPTIMUM | DATE, TRADE, DIFFN, OPT-CMHI, STM | Those columns; empty DF if file missing |
+| `load_trendex` | `weekly_data_2.xlsx` | TRENDEX PROB MODELS | DATE, TDIFF, NET P, TOP, BOT | Those columns |
+| `load_gen2` | `weekly_data_2.xlsx` | GEN-2 PROB MODELS | DATE + any P(TOP)/P(BOT) | All P(TOP)/P(BOT) columns |
+| `load_mf_prob` | `weekly_data_2.xlsx` | SP500 MF PROB MODEL | DATE, NET AVG, NET TOP3, BIGBOT, BIGTOP, NET DIFF | Those columns |
+| `load_optimum` | `optimum_data.xlsx` | OPTIMUM | DATE, TRADE, DIFFN, OPT-CMHI, STM | Those columns; empty DF if file missing |
 | `load_bloomberg` | N/A | Cache/API | N/A | DataFrame: SPXT_Index, optional us_hy_credit_return_index |
 
 **Date handling:** Parse with `pd.to_datetime(..., errors="coerce")`, drop NaT rows, sort index, dedupe weekly with `keep="last"` where applicable.
@@ -73,7 +73,7 @@ sub = out[req].dropna(how="any")
 first_valid = sub.index.min()
 ```
 
-If the user passes `start_date`, take `max(first_valid, pd.Timestamp(start_date))` unless the spec says otherwise (`project-spec.md`).
+If the user passes `start_date`, take `max(first_valid, pd.Timestamp(start_date))` unless the spec says otherwise (consumer project’s `project-spec.md`, or requirements agreed in chat).
 
 ---
 
@@ -81,7 +81,7 @@ If the user passes `start_date`, take `max(first_valid, pd.Timestamp(start_date)
 
 | Issue | Mitigation |
 |-------|------------|
-| `MonthlyData` WEEKLY DATA ends ~2015 | Use `WeeklyData` WEEKLY LEI's `SUPER` for current SUPERINDEX |
+| `monthly_data_4.xlsx` WEEKLY DATA ends ~2015 | Use `weekly_data_2.xlsx` WEEKLY LEI's `SUPER` for current SUPERINDEX |
 | RFE VARIANTS date column named `Unnamed: 0` | Rename to DATE after load |
 | SIGS missing or sparse early history | `fillna(0)` only where methodology allows |
 | OPTIMUM file missing | Return empty DataFrame; strategy must handle |

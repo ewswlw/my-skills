@@ -1,0 +1,107 @@
+{
+  "schema": "description_optimization_input",
+  "skill_name": "ml-algo-trading",
+  "notes": "For future run_loop / trigger-rate evaluation in Claude Code. Mix lengths and phrasing. Near-miss negatives share vocabulary with the skill but need a different tool or are out of scope.",
+  "queries": [
+    {
+      "id": 1,
+      "query": "ok so for my prop desk side project I have a 5 year daily panel of US equities and I want to build a LGBM model that ranks names for a 1 week forward return. I keep adding factors until the in sample Sharpe looks good. How do I know I'm not snooping? Someone mentioned deflated sharpe and purged k fold - what n_trials do I use if I tried like 4 different lookbacks per factor",
+      "should_trigger": true
+    },
+    {
+      "id": 2,
+      "query": "Working on a crypto momentum strat in Python. I need triple barrier labels and sample weights for overlapping events, then walk forward with embargo. Is there a standard recipe from financial ML (López de Prado style) you can walk me through before I plug in xgboost",
+      "should_trigger": true
+    },
+    {
+      "id": 3,
+      "query": "I'm testing whether USO returns lead XLE with cross correlation on log returns and the peak is at tau=7. My PM wants a Granger test next. I only have a loose story (slow capital). What do I have to do before this goes in the poduction model besides full sample stats",
+      "should_trigger": true
+    },
+    {
+      "id": 4,
+      "query": "Our VIX to SPY signal passed Granger at maxlag 5 but the univariate predictability score on SPY returns alone is like 12. The risk committee uses score <20 as a hard no. We need a memo explaining whether we can still proceed with a bivariate timing hypothesis and what extra validation to run",
+      "should_trigger": true
+    },
+    {
+      "id": 5,
+      "query": "Building regime switching HMM on SPX and fed funds, want HRP forBook allocation across 6 sleeves once I have OOS per regime. Also need to sanity check PSR on walk forward blocks - can you structure the pipeline",
+      "should_trigger": true
+    },
+    {
+      "id": 6,
+      "query": "genetic algorithm search over 50 technical indicator param combos in my factor, population 40 generations 15. I will report backtest SR 1.2. what should I put for DSR n_trials when I only care about the best chromosome",
+      "should_trigger": true
+    },
+    {
+      "id": 7,
+      "query": "I have panel data from WRDS, want ridge on 30 fundamentals for 3M ahead excess return, monthly rebalance, need point in time and survivorship check before any regression. what validation steps for bias",
+      "should_trigger": true
+    },
+    {
+      "id": 8,
+      "query": "Minute bar lead lag between two ETFs looks huge but I only aligned by calendar day close. Heard of Epps effect - do I need different correlation estimator before I trust lead lag for microstructure strats",
+      "should_trigger": true
+    },
+    {
+      "id": 9,
+      "query": "ReAct trace for a new idea: post index rebalance short term reversal in small caps. Need factor expression from the grammar, then screen factors |t|>3 vs forward ret weekly. meta label on top of primary signal - outline steps",
+      "should_trigger": true
+    },
+    {
+      "id": 10,
+      "query": "I ran predictability score on WTI and got 35, Hurst 0.48. We want to use regime filter + half Kelly from model probs. what thresholds and checklist items before I trust walk forward",
+      "should_trigger": true
+    },
+    {
+      "id": 11,
+      "query": "Write a fibonacci function in TypeScript and add Jest tests. No trading context.",
+      "should_trigger": false
+    },
+    {
+      "id": 12,
+      "query": "I need a Bloomberg Excel formula for YAS yield on a bond and explanation of OAS vs Z spread for a one pager for my PM - no backtest",
+      "should_trigger": false
+    },
+    {
+      "id": 13,
+      "query": "Set up a simple RSI crossover backtest in TradingView Pine Script, no machine learning, no Python - just 20 lines of Pine",
+      "should_trigger": false
+    },
+    {
+      "id": 14,
+      "query": "My broker API returns REST JSON for my stock positions and I need a React dashboard to show PnL and allocation pie chart - this is a CRUD and UI project",
+      "should_trigger": false
+    },
+    {
+      "id": 15,
+      "query": "What is the federal funds rate target range today and the last FOMC dot plot implied median - macro trivia only, no strategy code",
+      "should_trigger": false
+    },
+    {
+      "id": 16,
+      "query": "I have level 2 order book data and need to build a C++ HFT colocated matching engine with nanosecond timestamps - this is HFT systems not ML feature pipeline in Python",
+      "should_trigger": false
+    },
+    {
+      "id": 17,
+      "query": "My quant interview question is: prove the CAPM in two lines and explain idiosyncratic vs systematic - theory exam, not build a backtest",
+      "should_trigger": false
+    },
+    {
+      "id": 18,
+      "query": "I want to use vectorbt to compare two buy and hold baselines and plot drawdowns - I said vectorbt so it sounds like quant but the task is only visualization of static strategies with no ML, labeling, or purging",
+      "should_trigger": false
+    },
+    {
+      "id": 19,
+      "query": "Translate this 500 word research summary from English to French for my blog - the content is about momentum factor paper but the task is pure translation",
+      "should_trigger": false
+    },
+    {
+      "id": 20,
+      "query": "We need SOC2 style audit log schema for our fintech app user actions in Postgres - compliance engineering not trading model validation",
+      "should_trigger": false
+    }
+  ]
+}

@@ -87,11 +87,15 @@ def build_run(root: Path, run_dir: Path) -> dict | None:
     prompt = ""
     eval_id = None
 
-    # Try eval_metadata.json
-    for candidate in [run_dir / "eval_metadata.json", run_dir.parent / "eval_metadata.json"]:
+    # Try eval_metadata.json (run folder, config folder, or eval-* folder)
+    for candidate in [
+        run_dir / "eval_metadata.json",
+        run_dir.parent / "eval_metadata.json",
+        run_dir.parent.parent / "eval_metadata.json",
+    ]:
         if candidate.exists():
             try:
-                metadata = json.loads(candidate.read_text())
+                metadata = json.loads(candidate.read_text(encoding="utf-8"))
                 prompt = metadata.get("prompt", "")
                 eval_id = metadata.get("eval_id")
             except (json.JSONDecodeError, OSError):
@@ -104,7 +108,7 @@ def build_run(root: Path, run_dir: Path) -> dict | None:
         for candidate in [run_dir / "transcript.md", run_dir / "outputs" / "transcript.md"]:
             if candidate.exists():
                 try:
-                    text = candidate.read_text()
+                    text = candidate.read_text(encoding="utf-8", errors="replace")
                     match = re.search(r"## Eval Prompt\n\n([\s\S]*?)(?=\n##|$)", text)
                     if match:
                         prompt = match.group(1).strip()
@@ -131,7 +135,7 @@ def build_run(root: Path, run_dir: Path) -> dict | None:
     for candidate in [run_dir / "grading.json", run_dir.parent / "grading.json"]:
         if candidate.exists():
             try:
-                grading = json.loads(candidate.read_text())
+                grading = json.loads(candidate.read_text(encoding="utf-8"))
             except (json.JSONDecodeError, OSError):
                 pass
             if grading:
@@ -153,7 +157,7 @@ def embed_file(path: Path) -> dict:
 
     if ext in TEXT_EXTENSIONS:
         try:
-            content = path.read_text(errors="replace")
+            content = path.read_text(encoding="utf-8", errors="replace")
         except OSError:
             content = "(Error reading file)"
         return {

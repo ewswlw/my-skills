@@ -67,6 +67,8 @@ ADF stationarity, Jarque-Bera normality, dual outlier detection (z-score AND IQR
 ### 6. Cross-Source Reconciliation
 Multi-source diff (1bps prices, 5bps yields), single-source self-consistency (return continuity, cross-field dividends, revision detection).
 
+**Instrument and proxy series:** Reconcile the economic claim to the data **actually** used. **ETF** prices can diverge from **spot/underlying** (tracking error, **roll yield** in commodity trackers, corporate actions, liquidity). **Rolled futures** embed **term-structure** and **roll** effects. If the research thesis refers to **spot** economics but the series is a **rolled** or **ETF** product, **document** the mismatch, **restate the thesis** to match the **tradable** instrument, or use a more appropriate data source. See `lead-lag-predictive-inclusion.md` (instrument hygiene).
+
 ### 7. Provenance Hash Chain
 SHA-256 chain from raw input through every transformation to final output. Deterministic: same input + config = same hash.
 

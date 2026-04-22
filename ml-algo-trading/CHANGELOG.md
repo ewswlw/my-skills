@@ -2,6 +2,22 @@
 
 ---
 
+## 2026-04-22 — Skill-creator pass (triggers, progressive disclosure, evals)
+
+- **`SKILL.md`**: Rewrote YAML `description` to be broader and more trigger-friendly (combat under-triggering per skill-creator); added **Compatibility** line in body (not frontmatter, for loaders that only allow `name`/`description`).
+- **`SKILL.md`**: Added **Progressive disclosure** table mapping user intents → reference file to load first.
+- **`evals/evals.json`**: Added three realistic eval prompts (pipeline/DSR, lead-lag heatmap rejection, bivariate predictability) with `expectations` for qualitative or automated grading.
+- **`evals/trigger_queries.json`**: Added 20 should-trigger / should-not-trigger **near-miss** queries for future `run_loop` description optimization (Claude Code).
+- **`evals/manual_run_outputs/reference_responses.md`**: Gold-standard style answers to the three `evals.json` prompts (synthetic hand-run for grading diffs).
+- **`evals/README.md`**: Index of eval artifacts.
+- **Note:** Full skill-creator benchmark loop (parallel subagents, `generate_review.py`, description optimizer CLI) is optional; description optimizer requires Claude Code `claude -p`, not Cursor.
+
+## 2026-04-22 — Skill-creator eval run (iteration 1, synthetic)
+
+- **Workspace:** `C:\Users\Eddy\.claude\skills\ml-algo-trading-workspace\iteration-1\` — three evals × `with_skill` / `without_skill` with `outputs/response.md` and `grading.json`.
+- **Benchmark:** `aggregate_benchmark.py` → `benchmark.json` / `benchmark.md` (with-skill mean pass rate >> without-skill on scripted expectations).
+- **Viewer:** `review.html` via `generate_review.py --static` (open locally). Responses are **author-written** simulations, not live model subagents.
+
 ## 2026-03-10 15:50 ET — Vault Integration
 
 Integrated 7 Obsidian vault algo-trading documents (`Prompts & Instructions/algo trading/`)
