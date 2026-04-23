@@ -1,0 +1,28 @@
+/* YTM / Credit Investing — :root web tokens. Sync with tokens.json. */
+:root {
+  --color-text-primary: #e6edf3;
+  --color-text-secondary: #8b949e;
+  --color-text-tertiary: #0000ee;
+  --color-text-inverse: #0d1117;
+  --color-surface-default: #0b0d10;
+  --color-surface-raised: #0d1117;
+  --color-surface-strong: #f6f8fa;
+  --chart-panel: #0d1117;
+  --chart-grid: #21262d;
+  --chart-axis: #6e7681;
+  --chart-tick: #e6edf3;
+  --chart-legend: #c9d1d9;
+  --chart-series-1: #58a6ff;
+  --chart-series-2: #3fb950;
+  --chart-series-3: #ffa657;
+  --chart-series-4: #d2a8ff;
+  --font-sans: Montserrat, "Segoe UI", system-ui, sans-serif;
+  --type-xs: 0.625rem;
+  --type-sm: 0.75rem;
+  --type-md: 0.875rem;
+  --type-lg: 1rem;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --motion-fast: 120ms;
+  --motion-base: 200ms;
+}

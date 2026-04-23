@@ -1,0 +1,37 @@
+{
+  "layout": {
+    "paper_bgcolor": "#0d1117",
+    "plot_bgcolor": "#0d1117",
+    "font": {
+      "family": "Montserrat, system-ui, sans-serif",
+      "color": "#e6edf3"
+    },
+    "title": { "font": { "color": "#e6edf3" } },
+    "xaxis": {
+      "gridcolor": "#21262d",
+      "linecolor": "#6e7681",
+      "tickcolor": "#6e7681",
+      "tickfont": { "color": "#e6edf3" },
+      "title": { "font": { "color": "#c9d1d9" } }
+    },
+    "yaxis": {
+      "gridcolor": "#21262d",
+      "linecolor": "#6e7681",
+      "tickcolor": "#6e7681",
+      "tickfont": { "color": "#e6edf3" },
+      "title": { "font": { "color": "#c9d1d9" } }
+    },
+    "legend": {
+      "font": { "color": "#c9d1d9" },
+      "bgcolor": "#0d1117",
+      "bordercolor": "#21262d"
+    }
+  },
+  "colorway": [
+    "#58a6ff",
+    "#3fb950",
+    "#ffa657",
+    "#d2a8ff"
+  ],
+  "comment": "Sync colorway and backgrounds with tokens.json chart.* — manual merge when series colors change."
+}
