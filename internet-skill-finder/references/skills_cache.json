@@ -1,6 +1,6 @@
 {
   "anthropics/skills": {
-    "stars": 122218,
+    "stars": 123401,
     "description": "Public repository for Agent Skills",
     "url": "https://github.com/anthropics/skills",
     "type": "skills",
@@ -93,7 +93,7 @@
     ]
   },
   "obra/superpowers": {
-    "stars": 164053,
+    "stars": 166662,
     "description": "An agentic skills framework & software development methodology that works.",
     "url": "https://github.com/obra/superpowers",
     "type": "skills",
@@ -171,7 +171,7 @@
     ]
   },
   "vercel-labs/agent-skills": {
-    "stars": 25524,
+    "stars": 25658,
     "description": "Vercel's official collection of agent skills",
     "url": "https://github.com/vercel-labs/agent-skills",
     "type": "skills",
@@ -214,7 +214,7 @@
     ]
   },
   "K-Dense-AI/claude-scientific-skills": {
-    "stars": 19184,
+    "stars": 19351,
     "description": "A set of ready to use Agent Skills for research, science, engineering, analysis, finance and writing.",
     "url": "https://github.com/K-Dense-AI/scientific-agent-skills",
     "type": "skills",
@@ -892,7 +892,7 @@
     ]
   },
   "ComposioHQ/awesome-claude-skills": {
-    "stars": 55585,
+    "stars": 56075,
     "description": "A curated list of awesome Claude Skills, resources, and tools for customizing Claude AI workflows",
     "url": "https://github.com/ComposioHQ/awesome-claude-skills",
     "type": "skills",
@@ -1040,7 +1040,7 @@
     ]
   },
   "travisvn/awesome-claude-skills": {
-    "stars": 11619,
+    "stars": 11708,
     "description": "A curated list of awesome Claude Skills, resources, and tools for customizing Claude AI workflows \u00e2\u20ac\u201d particularly Claude Code",
     "url": "https://github.com/travisvn/awesome-claude-skills",
     "type": "curated_list",
@@ -1272,7 +1272,7 @@
     ]
   },
   "BehiSecc/awesome-claude-skills": {
-    "stars": 8656,
+    "stars": 8708,
     "description": "A curated list of Claude Skills.",
     "url": "https://github.com/BehiSecc/awesome-claude-skills",
     "type": "curated_list",
