@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<!--
+  YTM / Credit Investing — HTML dashboard scaffold (page-level brand).
+
+  This fragment is the canonical answer to "build me a YTM dashboard in
+  HTML / React / a web view". It materializes the brand motifs documented
+  in `references/DESIGN.md`:
+
+    * Deep-navy page surface (--brand-navy, #162236).
+    * Slightly lighter navy panels (--brand-navy-panel) and elevated cards
+      (--brand-navy-card) for surface elevation without drop shadows.
+    * Logo top-left (loaded via <img>; replace `src` with the path to the
+      shipped asset under skills/ytm-branding/assets/).
+    * Header bar with a gold "signature rule" under the page title.
+    * KPI cards with a 3 px vertical gold accent on the leading edge.
+    * Brand-blue + gold series colors for any inline charts/sparklines.
+    * Imports `web-tokens.css` for all tokens (no raw hex in component
+      styles below — the only hex here lives in web-tokens.css).
+
+  Usage:
+    1. Copy this file plus `web-tokens.css` into your project.
+    2. Replace the <img src="..."> path with the YTM logo asset path.
+    3. Drop your real chart libraries (Plotly, Recharts, ECharts) into
+       the .panel-body slots; pull series colors via var(--chart-series-1)…
+       and the panel background via var(--chart-panel).
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>YTM Capital — Credit Strategy Dashboard</title>
+
+  <!-- Bring in the YTM design tokens (sibling file). -->
+  <link rel="stylesheet" href="web-tokens.css" />
+
+  <!-- Montserrat (Google Fonts) — replace with self-hosted WOFF2 if needed. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap"
+  />
+
+  <style>
+    /* -------------------------------------------------------------------
+       Page chrome
+       ------------------------------------------------------------------- */
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      background: var(--brand-navy);
+      color: var(--color-text-primary);
+      font-family: var(--font-sans);
+      font-size: var(--type-md);
+      line-height: 1.4;
+      min-height: 100vh;
+    }
+
+    .page {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: var(--space-6) var(--space-6) var(--space-8);
+    }
+
+    /* -------------------------------------------------------------------
+       Header bar (DESIGN.md §6.2)
+       ------------------------------------------------------------------- */
+    .page-header {
+      display: flex;
+      align-items: center;
+      gap: var(--space-6);
+      padding-bottom: var(--space-4);
+      border-bottom: 1px solid var(--brand-divider);
+      margin-bottom: var(--space-6);
+    }
+    .page-header__logo {
+      display: block;
+      height: 40px;
+      width: auto;
+    }
+    .page-header__titles { flex: 1; min-width: 0; }
+    .page-header__title {
+      font-size: var(--type-2xl);
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      margin: 0;
+      color: var(--color-text-primary);
+    }
+    .page-header__subtitle {
+      font-size: var(--type-sm);
+      color: var(--color-text-muted);
+      margin: 0;
+    }
+    .page-header__signature-rule {
+      display: inline-block;
+      width: 96px;
+      height: 2px;
+      background: var(--brand-gold);
+      margin-top: var(--space-2);
+    }
+
+    /* -------------------------------------------------------------------
+       KPI card strip (DESIGN.md §6.3 — the YTM signature motif)
+       ------------------------------------------------------------------- */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: var(--space-5);
+      margin-bottom: var(--space-7);
+    }
+    .kpi-card {
+      position: relative;
+      background: var(--brand-navy-card);
+      border-radius: var(--radius-md);
+      padding: var(--space-5) var(--space-5) var(--space-5) var(--space-6);
+      overflow: hidden;
+    }
+    .kpi-card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: var(--accent-line-width);
+      height: 100%;
+      background: var(--accent-line-primary);
+    }
+    .kpi-card--secondary::before { background: var(--accent-line-secondary); }
+    .kpi-card--neutral::before   { background: var(--accent-line-neutral); }
+
+    .kpi-card__value {
+      font-size: var(--type-3xl);
+      font-weight: 700;
+      color: var(--color-text-primary);
+      line-height: 1.05;
+      margin: 0 0 var(--space-2);
+    }
+    .kpi-card__value--accent { color: var(--color-text-accent); }
+    .kpi-card__label {
+      font-size: var(--type-xs);
+      font-weight: 500;
+      color: var(--color-text-muted);
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      margin: 0;
+    }
+
+    /* -------------------------------------------------------------------
+       Section header with leading vertical accent (DESIGN.md §6.3)
+       ------------------------------------------------------------------- */
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      margin: 0 0 var(--space-5);
+    }
+    .section-header__rule {
+      display: inline-block;
+      width: var(--accent-line-width);
+      height: 1.4em;
+      background: var(--accent-line-primary);
+      border-radius: 1px;
+    }
+    .section-header__title {
+      font-size: var(--type-lg);
+      font-weight: 600;
+      color: var(--color-text-primary);
+      margin: 0;
+    }
+
+    /* -------------------------------------------------------------------
+       Chart panels (DESIGN.md §6.4)
+       ------------------------------------------------------------------- */
+    .panel-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: var(--space-5);
+      margin-bottom: var(--space-7);
+    }
+    @media (max-width: 960px) {
+      .panel-grid { grid-template-columns: 1fr; }
+    }
+    .panel {
+      background: var(--brand-navy-card);
+      border-radius: var(--radius-md);
+      padding: var(--space-5);
+    }
+    .panel__title {
+      font-size: var(--type-md);
+      font-weight: 600;
+      color: var(--color-text-primary);
+      margin: 0 0 var(--space-4);
+    }
+    .panel__body {
+      background: var(--chart-panel);
+      border-radius: var(--radius-sm);
+      min-height: 280px;
+      padding: var(--space-4);
+      color: var(--color-text-secondary);
+      font-size: var(--type-sm);
+    }
+
+    /* -------------------------------------------------------------------
+       Footer signature
+       ------------------------------------------------------------------- */
+    .page-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: var(--space-5);
+      border-top: 1px solid var(--brand-divider);
+      color: var(--color-text-muted);
+      font-size: var(--type-xs);
+      letter-spacing: 0.06em;
+    }
+
+    /* -------------------------------------------------------------------
+       Focus state (a11y / R8 row 3) — never remove without replacement
+       ------------------------------------------------------------------- */
+    a:focus-visible, button:focus-visible, [tabindex]:focus-visible {
+      outline: 2px solid var(--brand-gold);
+      outline-offset: 2px;
+      border-radius: var(--radius-sm);
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="page-header">
+      <!-- Replace src with the absolute path or bundled URL of the YTM
+           horizontal logo from skills/ytm-branding/assets/.
+           DO NOT recolor, rotate, or fabricate a wordmark. -->
+      <img
+        class="page-header__logo"
+        src="../../assets/ytm_logo_horizontal.png"
+        alt="YTM Capital"
+      />
+      <div class="page-header__titles">
+        <h1 class="page-header__title">Credit Strategy Dashboard</h1>
+        <p class="page-header__subtitle">YTM Capital &mdash; internal review</p>
+        <span class="page-header__signature-rule" aria-hidden="true"></span>
+      </div>
+    </header>
+
+    <section class="kpi-grid" aria-label="Key performance indicators">
+      <article class="kpi-card">
+        <p class="kpi-card__value">+3.42%</p>
+        <p class="kpi-card__label">QTD return</p>
+      </article>
+      <article class="kpi-card">
+        <p class="kpi-card__value">182 bp</p>
+        <p class="kpi-card__label">OAS vs benchmark</p>
+      </article>
+      <article class="kpi-card">
+        <p class="kpi-card__value">4.8 yr</p>
+        <p class="kpi-card__label">Effective duration</p>
+      </article>
+      <article class="kpi-card kpi-card--secondary">
+        <p class="kpi-card__value kpi-card__value--accent">BBB</p>
+        <p class="kpi-card__label">Avg credit quality</p>
+      </article>
+    </section>
+
+    <h2 class="section-header">
+      <span class="section-header__rule" aria-hidden="true"></span>
+      <span class="section-header__title">Performance &amp; positioning</span>
+    </h2>
+
+    <section class="panel-grid">
+      <article class="panel">
+        <h3 class="panel__title">Total return &mdash; last 90 sessions</h3>
+        <div class="panel__body">
+          <!-- Drop your real chart here. Use:
+                 background = var(--chart-panel) (already applied)
+                 series #1 = var(--chart-series-1)  // brand blue
+                 series #2 = var(--chart-series-2)  // brand gold
+                 axes / grid = var(--chart-axis) / var(--chart-grid)
+                 tick labels = var(--chart-tick)
+          -->
+          [chart placeholder]
+        </div>
+      </article>
+      <article class="panel">
+        <h3 class="panel__title">Sector weight (%)</h3>
+        <div class="panel__body">[chart placeholder]</div>
+      </article>
+    </section>
+
+    <footer class="page-footer">
+      <span>YTM CAPITAL &nbsp;&middot;&nbsp; CREDIT INVESTING</span>
+      <span>Generated 2026-04-27</span>
+    </footer>
+  </main>
+</body>
+</html>

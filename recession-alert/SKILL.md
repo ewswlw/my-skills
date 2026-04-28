@@ -1,7 +1,7 @@
 ---
 name: recession-alert
 description: >
-  Loads, validates, merges, and uses RecessionALERT macro and market-health data (CMHI, RFE, OPTIMUM, Trendex, SuperIndex, breadth, Gen-2, MF Prob) for any quantitative trading or asset allocation project—not only SPX. Covers Raw Data Excel ingestion (bundled under this skill’s raw-data/), frequency alignment, feature engineering, statistical diagnostics, signal hierarchy, and test-driven development for clean pipelines. Use when the user mentions recession alert, RecessionALERT, CMHI, RFE-6, OPTIMUM, Trendex, SuperIndex, breadth timing, macro regime, or building strategies from Raw Data.
+  Loads, validates, merges, and uses RecessionALERT macro and market-health data (CMHI, RFE, OPTIMUM, Trendex, SuperIndex, breadth, Gen-2, MF Prob) for any quantitative trading or asset allocation project, not only SPX. Covers vault Raw Data Excel ingestion, optional skill mirror checks, frequency alignment, feature engineering, statistical diagnostics, signal hierarchy, and test-driven development for clean pipelines. Use when the user mentions recession alert, RecessionALERT, CMHI, RFE-6, OPTIMUM, Trendex, SuperIndex, breadth timing, macro regime, or building strategies from Raw Data.
 ---
 
 # RecessionALERT Quantitative Data Skill
@@ -10,22 +10,32 @@ Reference files live in this skill folder: `references/`. Read them when the tas
 
 ## Quick start (paths)
 
-**Primary (portable):** Raw Data workbooks ship inside this skill:
+**Primary in this vault:** The authoritative RecessionALERT workbooks live in the Obsidian vault export folder:
 
 | Location | Purpose |
 |----------|---------|
-| `<skill-root>/raw-data/cmhi_data.xlsx` | CMHI export (snake_case on disk) |
-| `<skill-root>/raw-data/monthly_data_4.xlsx` | Monthly / RFE export |
-| `<skill-root>/raw-data/optimum_data.xlsx` | OPTIMUM export |
-| `<skill-root>/raw-data/weekly_data_2.xlsx` | Weekly breadth / Trendex / MF / Gen-2 export |
+| `Coding Projects/Recession Alert/Raw Data/CMHI_DATA.xlsx` | CMHI export |
+| `Coding Projects/Recession Alert/Raw Data/MonthlyData (4).xlsx` | Monthly / RFE export |
+| `Coding Projects/Recession Alert/Raw Data/OPTIMUM_DATA.xlsx` | OPTIMUM export |
+| `Coding Projects/Recession Alert/Raw Data/WeeklyData (2).xlsx` | Weekly breadth / Trendex / MF / Gen-2 export |
 
-`<skill-root>` is the folder containing this `SKILL.md` (e.g. `~/.claude/skills/recession-alert` on this machine). See `raw-data/README.md` for vendor filename mapping and refresh rules.
+Validation and strategy loading should use this vault folder unless a project config explicitly overrides it. Do not silently prefer bundled skill workbooks over the vault source.
 
-**Vault (optional):** When working inside the Obsidian vault, paths are relative to **vault root** (the folder containing `Coding Projects/`):
+**Optional skill mirror:** This skill may also keep normalized copies under `<skill-root>/raw-data/` for portability:
 
 | Location | Purpose |
 |----------|---------|
-| `Coding Projects/Recession Alert/Raw Data/` | Human export drop zone (vendor filenames); sync source for refreshing `raw-data/` |
+| `<skill-root>/raw-data/cmhi_data.xlsx` | Mirror of `CMHI_DATA.xlsx` |
+| `<skill-root>/raw-data/monthly_data_4.xlsx` | Mirror of `MonthlyData (4).xlsx` |
+| `<skill-root>/raw-data/optimum_data.xlsx` | Mirror of `OPTIMUM_DATA.xlsx` |
+| `<skill-root>/raw-data/weekly_data_2.xlsx` | Mirror of `WeeklyData (2).xlsx` |
+
+`<skill-root>` is the folder containing this `SKILL.md` (e.g. `~/.claude/skills/recession-alert` on this machine). See `raw-data/README.md` for vendor filename mapping, hash checks, and refresh rules.
+
+**Other vault paths:**
+
+| Location | Purpose |
+|----------|---------|
 | `Coding Projects/Recession Alert/processed data/` | Regenerable parquet/CSV caches (e.g. Bloomberg) |
 | `Coding Projects/Recession Alert/Guides/` | Full encyclopedias: economic meaning, methodology |
 
@@ -60,8 +70,8 @@ Before writing pipeline code, define (or accept defaults for):
 |------|--------|--------|
 | 0 | Install / sync | From vault root: `uv sync` (see workspace `pyproject.toml`) |
 | 1 | Write or adopt config | Required columns, start rule, benchmark |
-| 2 | Load | See `references/loaders-and-merge.md` |
-| 3 | Validate | `_validate_excel_schema`-style checks when strict |
+| 2 | Validate raw source | Run the raw-data doctor/check path before research or backtests |
+| 3 | Load | See `references/loaders-and-merge.md` |
 | 4 | Merge | Daily index; reindex + `ffill` for slower frequencies |
 | 5 | Features | See `references/features-and-transforms.md` |
 | 6 | **Tests** | See `references/testing-patterns.md` — before trusting step 7 |
@@ -96,4 +106,4 @@ Before writing pipeline code, define (or accept defaults for):
 
 ## Triggers
 
-Invoke for `/recession-alert`, “RecessionALERT data,” “CMHI,” “RFE-6,” “OPTIMUM TRADE,” “Trendex,” “SuperIndex,” “merge Raw Data,” “asset allocation using recession indicators,” or any task that reads the bundled `raw-data/` workbooks or the vault export folder.
+Invoke for `/recession-alert`, RecessionALERT data, CMHI, RFE-6, OPTIMUM TRADE, Trendex, SuperIndex, merge Raw Data, asset allocation using recession indicators, or any task that reads the vault export folder or optional bundled `raw-data/` mirror.

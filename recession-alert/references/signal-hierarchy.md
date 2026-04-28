@@ -25,7 +25,7 @@ Not every strategy uses all layers; **non-SPX** projects may map layers to other
 
 | Rank | Signal | Source | Threshold idea |
 |------|--------|--------|----------------|
-| 1 | RFE-6 | monthly_data_4.xlsx → RFE VARIANTS | =1 → ensemble recession warning |
+| 1 | RFE-6 | MonthlyData (4).xlsx -> DATA | ensemble recession warning; RFE VARIANTS is legacy cross-check |
 | 2 | RFE-5 | Same | Slightly earlier, more noise |
 | 3 | CMHI-2 < 0 | CMHI WEEKLY/MONTHLY | Bear regime |
 | 4 | LEADING PROB | Monthly DATA | >0.5 recession probability |

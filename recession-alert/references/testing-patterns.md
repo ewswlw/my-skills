@@ -1,6 +1,6 @@
 # Testing Patterns and TDD
 
-Aligned with embedded tests in `spx_timing_strategy.py` (`--test`, `--menu 12-22`) and `project-constitution.md` (tests for merge/P&L-affecting code).
+Aligned with embedded tests in `spx_timing_strategy.py` (`--test`, `--menu 12-23`) and `project-constitution.md` (tests for merge/P&L-affecting code).
 
 ---
 
@@ -14,7 +14,7 @@ Aligned with embedded tests in `spx_timing_strategy.py` (`--test`, `--menu 12-22
 | 4 | **Rule positions** | Binary or bounded outputs; **RFE-6 hard gate** forces flat when enforced; CMHI/TDIFF thresholds |
 | 5 | **Backtest math** | CAGR, MDD, alpha vs benchmark on synthetic series with known answer |
 | 6 | **ML / labels** | PurgedKFold no overlap; meta-labels no lookahead; walk-forward embargo |
-| 7 | **Freshness** | Last CMHI / SUPERINDEX date within tolerance (integration) |
+| 7 | **Raw-data doctor** | Required workbooks/sheets/critical series exist; dates parse; manifest regressions fail; stale-but-non-regressed series report age without blocking |
 
 ---
 
@@ -83,16 +83,18 @@ Skip TDD only for exploratory notebooks—**promote** notebook logic to modules 
 ## Running tests (reference project)
 
 ```bash
+uv run python "Coding Projects/Recession Alert/spx_timing_strategy.py" --raw-data-doctor
 uv run python "Coding Projects/Recession Alert/spx_timing_strategy.py" --test
 ```
 
-Or menu groups `--menu 13`–`22` for focused suites. Prefer **`uv run`** per vault rules.
+Use `--raw-data-doctor --update-manifest` only when intentionally refreshing the saved baseline after validation passes. Or use menu groups `--menu 13`-`23` for focused suites when available. Prefer **`uv run`** per vault rules.
 
 ---
 
 ## Suggested checklist before “strategy works” claims
 
-- [ ] Schema validation passes on current Raw Data (skill `raw-data/*.xlsx` and/or vault `Coding Projects/Recession Alert/Raw Data/`, depending on which paths the code loads)
+- [ ] Raw-data doctor passes on current vault Raw Data: `Coding Projects/Recession Alert/Raw Data/`
+- [ ] Any skill mirror is either hash-checked against the vault source or ignored for vault workflows
 - [ ] Merged panel start date matches **max overlap** or explicit user start
 - [ ] Benchmark column aligned with strategy returns (lag, total return)
 - [ ] At least one **integration** test: load → merge → one backtest metric on toy data

@@ -1,0 +1,40 @@
+{
+  "layout": {
+    "paper_bgcolor": "#162236",
+    "plot_bgcolor": "#1c2d42",
+    "font": {
+      "family": "Montserrat, system-ui, sans-serif",
+      "color": "#e6edf3"
+    },
+    "title": { "font": { "color": "#e6edf3", "size": 16 } },
+    "xaxis": {
+      "gridcolor": "#2a3a52",
+      "linecolor": "#6c7a8c",
+      "tickcolor": "#6c7a8c",
+      "tickfont": { "color": "#e6edf3" },
+      "title": { "font": { "color": "#c9d1d9" } },
+      "zerolinecolor": "#2a3a52"
+    },
+    "yaxis": {
+      "gridcolor": "#2a3a52",
+      "linecolor": "#6c7a8c",
+      "tickcolor": "#6c7a8c",
+      "tickfont": { "color": "#e6edf3" },
+      "title": { "font": { "color": "#c9d1d9" } },
+      "zerolinecolor": "#2a3a52"
+    },
+    "legend": {
+      "font": { "color": "#c9d1d9" },
+      "bgcolor": "#1c2d42",
+      "bordercolor": "#2a3a52"
+    },
+    "margin": { "l": 56, "r": 24, "t": 56, "b": 48 }
+  },
+  "colorway": [
+    "#4a8ec2",
+    "#c9a84c",
+    "#7fb3d5",
+    "#d8bf78"
+  ],
+  "comment": "Sync colorway and backgrounds with tokens.json chart.* — manual merge when series or surface colors change. Lead series is brand blue, second is brand gold."
+}

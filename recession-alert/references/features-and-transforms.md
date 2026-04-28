@@ -54,7 +54,7 @@ Probabilities defaulting to **0.5** and VIX to **20** are **discretionary** defa
 
 - **CMHI** long-run mean ≈ **+0.3**; **CMHI-2** centers near zero by subtracting MEAN.
 - **DIFF** (weekly) is integer **0–7** in many exports; daily DIFF may be normalized—check your sheet.
-- **RFE-6** is binary **{0,1}** in RFE VARIANTS.
+- **RFE-6** is loaded from the `DATA` sheet in current vault workflows; `RFE VARIANTS` is a stale legacy cross-check in the current export.
 - **TRADE** typically in **{-1, 0, 1, 2}** (short, flat, long, leveraged).
 - **NET VOL** and **WLEI** (weekly CMHI components) are often cited as highest-conviction CMHI ingredients.
 

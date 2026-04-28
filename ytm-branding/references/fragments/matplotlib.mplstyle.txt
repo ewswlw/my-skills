@@ -1,0 +1,37 @@
+# YTM / Credit Investing — Matplotlib (mplstyle-compatible lines)
+# Sync with tokens.json and references/data-viz.md on any token change.
+# NOTE: hex values MUST be quoted ("#rrggbb"). Matplotlib's mplstyle parser
+# treats unquoted '#' as the comment marker and silently drops the value.
+#
+# Surfaces: deep navy (chart.panel = #1c2d42, page = #162236) — matches the
+# YTM Capital website. Series colors lead with brand blue (#4a8ec2) and
+# gold (#c9a84c); see chart_palette.series_hex_list().
+figure.facecolor: "#162236"
+axes.facecolor: "#1c2d42"
+savefig.facecolor: "#162236"
+axes.edgecolor: "#6c7a8c"
+axes.labelcolor: "#c9d1d9"
+axes.titlecolor: "#e6edf3"
+axes.titleweight: 600
+xtick.color: "#e6edf3"
+ytick.color: "#e6edf3"
+text.color: "#e6edf3"
+grid.color: "#2a3a52"
+grid.linestyle: -
+grid.alpha: 0.55
+font.family: Montserrat, DejaVu Sans, Arial, sans-serif
+font.size: 10
+axes.titlesize: 12
+axes.labelsize: 10
+xtick.labelsize: 9
+ytick.labelsize: 9
+legend.fontsize: 9
+legend.facecolor: "#1c2d42"
+legend.edgecolor: "#2a3a52"
+legend.labelcolor: "#e6edf3"
+lines.linewidth: 1.8
+axes.grid: True
+axes.spines.top: False
+axes.spines.right: False
+grid.linewidth: 0.5
+figure.dpi: 110

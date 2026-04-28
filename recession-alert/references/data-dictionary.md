@@ -2,7 +2,7 @@
 
 Distilled from `Guides/RecessAlert_Complete_Encyclopedia.md` and `Guides/RecessAlert_TimeSeries_Encyclopedia.md`. For full prose and methodology, read those files in the vault.
 
-**On-disk names (skill bundle):** This skill ships workbooks under `raw-data/` as `cmhi_data.xlsx`, `monthly_data_4.xlsx`, `optimum_data.xlsx`, and `weekly_data_2.xlsx`. Section titles below use those names. The vault export folder may still use vendor filenames (`CMHI_DATA.xlsx`, etc.)—see `raw-data/README.md` for the mapping.
+**On-disk names:** Vault workflows use vendor filenames in `Coding Projects/Recession Alert/Raw Data/` (`CMHI_DATA.xlsx`, `MonthlyData (4).xlsx`, `OPTIMUM_DATA.xlsx`, `WeeklyData (2).xlsx`). Optional skill mirrors use normalized filenames (`cmhi_data.xlsx`, `monthly_data_4.xlsx`, `optimum_data.xlsx`, `weekly_data_2.xlsx`) only after mirror-divergence checks.
 
 ---
 
@@ -69,7 +69,7 @@ Wide sheet: NBER, SuperIndex, diffusion, RFE ensemble, many model columns, norma
 | Unnamed: 0 (renamed DATE in code) | Month date |
 | RFE-5 … RFE-15 | Binary ensemble triggers at different model counts |
 
-**Loader in reference code:** `RFE-6` from this sheet for `load_recession`.
+**Loader status:** Legacy cross-check only. The current loader uses the `DATA` sheet `RFE-6` series because `RFE VARIANTS` ends in 2019 in the current vendor export.
 
 ### Sheet: RAVI
 
@@ -81,7 +81,7 @@ World Leading Economic Index and related—monthly macro context.
 
 ### Sheet: WEEKLY DATA
 
-Weekly SuperIndex (`WEEK`, `WLIr`, `WLInr`, etc.). **Stale after ~2015** in many exports; reference implementation prefers **`weekly_data_2.xlsx` → WEEKLY LEI's** for current SUPERINDEX.
+Weekly SuperIndex (`WEEK`, `WLIr`, `WLInr`, etc.). **Stale after ~2015** in many exports; reference implementation prefers **`WeeklyData (2).xlsx` -> WEEKLY LEI's** for current SUPERINDEX.
 
 ### Sheet: INPUTS
 
@@ -149,7 +149,7 @@ Many columns: **MTLV2**, **SIGS**, **DCOM**, **VIX**, **%>50DMA**, **%200DMA**, 
 2. **RAVI forward columns:** Future return columns are hindsight—never feed them as same-day features.
 3. **Gen-2 revisions:** Near-term probabilities can revise for a few days—document if you simulate point-in-time.
 4. **OPTIMUM / STM:** In-sample optimization—use holdout, walk-forward, and DSR.
-5. **Monthly WEEKLY DATA vs WEEKLY LEI's:** Use **`weekly_data_2.xlsx`** for up-to-date SUPERINDEX join in `load_recession`.
+5. **Monthly WEEKLY DATA vs WEEKLY LEI's:** Use **`WeeklyData (2).xlsx`** for up-to-date SUPERINDEX join in `load_recession`.
 
 ---
 
@@ -157,12 +157,12 @@ Many columns: **MTLV2**, **SIGS**, **DCOM**, **VIX**, **%>50DMA**, **%200DMA**, 
 
 | Loader | Source file / sheet | Key outputs |
 |--------|---------------------|-------------|
-| `load_cmhi` | cmhi_data.xlsx / DAILY | SP500, DIFF, CMHI |
-| `load_recession` | monthly_data_4.xlsx / RFE VARIANTS + weekly_data_2.xlsx / WEEKLY LEI's (+ optional monthly WEEKLY DATA for WLIr) | RFE-6, SUPERINDEX, WLIr |
-| `load_breadth_extended` | weekly_data_2.xlsx / SP500 BREADTH DATA | MTLV2, SIGS, DCOM, VIX, %>50DMA |
-| `load_trendex` | weekly_data_2.xlsx / TRENDEX PROB MODELS | TDIFF, NET P, TOP, BOT |
-| `load_gen2` | weekly_data_2.xlsx / GEN-2 PROB MODELS | P(TOP)*, P(BOT)* |
-| `load_mf_prob` | weekly_data_2.xlsx / SP500 MF PROB MODEL | NET AVG, NET TOP3, BIGBOT, BIGTOP, NET DIFF |
-| `load_optimum` | optimum_data.xlsx / OPTIMUM | TRADE, DIFFN, OPT-CMHI, STM |
+| `load_cmhi` | CMHI_DATA.xlsx / DAILY | SP500, DIFF, CMHI |
+| `load_recession` | MonthlyData (4).xlsx / DATA + WeeklyData (2).xlsx / WEEKLY LEI's (+ RFE VARIANTS overlap check and optional WEEKLY DATA for WLIr) | RFE-6, SUPERINDEX, WLIr |
+| `load_breadth_extended` | WeeklyData (2).xlsx / SP500 BREADTH DATA | MTLV2, SIGS, DCOM, VIX, %>50DMA |
+| `load_trendex` | WeeklyData (2).xlsx / TRENDEX PROB MODELS | TDIFF, NET P, TOP, BOT |
+| `load_gen2` | WeeklyData (2).xlsx / GEN-2 PROB MODELS | P(TOP)*, P(BOT)* |
+| `load_mf_prob` | WeeklyData (2).xlsx / SP500 MF PROB MODEL | NET AVG, NET TOP3, BIGBOT, BIGTOP, NET DIFF |
+| `load_optimum` | OPTIMUM_DATA.xlsx / OPTIMUM | TRADE, DIFFN, OPT-CMHI, STM |
 
 See `loaders-and-merge.md` for merge order and pitfalls.
