@@ -1,0 +1,48 @@
+{
+  "skill_name": "grading-rubric",
+  "evals": [
+    {
+      "id": 0,
+      "expectations": [
+        "outputs/RUBRIC.md exists with valid YAML frontmatter and at least 4 weighted criteria (excluding regression_trip_wire)",
+        "RUBRIC.md frontmatter has composite_direction set to 'higher' AND domain_confidence set to one of high|medium|low",
+        "At least one non-trip-wire criterion explicitly addresses drawdown control or downside risk (criterion name or definition contains drawdown, downside, dd, or tail-risk)",
+        "regression_trip_wire criterion is present in RUBRIC.md with hard_gate: true and weight: 0",
+        "outputs/scorer.py exists, is valid Python (parses without SyntaxError), and prints 'composite:' to stdout when run on synthetic best-case scores.json",
+        "outputs/PROGRAM.fragment.md exists and contains the literal string 'Compatible with auto-researcher SKILL.md' in its first 5 lines"
+      ],
+      "prompt": "I'm building an /auto researcher loop to optimize a momentum strategy on SPY using vectorbt. The signal is a crossover of two SMAs whose windows the agent will evolve. My eval prints the Sharpe ratio, max drawdown, and turnover after a 5-year backtest with realistic costs. Help me design the rubric so the agent doesn't just chase Sharpe and ignore drawdown — and so it doesn't discover degenerate shortcuts overnight. Use /grading-rubric.",
+      "expected_output": "Three artifacts (RUBRIC.md, scorer.py, PROGRAM.fragment.md) with criteria covering Sharpe quality, drawdown control, turnover or cost-awareness, plus regression_trip_wire. Each criterion has a gameability_note. PROGRAM.fragment carries the auto-researcher compatibility comment.",
+      "baseline_constraints": "BASELINE ONLY — simulate a user who wants a quick rubric written inline in chat, not a full skill output.\n\nRules you MUST follow:\n- Produce a single bulleted list of 3-5 rubric criteria in chat, with one-line descriptions.\n- Do NOT create RUBRIC.md, scorer.py, or PROGRAM.fragment.md as separate files.\n- Do NOT include gameability notes per criterion.\n- Do NOT include a regression_trip_wire criterion.\n- Do NOT include any reference to /auto researcher PROGRAM.md compatibility.\n- Keep the entire response under 250 words.\n\nThis simulates a user who just wants a quick metric brainstorm. Violating any rule invalidates the baseline run.",
+      "files": []
+    },
+    {
+      "id": 1,
+      "expectations": [
+        "outputs/RUBRIC.md exists with valid YAML frontmatter and at least 4 weighted criteria (excluding regression_trip_wire)",
+        "RUBRIC.md contains a hard_gate: true criterion (other than regression_trip_wire) — e.g., a tests_pass / suite_green / behavior_preserved gate — with a documented fail_reason field",
+        "At least one criterion's gameability_note explicitly addresses the 'delete code to inflate minimal-diff or simplify metrics' shortcut, OR a counter-criterion penalizes deletion (e.g., coverage_preserved, line_count_floor, deletion_penalty)",
+        "Every criterion in RUBRIC.md has a non-empty gameability_note string",
+        "outputs/scorer.py exists, is valid Python, and runs without errors when given a synthetic outputs/ dir with scores.json containing per-criterion floats"
+      ],
+      "prompt": "I want to use /auto researcher to refactor src/parser.py for readability. Each iteration runs `pytest tests/test_parser.py` and writes a unified diff to outputs/diff.patch. I need a rubric that values readability, never breaks tests, and doesn't let the agent score wins by just deleting code. Generate a scoring rubric for this loop.",
+      "expected_output": "RUBRIC.md with a tests_pass-style hard gate, criteria covering readability/structure/naming/minimal_diff, and an explicit gameability counter for the 'delete-code' shortcut. scorer.py runnable on synthetic input. PROGRAM.fragment.md present.",
+      "baseline_constraints": "BASELINE ONLY — simulate a user wedded to a single-metric mindset.\n\nRules you MUST follow:\n- Produce one suggested metric (e.g., 'readability score') as inline chat text.\n- Do NOT create RUBRIC.md, scorer.py, or PROGRAM.fragment.md as files.\n- Do NOT discuss gameability shortcuts or counter-criteria.\n- Do NOT include a hard_gate / tests_pass mechanism.\n- Do NOT mention regression_trip_wire or trip-wire concepts.\n- Keep the entire response under 200 words.\n\nViolating any rule invalidates the baseline run.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "expectations": [
+        "outputs/RUBRIC.md exists with valid YAML frontmatter and at least 3 weighted criteria (excluding regression_trip_wire)",
+        "RUBRIC.md criteria collectively cover: (a) specificity or concreteness of claims, (b) sourcing or citation discipline, AND (c) commitment-vs-hedging — all three concepts must be addressable from the criteria names + definitions",
+        "RUBRIC.md contains an 'Adversarial Reviewer Persona' section (or equivalent prominent persona block) and the persona text references buy-side, portfolio manager, PM, or institutional-investor context",
+        "outputs/PROGRAM.fragment.md exists and contains either 'CALIBRATION REQUIRED' or 'calibrate' guidance for min_delta when the rubric uses an LLM judge",
+        "RUBRIC.md and scorer.py both exist; scorer.py is valid Python and includes a non-empty PERSONA / ADVERSARIAL_PERSONA constant string when emitted in llm_judge mode"
+      ],
+      "prompt": "Design a rubric I can use with /recursive-refine on a 1-page macro research summary about Fed policy expectations through year-end. Audience is a buy-side portfolio manager skimming it before a 10am call. I want it to be specific, sourced, and not hedgy — and I want the loop to actually push it toward a publishable note, not a polished blob. Use /grading-rubric.",
+      "expected_output": "RUBRIC.md with criteria for specificity, sourcing, structural clarity, and non-hedginess; adversarial persona is a buy-side PM with limited time; PROGRAM.fragment.md with min_delta calibration guidance because this is llm_judge mode.",
+      "baseline_constraints": "BASELINE ONLY — simulate a user who wants the rubric in plain English in chat, not files.\n\nRules you MUST follow:\n- Produce 3-4 inline-chat suggestions for things to optimize (e.g., 'be specific', 'cite sources').\n- Do NOT create RUBRIC.md, scorer.py, or PROGRAM.fragment.md.\n- Do NOT define an adversarial persona section.\n- Do NOT mention min_delta calibration, LLM-judge variance, or temperature settings.\n- Do NOT mention regression_trip_wire or trip-wire concepts.\n- Keep the entire response under 180 words.\n\nViolating any rule invalidates the baseline run.",
+      "files": []
+    }
+  ]
+}
