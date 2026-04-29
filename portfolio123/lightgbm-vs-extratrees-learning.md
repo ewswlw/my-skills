@@ -83,6 +83,73 @@ When **features are scarce** and **noise is large**, LightGBM’s **sharp residu
 
 ---
 
+## Counter-regime: when LightGBM tends to win
+
+**In one line:** LightGBM’s “smart residual correction” becomes most useful when it is correcting **reproducible signal**, not market noise.
+
+### (1) More features → more good split candidates
+
+When features are few, LightGBM can keep digging into the same variables and create **past-only thresholds**. As the feature set grows, the model can explain stocks from more angles and rely less on one fragile factor.
+
+For equity AI Factor work, this is the regime where a broad feature set can help:
+
+- **fundamentals**,
+- **value**,
+- **quality**,
+- **momentum**,
+- **positioning / flow**,
+- **risk or stability descriptors**.
+
+With more genuinely useful candidates, boosting’s step-by-step corrections become cleaner because each tree has more chances to split on **real structure** rather than repeatedly carving noise from the same small inputs.
+
+### (2) Lower noise → residuals contain more real signal
+
+LightGBM struggles when residuals are mostly noise. It improves when the target and features become more stable through choices like:
+
+- better **target design**: sector-neutralization, outlier handling, excluding event-driven distortions,
+- smoother **feature engineering**: dampening short-term jitter and aligning indicator update timing,
+- cleaner **sample design**: avoiding periods or universes where the label definition is dominated by one-off effects.
+
+The point is not to make the data artificial; it is to reduce avoidable noise so the booster can focus on the repeatable part of the residual.
+
+### (3) Regularization, constraints, and validation are working
+
+LightGBM usually “blows up” because one or more controls are missing:
+
+- trees are too complex (**over-fragmentation**),
+- it learns too much (**too many trees**),
+- validation is weak (**not time-series**, or leakage exists).
+
+Conceptually effective controls:
+
+- lower **`learning_rate`** so the model learns slowly,
+- cap **`num_leaves`** / **`max_depth`** to suppress complexity,
+- raise **`min_data_in_leaf`** so it does not optimize to tiny stock subsets,
+- use feature / bagging sampling for robustness,
+- use rolling or time-series validation plus early stopping.
+
+When these are working, LightGBM’s sharpness becomes more stable instead of turning into threshold overfit.
+
+### (4) Clear top-bucket signal → LightGBM can hit harder
+
+Extra Trees often wins stability through averaging, but that same averaging can make it less sharp. In regimes where the market environment and factor effects are clearly defined, LightGBM is more likely to create upside in the **Top 1% to Top 10%** bucket.
+
+This matters for ranking-based operation: if the objective is not broad pointwise accuracy but stronger selection in the tradable tail, LightGBM can be valuable when top-bucket validation remains healthy.
+
+### (5) Enough data and walk-forward survival
+
+LightGBM has more flexibility, so limited data makes it easier to overfit. It becomes more compelling when there is enough history, such as long weekly samples, and walk-forward validation confirms:
+
+- performance is not only good in training,
+- the **Top 10%** bucket does not collapse in validation,
+- bad periods are explainable and survivable rather than repeated tail failures.
+
+### (6) Summary
+
+When **noise is large** and **features are few**, Extra Trees often has the advantage because averaging stabilizes predictions. When **features are rich**, **noise is controlled**, and **time-series validation plus regularization** are working, LightGBM can regain the advantage because its step-by-step residual improvement can target real structure and rank the strongest bucket more aggressively.
+
+---
+
 ## Relationship to `ai-factor-guide.md`
 
 Read **together with**:
