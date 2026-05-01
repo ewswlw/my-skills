@@ -131,18 +131,6 @@ source: AI-Driven Quant Investment Strategies Substack #34
 **Action:** Promoted to ai-factor-guide.md (ExtraTrees vs. LightGBM Decision Guideline)
 
 ---
-id: LEARN-20260323-001
-type: api_behavior
-confidence: high
-confirmations: 1
-promoted: true
-source: Skill sync — Portfolio123 API Guide + vault Notes
----
-**Context:** Comparing UI simulation to API backtest / live workflow
-**Discovery:** **UI rebalancing** behaves as **partial / if-needed** (lower turnover, positions persist). **API**-driven and many scripted flows imply **full refresh** to model ranks unless coded otherwise—**higher turnover**. Momentum strategies are especially sensitive; numbers are not interchangeable without checking semantics.
-**Action:** Promoted to api-reference.md (UI vs Platform — Rebalancing Semantics)
-
----
 id: LEARN-20260323-002
 type: strategy_insight
 confidence: high
@@ -187,7 +175,7 @@ promoted: true
 source: Strategy Book experiment loop — 2026-04-05
 ---
 **Context:** Strategy Book optimization loop using screen_backtest API + local Python ETF model
-**Discovery:** `screen_backtest` is a BUY-SIDE-ONLY backtest. It does NOT include sell rules, position-level execution, cash drag, or realistic slippage. It overstated CAGR by 40% (32.79% vs 23.43%) and Sharpe by 52% (1.37 vs 0.90) compared to the same strategy run as a native P123 Simulated Strategy. Max drawdown was understated by 25pp (-40% vs -65%). NEVER treat screen_backtest results as equivalent to a full strategy simulation.
+**Discovery:** `screen_backtest` is a BUY-SIDE-ONLY backtest. It does NOT include sell rules, position-level execution, cash drag, or full strategy-level slippage/execution modeling. Do not treat `screen_backtest` outputs as interchangeable with a native P123 Simulated Strategy; validate material claims with the full simulation path.
 **Action:** Added critical warning to api-reference.md. Added Validation Hierarchy to SKILL.md. Added Core Rules 8-11.
 
 ---
@@ -235,7 +223,7 @@ promoted: true
 source: Strategy Book experiment loop — 2026-04-05
 ---
 **Context:** Correlation calculation between screen backtest returns and local ETF model returns
-**Discovery:** Near-zero pairwise correlation (0.017) between screen backtest cumulative returns and locally-computed ETF returns was an artifact of: (a) different data sources, (b) different rebalancing frequencies embedded in the return streams, (c) temporal misalignment. This inflated the diversification bonus and made the composite metric misleadingly high. Correlation should only be computed between return series from the SAME simulation engine at the SAME frequency.
+**Discovery:** Near-zero pairwise correlation (0.017) between screen backtest cumulative returns and locally-computed ETF returns was an artifact of: (a) different data sources, (b) different rebalancing frequencies embedded in the return streams, (c) temporal misalignment. That produced a misleading diversification/composite picture. Correlation should only be computed between return series from the SAME simulation engine at the SAME frequency.
 **Action:** Added warning to strategy-templates.md validation blockquote.
 
 ---
@@ -601,13 +589,11 @@ confirmations: 1
 promoted: true
 source: P123 TAA ETF strategy search — 2026-04-13
 ---
-**Context:** screen_backtest (Tier 3) vs native simulation (Tier 2) discrepancy for ETF strategies
-**Discovery:** For ETF momentum TAA strategies, `screen_backtest` showed ~3.25% CAGR (Tier 3), but the same strategy in P123 native simulation showed **10.36% CAGR** (Tier 2) — a **3x underestimation** by screen_backtest. This is opposite to the typical stock strategy pattern where screen_backtest *overstates* CAGR.
+**Context:** screen_backtest (Tier 3) vs native simulation (Tier 2) for ETF strategies
+**Discovery:** For ETF momentum TAA, Tier 3 (`screen_backtest`) and Tier 2 (native Simulated Strategy) can diverge materially: the screen path is buy-side / filter-oriented, while full simulation models portfolio positions, rebalance rules, and execution together. There is no fixed mapping from Tier 3 headline metrics to Tier 2.
 
-Explanation: `screen_backtest` for ETF TAA only backtests the "screen" (buy-side filter), typically returning the single best-ranked ETF per period — it is not running a portfolio simulation. The native simulation holds N positions simultaneously, rebalances via ranking, and compounds correctly. The Tier 3 haircut of 30-40% is calibrated for *stock* strategies and should NOT be applied mechanically to ETF TAA.
-
-**Rule:** For ETF rotation strategies, use Tier 2 (native simulation) directly. Do not use Tier 3 screen_backtest results as estimates for ETF TAA performance — they will dramatically underestimate (not overestimate) the strategy.
-**Action:** Promoted to strategy-validation.md (ETF TAA Exception section) and api-reference.md warning
+**Rule:** For ETF rotation strategies, use Tier 2 for authoritative performance reporting. Use Tier 3 only for relative screening under shared Tier 3 settings.
+**Action:** Promoted to strategy-validation.md (ETF TAA — Tier 3 vs Tier 2) and Validation Hierarchy in SKILL.md
 
 ---
 id: LEARN-20260413-009

@@ -20,19 +20,11 @@ When two Portfolio123 outputs disagree, assume **different economic assumptions*
 2. **Turnover** from simulation is a **sanity** statistic—extreme turnover + high slippage assumptions = stress-test execution, not “alpha.”
 3. If the user’s vault has practitioner notes, cross-check: `file dump/Portfolio123/Portfolio123 Resources.md` (e.g. Layers of Return, turnover posts).
 
-## ETF TAA Exception — screen_backtest Underestimates (not Overstates)
+## ETF TAA — Tier 3 vs Tier 2
 
-For **ETF rotation / TAA strategies**, `screen_backtest` behaves opposite to stock strategies:
+For **ETF rotation / TAA**, `screen_backtest` (Tier 3) evaluates the **screen / buy-side** path on a schedule. A **native Simulated Strategy** (Tier 2) models **portfolio positions**, rebalance rules, and execution together. Those surfaces can **diverge materially** for the same ranking and universe—**do not** map Tier 3 CAGR or turnover to Tier 2 with a fixed fudge factor.
 
-| Source | Typical stock strategy | ETF TAA strategy |
-|--------|----------------------|------------------|
-| screen_backtest vs native simulation | Overstates CAGR 30-40% | **Understates CAGR ~3x** |
-
-**Reason:** `screen_backtest` applied to an ETF TAA screen returns the single best-ranked ETF per period (the "screen" filter). A proper TAA simulation holds N positions simultaneously and compounds correctly across all holdings. The 30-40% haircut calibrated for stock screens is **wrong** for ETF rotation — it will make strategies look worse than they are.
-
-**Rule:** For ETF rotation strategies, go directly to Tier 2 (native P123 Simulated Strategy). Skip Tier 3 screening entirely, or use it only for relative ranking between candidates — never for absolute CAGR estimates.
-
-**Validated 2026-04-13:** `screen_backtest` returned 3.25% CAGR; native simulation returned 10.36% CAGR for the same 18-ETF momentum strategy.
+**Rule:** Use Tier 2 for authoritative ETF TAA performance reporting. Use Tier 3 only for **relative** screening (ranking candidates under shared Tier 3 settings).
 
 ## ETF TAA Performance Benchmarks (2006-2026)
 
@@ -77,5 +69,5 @@ Compare the isolated Sharpe to the realized-trade attribution. **If they invert*
 
 ## Related
 
-- [api-reference.md](api-reference.md) — [UI vs Platform — Rebalancing Semantics](api-reference.md#ui-vs-platform-rebalancing)
+- [api-reference.md](api-reference.md) — endpoints, `screen_backtest` semantics, credits
 - [case-studies.md](case-studies.md) — worked examples where validation discipline matters

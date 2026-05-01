@@ -197,4 +197,3 @@ Pipeline pauses until user types `done`.
 
 - **[case-studies.md](case-studies.md)** — TAA pitfalls (`Ret1Y%Chg` vs `TotRet`), Core Combo pointer, vault index table.
 - **[strategy-validation.md](strategy-validation.md)** — when **screen** and **simulation** disagree.
-- **[api-reference.md](api-reference.md#ui-vs-platform-rebalancing)** — **UI vs API** rebalance semantics before comparing turnover or CAGR across environments.

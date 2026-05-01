@@ -102,7 +102,7 @@ All Strategy Book performance claims MUST be validated on the native P123 platfo
 | Screen backtest vs. simulated strategy | Results differ — screen is buy-side-only |
 | Local Python ETF model vs. P123 native ETF sim | Look-ahead bias, zero transaction costs |
 | Weighted-average portfolio math vs. native book | Mathematically incorrect — use weighted return series |
-| Cross-engine correlation artifacts | Diversification bonus inflated |
+| Cross-engine correlation artifacts | Misleading diversification/composite metrics |
 
 ## GUI-First, XML Fallback
 

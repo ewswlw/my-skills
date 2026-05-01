@@ -6,11 +6,10 @@
 3. [Universe](#universe)
 4. [Rank](#rank)
 5. [Screen](#screen)
-6. [UI vs Platform — Rebalancing Semantics](#ui-vs-platform-rebalancing)
-7. [Strategy](#strategy)
-8. [Data Series & Stock Factors](#data-series)
-9. [AI Factor](#ai-factor)
-10. [API Credits & Limits](#credits)
+6. [Strategy](#strategy)
+7. [Data Series & Stock Factors](#data-series)
+8. [AI Factor](#ai-factor)
+9. [API Credits & Limits](#credits)
 
 ---
 
@@ -293,32 +292,6 @@ client.screen_rolling_backtest({
     'transPrice': 1
 })
 ```
-
----
-
-## UI vs Platform — Rebalancing Semantics <a name="ui-vs-platform-rebalancing"></a>
-
-**Why this matters:** The **UI** and **API** do not interpret “rebalance every N days” the same way. Comparing a **screen backtest** to a **live/API workflow** without this distinction produces false conclusions—especially for **high-turnover** or **momentum** systems.
-
-### Platform UI (Simulated Strategy wizard)
-
-- **Partial rebalancing:** At each check, the UI tends to rebalance **only positions that drifted** or **violated rules**.
-- **Position persistence:** Holdings often **last longer**; sells happen when rules demand.
-- **Mental model:** “Check the portfolio every [frequency] and rebalance **if needed**.”
-- **Effect:** **Lower turnover**, more buy-and-hold bias in the simulation.
-
-### API & scripted automation (`screen_run`, `screen_backtest`, `strategy_*`, etc.)
-
-- **No interactive “if needed” layer:** Endpoints run **exactly** what the request encodes (subject to P123’s engine rules for that endpoint). There is no wizard-style **partial** rebalance unless **you** implement that logic.
-- **`screen_backtest` / `screen_run`:** Evaluate a **screen** on a schedule—distinct product surface from the **Simulated Strategy** wizard, but also **not** the same as UI partial rebalancing.
-- **`strategy_rebalance` / holdings ops:** Use for **live/paper** workflows; compare results to UI sims only after aligning **frequency**, **slippage**, and **position rules**.
-- **Effect:** Rank-driven systems often show **higher turnover** via API/script than via the **UI simulated strategy** path for the same *stated* rebalance frequency.
-
-### Implication for agents
-
-- **High-turnover momentum** (or any design that **depends** on frequent full refresh) may **not** match the UI simulation; validate with **API** or **portfolio simulation** settings aligned to your intent.
-- **Do not** treat UI backtest CAGR/turnover as interchangeable with API batch results without checking rebalance interpretation.
-- **Screen backtest vs portfolio simulation** (slippage on entry/exit vs ongoing weight maintenance) is a **separate** issue—see [strategy-validation.md](strategy-validation.md).
 
 ---
 

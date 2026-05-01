@@ -87,4 +87,3 @@ An 8-part Systematic Investing / Portfolio123 series that builds a global stock 
 Before treating any case study as “proof”:
 
 1. Read [strategy-validation.md](strategy-validation.md) (screen vs simulation).
-2. Read [api-reference.md](api-reference.md#ui-vs-platform-rebalancing) (UI vs API rebalance semantics).

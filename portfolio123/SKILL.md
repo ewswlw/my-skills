@@ -37,7 +37,6 @@ Automate every supported Portfolio123 workflow: API data collection, ranking sys
 | **Complete factor lookup** | full financial statement factor list, pre-built factor naming | [references/fundamental-data.md](references/fundamental-data.md) |
 | **Pipeline** | create-and-backtest, optimize-ranking, full-strategy-build, Strategy Book build & validate | [strategy-templates.md](strategy-templates.md) |
 | **Learning review** | review discoveries, promote learnings, DNA fingerprint | [learnings.md](learnings.md) |
-| **UI vs API rebalance semantics** | UI partial vs API full refresh, momentum mismatch, compare CAGR | [api-reference.md](api-reference.md) — UI vs Platform — Rebalancing Semantics |
 | **Screen vs simulation** | conflicting CAGR, turnover sanity, slippage interpretation | [strategy-validation.md](strategy-validation.md) |
 | **Named exemplars (TAA, Core Combo, etc.)** | Ret1Y%Chg, vault strategy recipes | [case-studies.md](case-studies.md) |
 | **Exhaustive factor name lookup** | factor not in quickref, spelling of pre-built names | [references/fundamental-data.md](references/fundamental-data.md) + vault `Portfolio123 Syntax Dictionary.md` OR `doc_detail.jsp` |
@@ -122,7 +121,6 @@ Automate every supported Portfolio123 workflow: API data collection, ranking sys
 | Macro constant | Was the FRED series current? Any stale data lag observed | learnings.md → references/macros-constants.md |
 | Academic strategy replication | Which formula pattern worked, what the P123 equivalent of the paper's metric is | learnings.md → references/formula-quick-reference.md |
 | Screen vs simulation conflict | Different CAGR/slippage/turnover between modes | learnings.md → strategy-validation.md |
-| UI vs API turnover mismatch | UI shows lower turnover than API for “same” strategy | learnings.md → api-reference.md § UI vs Platform |
 | ML model / algorithm choice | ExtraTrees vs LightGBM narrative matched user regime; top-decile vs RMSE story | learnings.md → lightgbm-vs-extratrees-learning.md |
 
 ## Graceful Degradation
