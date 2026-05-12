@@ -1,5 +1,6 @@
 ---
 name: portfolio123
+learnings_through: LEARN-20260502-001
 description: >
   Portfolio123 (P123) full-surface skill: automation, formula language, and data reference.
   Trigger on: Portfolio123, P123, p123api, DataMiner, ranking systems, screens, backtests,
@@ -8,8 +9,10 @@ description: >
   SMA, ATR, Bollinger), financial statement factors (Sales, OpInc, FCF, EPS, ROE, EBITDA, MktCap),
   macro/FRED constants (##FEDFUNDS, ##UST10YR, ##CPI, ##UNRATE), universe IDs (SP500, Prussell3000),
   replicating academic strategies on P123 (BAB, Piotroski, momentum, value, quality, low-vol),
-  and ML learning-logic questions (LightGBM vs ExtraTrees, bias-variance, few features, noisy labels,
-  top-decile ranking, residual chasing, crash months, 3MRel).
+  ML learning-logic questions (LightGBM vs ExtraTrees, bias-variance, few features, noisy labels,
+  top-decile ranking, residual chasing, crash months, 3MRel), and CV/validation mechanics
+  (cross-validation, early stopping, hyperparameter search, Final Model retraining, data leakage,
+  k-fold scoring vs improving).
 ---
 
 # Portfolio123 Agent Skill
@@ -17,6 +20,14 @@ description: >
 Automate every supported Portfolio123 workflow: API data collection, ranking systems, universes, screens, backtests, strategy creation (browser), AI Factor training and evaluation, pipelines, and self-improvement via continual learning.
 
 **Agent read order (default):** [Decision tree](#decision-tree--route-to-reference-file) (pick topic file) → [Core Rules](#core-rules) + [Validation Hierarchy](#validation-hierarchy) → open the linked `.md` for that task. For **ML/Python off-platform helpers**, see [pipeline/README.md](pipeline/README.md) (still subject to native P123 validation for reported performance).
+
+## Pre-flight (run before any P123 task)
+
+1. **Auth alive?** `p123_setup.get_client()` returns without error (loads `P123_API_ID` / `P123_API_KEY` from env).
+2. **Quota safe?** Inspect `quotaRemaining` from the last response (or run `p123_setup.check_credits()`). Warn at 80% used, hard-stop at 95%.
+3. **Known IDs only.** Strategy / screen / ranking IDs come from `p123_setup.STRATEGY_IDS` or `browser-workflows.md` § Strategy ID Discovery — the API has no listing endpoint (see `api-reference.md` § API Surface Map).
+4. **Tier decision.** `screen_backtest` = Tier 3 (rapid candidate screening only); native P123 simulation = Tier 1 (final). Never report Tier 3 as final; always label `ESTIMATED (Tier 3)`.
+5. **Output destination.** Save artifacts to `./p123-output/{operation}_{timestamp}.{csv|json}` — never to the skill folder.
 
 ## Decision Tree — Route to Reference File
 
@@ -31,6 +42,7 @@ Automate every supported Portfolio123 workflow: API data collection, ranking sys
 | **Strategy creation** | create strategy, Stock strategy, ETF strategy, TAA, wizard | [browser-workflows.md](browser-workflows.md) + [strategy-templates.md](strategy-templates.md) |
 | **Strategy buy/sell rules** | NoBars, EntryPrice, MaxPosRet%, trailing stop, time exit, rank sell | [references/technical-functions.md](references/technical-functions.md) |
 | **AI Factor** | configure, train, validate, evaluate, predictor, LightGBM, ExtraTrees | [ai-factor-guide.md](ai-factor-guide.md) + [browser-workflows.md](browser-workflows.md) |
+| **CV / Validation mechanics (concept)** | what does CV actually do, why training runs many times, k-fold scoring vs improving, Final Model, retrain on all data, early stopping concept, hyperparameter search rounds, data leakage, validation = scoring not training, AIFactor vs AIFactorValidation flow | [ai-factor-guide.md](ai-factor-guide.md) (What CV Actually Does) |
 | **LightGBM vs ExtraTrees (learning logic)** | few features, noisy labels, bias-variance, ranking top decile, residual chase, crash months, 3MRel, SP500, compare algorithms | [lightgbm-vs-extratrees-learning.md](lightgbm-vs-extratrees-learning.md) + [ai-factor-guide.md](ai-factor-guide.md) (Algorithms) |
 | **Strategy Book** | book, multi-strategy, combine strategies, portfolio combination, allocation | [strategy-templates.md](strategy-templates.md) (Pipeline 4) + [browser-workflows.md](browser-workflows.md) (Strategy Book Validation) |
 | **Quick factor lookup** | ~50 validated factors by category, common pitfalls | [factor-quickref.md](factor-quickref.md) |
@@ -67,7 +79,7 @@ Automate every supported Portfolio123 workflow: API data collection, ranking sys
 8. **Screen backtest is Tier 3 only:** `screen_backtest` is buy-side-only — does not include sell rules, position-level execution, or cash drag. See `api-reference.md` for details.
 9. **No local substitute backtesting:** NEVER use a custom Python backtester as a substitute for P123's native engine. See `strategy-templates.md` Validation Hierarchy blockquote.
 10. **Mandatory native validation:** Before reporting ANY performance numbers to the user, validate via native P123 simulation. Label Tier 3/4 results as "ESTIMATED (Tier 3)" or "ESTIMATED (Tier 4)" in both experiment log AND user-facing messages.
-11. **Portfolio math:** NEVER use weighted-average CAGR or max drawdown. Compute weighted return series first. Label all local estimates as "ESTIMATED (Tier 3/4)" in both experiment log AND user-facing messages.
+11. **Portfolio math:** NEVER use weighted-average CAGR or max drawdown — both are mathematically incorrect (drawdowns can coincide or offset; CAGR is non-additive). Compute the weighted return series first, then derive every metric from the combined series. NEVER optimize a synthetic composite metric (e.g., `CAGR × Sharpe × diversification_bonus`) across incompatible engines (`screen_backtest` + local Python + native sim) — such loops have produced 26.26% CAGR / 2.00 Sharpe declared victories that the native P123 book reported as 18.68% / 1.05. Label all local estimates as `ESTIMATED (Tier 3/4)` in both experiment log AND user-facing messages. <!-- source: LEARN-20260405-003, LEARN-20260405-006 -->
 
 ## Validation Hierarchy
 
@@ -122,6 +134,7 @@ Automate every supported Portfolio123 workflow: API data collection, ranking sys
 | Academic strategy replication | Which formula pattern worked, what the P123 equivalent of the paper's metric is | learnings.md → references/formula-quick-reference.md |
 | Screen vs simulation conflict | Different CAGR/slippage/turnover between modes | learnings.md → strategy-validation.md |
 | ML model / algorithm choice | ExtraTrees vs LightGBM narrative matched user regime; top-decile vs RMSE story | learnings.md → lightgbm-vs-extratrees-learning.md |
+| CV / Validation explanation given to user | Did the user confuse "training again during CV" with "model improving"? Did clarification of Final Model vs per-fold models land cleanly? | learnings.md → ai-factor-guide.md (What CV Actually Does) |
 
 ## Graceful Degradation
 
@@ -151,6 +164,19 @@ Apply the fix documented in `ranking-templates.md` validation checklist. If the 
 - **Screen** — Rule-based filter, backtestable
 - **Strategy** — Portfolio construction with rebalance rules
 - **Strategy Book** — Multi-strategy portfolio with allocation weights
+
+## Skill Hygiene
+
+Rules for any future refresh of this skill (e.g., `/portfolio123` invoked with "absorb new learnings"):
+
+- **Target length:** keep `SKILL.md` between 180-230 lines. Reference files have no fixed budget — depth there is fine.
+- **No excessive don'ts:** every "do not" must be paired with a concrete positive action ("instead, use X").
+- **Concrete examples:** every new rule must point to a file/line/snippet, never abstract guidance.
+- **Surgical edits:** modify only the in-scope files for a given refresh; never refactor adjacent factor/strategy/ML content.
+- **Provenance mandatory:** every absorbed block in a reference file must carry `<!-- source: LEARN-id -->` (or `docs/...` path) so audits can grep back to origin.
+- **Refresh delta loop:** compare the `learnings_through:` frontmatter marker against the head of `ce-docs/learnings.md` in the project workspace. Only entries with `id:` newer than the marker need auditing.
+- **Promotion filter:** entries whose `Action:` field reads `No action needed` are session-bootstrap noise — never promoted. Strategy-specific entries (named recipes, specific weights, regime thresholds, strategy IDs) are also never promoted.
+- **Marker update:** at the end of every refresh, bump `learnings_through:` to the latest absorbed `LEARN-id`.
 
 ## Constitution
 

@@ -37,6 +37,27 @@ Login, strategy creation, AI Factor configuration, snapshot-verify pattern, and 
 
 Every action: **snapshot → act → wait → snapshot → verify**. If verify fails, retry with alternative selector before escalating.
 
+## Strategy ID Discovery
+
+The API has no listing endpoint (see `api-reference.md` § API Surface Map). To enumerate every Simulated Strategy on the account and capture its integer ID:
+
+1. Navigate to `https://www.portfolio123.com/app/opener/SIM`
+2. Wait for the strategy list to render
+3. Extract all integer IDs via the embedded checkbox `value` attributes:
+
+```javascript
+[...document.querySelectorAll('input[type=checkbox][id^=select]')]
+  .map(el => parseInt(el.value, 10));
+```
+
+Each checkbox has `id="select0"`, `select1`, ... and its `value` is the integer strategy ID consumed directly by `client.strategy(strategy_id=...)`, `client.strategy_holdings(...)`, and every other `/strategy/{id}/*` endpoint.
+
+**Why this URL, not `/app/opener/ptf`:** the `ptf` opener uses composite `data-id="item_SIM_{ext}_{cat}_{portId}"` strings requiring parsing (see § Strategy Summary Page & Navigation). The SIM opener exposes raw integer IDs as checkbox values — these are the exact values the API expects, no parsing.
+
+Persist discovered IDs in `p123_setup.STRATEGY_IDS` so subsequent sessions skip this step.
+
+<!-- source: LEARN-20260502-001 -->
+
 ## Strategy Creation Wizard (Stock or ETF)
 
 > **Using Cursor IDE browser tools?** See [Simulated Strategy Creation (Full Browser Workflow)](#cursor-ide-browser-mcp-automation--p123-specific-patterns) for MCP-specific patterns, stale-ref workarounds, and JS injection recipes.

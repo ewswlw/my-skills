@@ -85,6 +85,55 @@ The Method tab fields are **read-only while any trained model exists**. To chang
 5. Select new method → adjust Folds / Training Period / Holdout Period
 6. Go back to Models → **Add Model(s)** → select model → **Start**
 
+## What Cross-Validation Actually Does (Mechanics)
+
+**Critical conceptual point:** Validation in P123 AI Factor is **where the model gets scored and selected — not where it gets improved.** The training runs you see during CV are evaluation runs, not iterative improvement of one shared model. Misreading "training is running again" as "the model is getting better" is the most common AI Factor confusion.
+
+### The three stages
+
+1. **Training** — fit a model on training data
+2. **Validation** — score that fitted model on held-out data
+3. **Prediction** — apply the final chosen model to new data
+
+> **Rule:** Never train on validation data. Modifying splits or leaf values from validation feedback is **data leakage** — effectively training on the future.
+
+### Why training runs many times during CV
+
+With **k-fold CV** plus a **hyperparameter search**, total training runs = `candidate_configs × folds`. Example: 5 candidate parameter sets × 4 folds = **20 training runs**.
+
+These runs **do not accumulate or update one shared model.** Each run produces an independent model whose validation score contributes to the comparison. CV runs training in order to **compare** models — not to **improve** them.
+
+### What CV actually decides
+
+1. **Early stopping** — In LightGBM (and similar boosters), the cycle "add a tree → check validation score" repeats; training halts when the score stops improving. CV is deciding **how many trees** that configuration deserves.
+2. **Hyperparameters** — Configs A, B, C are each scored on the validation folds. The one with the best validation score is adopted. CV is deciding **which configuration** is best (`learning_rate`, `num_leaves`, `max_depth`, etc.).
+
+In short: CV is **where the model gets selected**, not where it gets built.
+
+### The Final Model is built separately
+
+The k models built across CV folds are **not** the model used for live prediction. The flow is:
+
+```
+CV (model evaluation across all folds × all candidate configs)
+        ↓
+Best hyperparameter configuration determined
+        ↓
+Retrain ONE Final Model from scratch on ALL the data
+        ↓
+FINAL MODEL → Prediction
+```
+
+### Operational implications for P123 AI Factor
+
+- **Don't conflate "training again" with "improving."** During Validation runs, P123 is scoring configurations, not iteratively perfecting one model.
+- **More folds buy reliability of scoring** (and a longer saved-prediction window when Save Validation Predictions = Yes), not a "smarter" model.
+- **`AIFactor()` (live scoring, Predictors tab) ships the Final Model** — retrained on the full dataset after the best config is picked. This is the model used in production.
+- **`AIFactorValidation()` queries the per-fold validation models** (only available when Save Validation Predictions = Yes) — that's how it serves predictions older than the 5-year `AIFactor()` cap, by reading each fold's held-out window.
+- **Hyperparameter sweeps cost compute multiplicatively.** Budget: `configs × folds × per-fold training time`. Plan worker selection accordingly (Basic vs Premium vs Extra30 vs HighMem in the Validate Model dialog).
+
+**Source:** Opti_Quant, *The True Role of Validation (CV) #2: Validation Is Not "Where the Model Gets Updated"* (2026-05-11), `aidrivenquantinvestment.substack.com`. Vault clipping: `Clippings/The True Role of Validation (CV) 2 Validation Is Not Where the Model Gets Updated.md`.
+
 ## Algorithms
 
 - **LightGBM** — High performance, directional targets. Risk: overfitting, high turnover. Mode: "efficiently try to hit the target" — sharper but can miss badly when it overfits.

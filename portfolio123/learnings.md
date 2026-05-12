@@ -22,6 +22,8 @@ promoted: false
 - **3+ confirmations** → Auto-promote to target reference file (additive only)
 - **1 high-confidence** (e.g., validated factor name) → Promote immediately
 - **Contradiction** (new learning conflicts existing) → Flag for user review, do not auto-update
+- **`Action: No action needed` filter** → Session-bootstrap noise (self-test confirmations) is never promoted, regardless of confidence
+- **Strategy-specific filter** → Named recipes, specific factor weights, regime thresholds, and strategy IDs are never promoted to reference files — they belong in `case-studies.md` only or stay in the project-local `ce-docs/learnings.md`
 
 ## Auto-Update Targets
 
@@ -739,3 +741,27 @@ costs: $0.005/share commission, 0.5% variable slippage
 period: 01/01/2017 – 10/27/2025
 regime_notes: Marginal alpha (+1.80% total active return) over 9 years on SP500. Deeper drawdown than benchmark (-3.83pp). Quality kicker at 5% is negligible. SP500 LargeCap universe may be too efficient for AI factor edge. Consider broader universe (Russell 3000, Easy to Trade US) or higher quality weight.
 ---
+
+---
+id: LEARN-20260501-001
+type: api_limitation
+confidence: high
+confirmations: 1
+promoted: true
+source: project ce-docs/learnings.md — 2026-05-01, absorbed during /portfolio123 refresh 2026-05-12
+---
+**Context:** Attempting to retrieve a list of all simulated strategies for a specific account via the Portfolio123 API.
+**Discovery:** The P123 REST API has **no account-level listing endpoint** for any resource type. There is no `GET /strategies`, no `GET /strategy/list`, no `GET /account/strategies`, no equivalent for screens or ranking systems. Every endpoint (e.g., `/strategy/{id}/*`) requires a known integer ID. The API is designed for automation of *known* entities, not discovery. Strategy IDs must come from the web UI (see browser-workflows.md § Strategy ID Discovery) or be stored persistently in `p123_setup.STRATEGY_IDS`.
+**Action:** Promoted to api-reference.md (new § API Surface Map). Promoted to SKILL.md Pre-flight step 3.
+
+---
+id: LEARN-20260502-001
+type: ui_navigation
+confidence: high
+confirmations: 1
+promoted: true
+source: project ce-docs/learnings.md — 2026-05-02, absorbed during /portfolio123 refresh 2026-05-12
+---
+**Context:** Navigating to the Simulated Strategies list to retrieve strategy IDs for the account.
+**Discovery:** The fastest URL for enumerating Simulated Strategies and their integer IDs is `https://www.portfolio123.com/app/opener/SIM`. The page lists strategies with their IDs embedded in checkbox values (`<input type="checkbox" id="select0" value="{integer_strategy_id}">`). Extraction one-liner: `[...document.querySelectorAll('input[type=checkbox][id^=select]')].map(el => parseInt(el.value, 10))`. The integer IDs returned are the exact values the API expects — no parsing needed. The alternative `/app/opener/ptf` opener uses composite `data-id="item_SIM_{ext}_{cat}_{portId}"` strings that require parsing the last number.
+**Action:** Promoted to browser-workflows.md (new § Strategy ID Discovery).

@@ -13,6 +13,26 @@
 
 ---
 
+## API Surface Map
+
+The Portfolio123 REST API is organized into seven functional domains. **Every endpoint requires a known integer ID — there are no account-level listing endpoints** (no `GET /strategies`, no `GET /screens`, no `GET /rankingSystems`). ID discovery must happen via the web UI (see `browser-workflows.md` § Strategy ID Discovery) or be stored in `p123_setup.STRATEGY_IDS`. Do not waste calls searching for a discovery endpoint.
+
+| Domain | Path | Purpose |
+|---|---|---|
+| Strategy | `/strategy/{id}/*` | Details, holdings, transactions, simulations, rebalancing |
+| Screen | `/screen/*` | Run screens, standard backtests, rolling backtests |
+| Rank | `/rank/*` | Performance, ranks, ranking system updates |
+| Data | `/data/*` | Bulk PIT data, universe data, price history |
+| AI Factor | `/aiFactor/predict/{id}` | Predictions from trained ML models |
+| Custom Series & Factors | `/dataSeries/*`, `/stockFactor/*` | Upload custom time series and per-stock factors |
+| Universe | `/universe/*` | Update custom universe definitions |
+
+All requests carry a Bearer token from `/auth`; responses include `cost` and `quotaRemaining` for client-side credit tracking.
+
+<!-- source: LEARN-20260501-001, docs/api/portfolio123-api-capabilities.md -->
+
+---
+
 ## Setup & Authentication <a name="setup"></a>
 
 ```python
@@ -233,7 +253,9 @@ client.screen_run({'screen': 12345}, True)
 
 ### screen_backtest() — Backtest a screen (5 credits)
 
-> **NOTE:** `screen_backtest` is a **BUY-SIDE-ONLY** backtest. It does NOT include sell rules, position-level execution, cash drag, or realistic slippage modeling. **Do not treat screen_backtest results as equivalent to a full strategy simulation.** Use for rapid candidate screening; validate with native P123 simulation. See SKILL.md Validation Hierarchy.
+> **NOTE:** `screen_backtest` is a **BUY-SIDE-ONLY** backtest. It does NOT include sell rules, position-level execution, cash drag, or realistic slippage modeling. **Do not treat screen_backtest results as equivalent to a full strategy simulation.** Measured discrepancy vs the same strategy run as a native P123 Simulated Strategy: **+40% CAGR overstatement, +52% Sharpe overstatement, -25pp max-drawdown understatement** (2026-04-05). Use for rapid candidate screening only; validate with native P123 simulation. See SKILL.md Validation Hierarchy.
+>
+> <!-- source: LEARN-20260405-001 -->
 
 ```python
 client.screen_backtest({
@@ -278,6 +300,12 @@ backtest = client.screen_backtest({
     'riskStatsPeriod': 'Monthly'
 }, True)
 ```
+
+<!-- source: LEARN-20260405-004 — both nested-object and integer-ID forms are accepted; `startDt` is silently clamped to ~2006-01-01 for Standard membership -->
+
+> **NOTE — Cross-engine correlation is meaningless.** Do NOT compute correlations between a `screen_backtest` return series and any return series from a different engine (native P123 simulation, local Python backtester, third-party data). Observed pairwise correlation between a `screen_backtest` cumulative return series and a locally computed ETF return series was `0.017` — but the number was an artifact of (a) different data sources, (b) different rebalance frequencies embedded in the streams, and (c) temporal misalignment, not real diversification. Correlation is only valid between return series from the **same engine at the same frequency**.
+>
+> <!-- source: LEARN-20260405-005 -->
 
 ### screen_rolling_backtest() — Rolling backtests (5 credits)
 
