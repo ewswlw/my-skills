@@ -83,6 +83,20 @@ skill-name/
     ??? assets/     - Files used in output (templates, icons, fonts)
 ```
 
+#### Description: the routing layer
+
+The frontmatter `description` is the only thing Claude sees when deciding whether to load the skill. Treat it as a router, not a summary. Five rules:
+
+1. **Write descriptions of at least 100 characters.** Short descriptions are invisible routers — under 100 chars and Claude misses the skill when the user types what they need naturally. Aim for 150–300 chars; very short descriptions see noticeably more missed triggers than longer ones.
+
+2. **Include 3+ exact phrases a real user would type.** Not paraphrases of the skill's job — the literal language someone produces when they need it. "plan my day" beats "daily planning assistance"; "this xlsx is broken" beats "spreadsheet repair." Mine prior user transcripts where possible; otherwise draft candidate phrasings and ask the user which match how they'd actually speak.
+
+3. **Avoid first-person voice; write the description as a routing instruction.** "Use when the user wants X" and "Activates whenever the task involves Y" both work — both describe the skill from the outside. "I'll help you with X" or "I can do Y" cause undertriggering because they read as conversational filler rather than dispatch criteria.
+
+4. **Lead with what + when inside the first 250 characters.** Claude reads top-down; if the purpose and trigger aren't clear before character 250, the skill is at risk of being skipped. Open with the verb and the trigger, defer caveats and edge cases to later in the string.
+
+5. **Add at least one "Do NOT use for X → use /Y" boundary.** Almost every well-routed skill in this vault pairs a negative trigger with a pointer to the correct alternative. Without it, Claude picks the nearest match and the wrong skill fires. Aim for three if there are genuinely competing skills; accept one if the competition is narrow. Don't fabricate boundaries to hit a count.
+
 #### Progressive Disclosure
 
 Skills use a three-level loading system:
@@ -133,6 +147,27 @@ ALWAYS use this exact template:
 Input: Added user authentication with JWT tokens
 Output: feat(auth): implement JWT-based authentication
 ```
+
+#### Body discipline
+
+Once routing has put Claude inside the skill, four placement and completion rules carry most of the body's quality:
+
+1. **Lead the body with a read-first table.** When the skill depends on bundled references, scripts, or external files, place a small table at the very top of the body — three columns: `Source · Path / Location · What to extract`. "Check the relevant files" is not an instruction; a table with paths and extraction criteria is. Skills that skip this step routinely fail to load their own references.
+
+   Example:
+
+   ```
+   | Source                | Path                     | What to extract                                  |
+   |-----------------------|--------------------------|--------------------------------------------------|
+   | Eval schema reference | `references/schemas.md`  | Exact JSON shape for `evals.json`, `grading.json`|
+   | Grader instructions   | `agents/grader.md`       | Grading rubric and output format                 |
+   ```
+
+2. **Name 3+ alternative skills in the out-of-scope section.** Pair every "Do NOT use for X" with "→ Use /Y instead." Multiple named alternatives beat a single boundary because the failure mode is competing skills, not absence of guidance. "Do NOT use for postmortems" is advisory; "Use /postmortem instead" routes correctly. Aim for three; accept fewer if the competitive surface is genuinely narrow. (This is *negative* routing — the *positive* trigger logic stays in the description, per the bullet above.)
+
+3. **Place critical rules in the first 100 lines.** *Critical* means anything that, if violated, makes the output wrong or unsafe — safety rules, output formats, approval gates, hard prohibitions. Claude reads the top of the file carefully and discounts the bottom as session context grows. Long worked examples and edge-case appendices belong at the bottom.
+
+4. **Add an exit checklist when partial output is worse than no output.** For deliverables, audits, and multi-step transforms, end the body with an explicit checklist block. Without one, Claude tends to declare "done" at the first plausible stopping point. The checklist makes "done" mean every box ticked and confirmed in the response, not "draft generated."
 
 ### Writing Style
 
@@ -340,6 +375,16 @@ This is optional, requires subagents, and most users won't need it. The human re
 ## Description Optimization
 
 The description field in SKILL.md frontmatter is the primary mechanism that determines whether Claude invokes a skill. After creating or improving a skill, offer to optimize the description for better triggering accuracy.
+
+### Fast diagnostic: the 10-prompt benchmark
+
+Before running the full optimizer below, run a lightweight pre-flight. Send 10 realistic prompts that *should* trigger the skill and diagnose the result before changing anything:
+
+- **<9/10 fire** → the description is undertriggering. Fix the description first using the routing-layer rules under Skill Writing Guide. Don't touch the body or run the full optimizer yet.
+- **Fires on prompts it shouldn't** → the description is overtriggering. Add negative triggers with explicit `→ use /Y` pointers; don't shorten the description, sharpen the boundary.
+- **9–10/10 fire and no false positives** → the description is doing its job. Skip the optimizer or save it for a later round.
+
+This 10-prompt diagnostic is separate from and faster than the full 20-query 60/40 train/test loop below; running it first usually decides whether the heavier optimizer is worth invoking at all.
 
 ### Step 1: Generate trigger eval queries
 
